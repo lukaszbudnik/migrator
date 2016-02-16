@@ -1,10 +1,14 @@
-# Migrator
+# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator)
 
-DB migration tool written in go
+DB migration tool written in go.
 
 # Status
 
 Work in progress.
+
+# Go versions
+
+1.2, 1.3, 1.4, 1.5, 1.6 are supported. See .travis.yml for more details.
 
 # License
 
