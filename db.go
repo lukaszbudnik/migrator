@@ -128,7 +128,6 @@ func applyMigrations(config Config, migrations []Migration) error {
 	}
 
 	for _, m := range migrations {
-		fmt.Println(m)
 		var schemas []string
 		if m.MigrationType == ModeTenantSchema {
 			schemas = tenants
