@@ -8,9 +8,10 @@ import (
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	SourceDir     string   `yaml:"sourceDir" validate:"nonzero"`
+	BaseDir       string   `yaml:"baseDir" validate:"nonzero"`
 	Driver        string   `yaml:"driver" validate:"nonzero"`
 	DataSource    string   `yaml:"dataSource" validate:"nonzero"`
+	TenantsSQL    string   `yaml:"tenantsSql"`
 	SingleSchemas []string `yaml:"singleSchemas" validate:"min=1"`
 	TenantSchemas []string `yaml:"tenantSchemas"`
 }
