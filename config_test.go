@@ -7,13 +7,13 @@ import (
 
 func TestReadConfigFromFile(t *testing.T) {
 
-	config, err := readConfigFromFile("test/migrator.yaml")
+	config, err := readConfigFromFile("test/migrator-test.yaml")
 
 	assert.Nil(t, err)
-	assert.Equal(t, "test/migrations", config.SourceDir)
-	assert.Equal(t, "test/migrations", config.SourceDir)
+	assert.Equal(t, "test/migrations", config.BaseDir)
+	assert.Equal(t, "select name from migrator_tenants", config.TenantsSQL)
 	assert.Equal(t, "postgres", config.Driver)
-	assert.Equal(t, "user=postgres dbname=postgres host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
+	assert.Equal(t, "user=postgres dbname=migrator-test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 

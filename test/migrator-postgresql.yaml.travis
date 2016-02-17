@@ -1,0 +1,10 @@
+# migrator configuration
+baseDir: test/migrations
+driver: postgres
+dataSource: "user=postgres dbname=migrator-test host=127.0.0.1 port=5432 sslmode=disable"
+singleSchemas:
+  - public
+  - ref
+  - config
+tenantSchemas:
+  - tenants
