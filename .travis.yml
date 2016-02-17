@@ -14,7 +14,7 @@ go:
   - tip
 
 before_script:
-  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -c 'create database \"migrator-test\" -U postgres; fi"
+  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -c 'create database \"migrator-test\"' -U postgres; fi"
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -f test/create-test-tenants.sql -U postgres -d migrator-test; fi"
   - sh -c "if [ '$DB' = 'postgresql' ]; then cp test/migrator-postgresql.yaml test/migrator.yaml; fi"
 
