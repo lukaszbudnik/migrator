@@ -2,9 +2,11 @@ language: go
 
 env:
   - DB=postgresql
+  - DB=mysql
 
 services:
   - postgresql
+  - mysql
 
 go:
   - 1.2
@@ -14,9 +16,11 @@ go:
   - tip
 
 before_script:
-  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -c 'create database \"migrator-test\"' -U postgres; fi"
-  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -f test/create-test-tenants.sql -U postgres -d migrator-test; fi"
-  - sh -c "if [ '$DB' = 'postgresql' ]; then cp test/migrator-postgresql.yaml.travis test/migrator.yaml; fi"
+  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"
+  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -d migrator_test -f test/create-test-tenants.sql; fi"
+  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -e 'create database migrator_test'; fi"
+  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -D migrator_test < test/create-test-tenants.sql; fi"
+  - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
 
 script:
   - go test -v

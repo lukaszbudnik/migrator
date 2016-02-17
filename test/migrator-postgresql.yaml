@@ -1,6 +1,6 @@
 baseDir: test/migrations
-driver: mysql
-dataSource: "root@(192.168.99.100:33306)/migrator_test"
+driver: postgres
+dataSource: "user=postgres dbname=A host=B port=C sslmode=disable"
 singleSchemas:
   - public
   - ref
