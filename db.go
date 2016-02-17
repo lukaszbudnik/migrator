@@ -3,13 +3,14 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"strings"
 )
 
 const (
-	migrationsTableName     = "migrator_migrations"
-	defaultTenantsTableName = "migrator_tenants"
+	migrationsTableName     = "public.migrator_migrations"
+	defaultTenantsTableName = "public.migrator_tenants"
 	createMigrationsTable   = `
   create table if not exists %v (
     id serial primary key,
@@ -17,20 +18,21 @@ const (
 		source_dir varchar(200) not null,
     file varchar(200) not null,
 		type int not null,
-    schema varchar(200) not null,
-    created timestamp default (now() at time zone 'utc')
+    db_schema varchar(200) not null,
+    created timestamp default now()
 	)
   `
 	createDefaultTenantsTable = `
 	create table if not exists %v (
 		id serial primary key,
 		name varchar(200) not null,
-		created timestamp default (now() at time zone 'utc')
+		created timestamp default now()
 	)
 	`
-	selectMigrations     = "select distinct name, source_dir, file, type from %v order by name, source_dir"
-	insertMigration      = "insert into %v (name, source_dir, file, type, schema) values ($1, $2, $3, $4, $5)"
-	defaultSelectTenants = "select name from %v"
+	selectMigrations          = "select distinct name, source_dir, file, type from %v order by name, source_dir"
+	insertMigrationPostgresql = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
+	insertMigrationMysql      = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
+	defaultSelectTenants      = "select name from %v"
 )
 
 func listAllDBTenants(config Config, db *sql.DB) ([]string, error) {
@@ -121,6 +123,13 @@ func applyMigrations(config Config, migrations []Migration) error {
 		return err
 	}
 
+	var insertMigration string
+	if config.Driver == "postgres" {
+		insertMigration = insertMigrationPostgresql
+	} else {
+		insertMigration = insertMigrationMysql
+	}
+
 	query := fmt.Sprintf(insertMigration, migrationsTableName)
 	insert, err := db.Prepare(query)
 	if err != nil {
@@ -136,11 +145,16 @@ func applyMigrations(config Config, migrations []Migration) error {
 		}
 
 		for _, s := range schemas {
-			sql := strings.Replace(m.Contents, "{schema}", s, -1)
-			_, err = tx.Exec(sql)
-			if err != nil {
-				tx.Rollback()
-				return err
+			contents := strings.Replace(m.Contents, "{schema}", s, -1)
+			sqls := strings.Split(contents, ";")
+			for _, sql := range sqls {
+				if strings.TrimSpace(sql) != "" {
+					_, err = tx.Exec(sql)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
 			}
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s)
 			if err != nil {
