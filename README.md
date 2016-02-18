@@ -28,6 +28,7 @@ Currently migrator supports the following databases:
 
 * PostgreSQL - true multitenant database, with transactions spanning DDL statements
 * MySQL - pseudo multitenant database, transactions do not span DDL statements
+* MariaDB - enhanced MySQL
 
 # Examples
 
@@ -45,6 +46,14 @@ MySQL:
 $ docker/mysql-create-and-setup-container.sh
 $ go test -v
 $ docker/mysql-destroy-container.sh
+```
+
+MariaDB:
+
+```
+$ docker/mariadb-create-and-setup-container.sh
+$ go test -v
+$ docker/mariadb-destroy-container.sh
 ```
 
 Or see `.travis.yml` to see how it's done on Travis.
