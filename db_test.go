@@ -38,5 +38,5 @@ func TestApplyMigrations(t *testing.T) {
 	dbMigrations, err = listAllDBMigrations(*config)
 
 	assert.Nil(t, err)
-	assert.Len(t, dbMigrations, 6)
+	assert.Len(t, dbMigrations, 12)
 }

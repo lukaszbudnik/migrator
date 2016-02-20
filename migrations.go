@@ -1,20 +1,23 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
-	// "time"
+	"strings"
+	"time"
 )
 
 // MigrationType stores information about type of migration
 type MigrationType uint32
 
 const (
-	// ModeSingleSchema is used to mark single schema migrations
+	// ModeSingleSchema is used to mark single migration
 	ModeSingleSchema MigrationType = 1
-	// ModeTenantSchema is used to mark tenant schema migrations
+	// ModeTenantSchema is used to mark tenant migrations
 	ModeTenantSchema MigrationType = 2
 )
 
@@ -26,12 +29,76 @@ type MigrationDefinition struct {
 	MigrationType MigrationType
 }
 
+func (m MigrationDefinition) String() string {
+	return fmt.Sprintf("| %-10s | %-20s | %-30s | %4d |", m.SourceDir, m.Name, m.File, m.MigrationType)
+}
+
+func migrationDefinitionString(migrations []MigrationDefinition) string {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 75))
+	buffer.WriteString("+\n")
+
+	buffer.WriteString(fmt.Sprintf("| %-10s | %-20s | %-30s | %4s |\n", "SourceDir", "Name", "File", "Type"))
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 75))
+	buffer.WriteString("+\n")
+
+	for _, m := range migrations {
+		buffer.WriteString(fmt.Sprintf("%v\n", m))
+	}
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 75))
+	buffer.WriteString("+\n")
+
+	return buffer.String()
+}
+
 // Migration embeds MigrationDefinition and contains its contents
 type Migration struct {
 	MigrationDefinition
 	Contents string
-	// Schema    string
-	// Created		time.Time
+}
+
+// DBMigration embeds MigrationDefinition and contain other DB properties
+type DBMigration struct {
+	MigrationDefinition
+	Schema  string
+	Created time.Time
+}
+
+func (m DBMigration) String() string {
+	created := fmt.Sprintf("%v", m.Created)
+	index := strings.Index(created, ".")
+	created = created[:index]
+	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
+}
+
+func dbMigrationString(migrations []DBMigration) string {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 111))
+	buffer.WriteString("+\n")
+
+	buffer.WriteString(fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4s |\n", "SourceDir", "Name", "File", "Schema", "Created", "Type"))
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 111))
+	buffer.WriteString("+\n")
+
+	for _, m := range migrations {
+		buffer.WriteString(fmt.Sprintf("%v\n", m))
+	}
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 111))
+	buffer.WriteString("+\n")
+
+	return buffer.String()
 }
 
 func filterSchemaDirs(sourceDir string, files []os.FileInfo, schemaDirs []string) []string {
@@ -106,29 +173,45 @@ func listAllMigrations(config Config) ([]MigrationDefinition, error) {
 
 }
 
-func computeMigrationsToApply(allMigrations []MigrationDefinition, dbMigrations []MigrationDefinition) []MigrationDefinition {
+func flattenDBMigrations(dbMigrations []DBMigration) []MigrationDefinition {
+	var flattened []MigrationDefinition
+	var previousMigration MigrationDefinition
+	for i, m := range dbMigrations {
+		if i == 0 || m.MigrationType == ModeSingleSchema || m.MigrationDefinition != previousMigration {
+			flattened = append(flattened, m.MigrationDefinition)
+			previousMigration = m.MigrationDefinition
+		}
+	}
+	return flattened
+}
+
+func computeMigrationsToApply(allMigrations []MigrationDefinition, dbMigrations []DBMigration) []MigrationDefinition {
+	// flatten dbMigrations
+	flattenedDBMigrations := flattenDBMigrations(dbMigrations)
+
 	var (
 		lenMin  int
 		longest []MigrationDefinition
 		out     []MigrationDefinition
 	)
-	if len(allMigrations) < len(dbMigrations) {
+	if len(allMigrations) < len(flattenedDBMigrations) {
 		lenMin = len(allMigrations)
-		longest = dbMigrations
+		longest = flattenedDBMigrations
 	} else {
-		lenMin = len(dbMigrations)
+		lenMin = len(flattenedDBMigrations)
 		longest = allMigrations
 	}
+
+	// compute difference
 	for i := 0; i < lenMin; i++ {
-		if (allMigrations[i].Name != dbMigrations[i].Name) &&
-			(allMigrations[i].SourceDir != dbMigrations[i].SourceDir) &&
-			(allMigrations[i].File != dbMigrations[i].File) {
+		if allMigrations[i] != flattenedDBMigrations[i] {
 			out = append(out, allMigrations[i])
 		}
 	}
 	for _, v := range longest[lenMin:] {
 		out = append(out, v)
 	}
+
 	return out
 }
 

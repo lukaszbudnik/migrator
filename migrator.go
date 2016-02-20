@@ -2,27 +2,37 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 )
 
 const (
-	defaultConfigFile = "migrator.yaml"
+	defaultConfigFile        = "migrator.yaml"
+	applyAction              = "apply"
+	listDBMigrationsAction   = "listDBMigrations"
+	listDiskMigrationsAction = "listDiskMigrations"
 )
 
 func main() {
 
 	configFile := flag.String("configFile", defaultConfigFile, "path to migrator.yaml")
-	verbose := flag.Bool("verbose", false, "prints more data to output")
+	action := flag.String("action", applyAction, fmt.Sprintf("migrator action to apply, valid actions are: %q", []string{applyAction, listDBMigrationsAction, listDiskMigrationsAction}))
+	verbose := flag.Bool("verbose", false, "set to true/1 to print more data to output")
 	flag.Parse()
+
+	if *action != applyAction && *action != listDBMigrationsAction && *action != listDiskMigrationsAction {
+		log.Fatalf("Unknown action to run %#v", *action)
+	}
 
 	config, err := readConfigFromFile(*configFile)
 	if err != nil {
 		log.Fatalf("Could not read config file %q ==> %q", *configFile, err)
 	}
 
-	log.Printf("Read configuration file ==> OK")
+	log.Println("Read configuration file ==> OK")
 	if *verbose {
-		log.Printf("Read configuration file ==> %#v", config)
+		log.Printf("Configuration file ==>\n%v\n", config)
 	}
 
 	allMigrations, err := listAllMigrations(*config)
@@ -32,8 +42,8 @@ func main() {
 
 	log.Printf("Read all migrations ==> OK")
 
-	if *verbose {
-		log.Printf("Read all migrations ==> %#v", allMigrations)
+	if *verbose || *action == listDiskMigrationsAction {
+		log.Printf("List of all disk migrations ==>\n%v\n", migrationDefinitionString(allMigrations))
 	}
 
 	dbMigrations, err := listAllDBMigrations(*config)
@@ -41,23 +51,27 @@ func main() {
 		log.Fatalf("Failed to read migrations from db ==> %q", err)
 	}
 
-	log.Printf("Read all db migrations ==> OK")
+	log.Println("Read all db migrations ==> OK")
+
+	if *verbose || *action == listDBMigrationsAction {
+		log.Printf("List of all db migrations ==> \n%v\n", dbMigrationString(dbMigrations))
+	}
+
+	if *action != applyAction {
+		os.Exit(0)
+	}
+
+	migrationsToApply := computeMigrationsToApply(allMigrations, dbMigrations)
 
 	if *verbose {
-		log.Printf("Read all db migrations ==> %#v", dbMigrations)
+		log.Printf("List of migrations to apply ==>\n%v\n", migrationDefinitionString(migrationsToApply))
 	}
 
-	migrationDefs := computeMigrationsToApply(allMigrations, dbMigrations)
-
-	if *verbose {
-		log.Printf("Migrations to apply ==> %#v", migrationDefs)
-	}
-
-	migrations, err := loadMigrations(*config, migrationDefs)
-
-	err = applyMigrations(*config, migrations)
-	if err != nil {
-		log.Fatalf("Failed to apply migrations to db ==> %q", err)
-	}
+	// migrations, err := loadMigrations(*config, migrationsToApply)
+	//
+	// err = applyMigrations(*config, migrations)
+	// if err != nil {
+	// 	log.Fatalf("Failed to apply migrations to db ==> %q", err)
+	// }
 
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	_ "fmt"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"strings"
 )
 
 // Config represents Migrator's yaml configuration file
@@ -14,6 +16,11 @@ type Config struct {
 	TenantsSQL    string   `yaml:"tenantsSql"`
 	SingleSchemas []string `yaml:"singleSchemas" validate:"min=1"`
 	TenantSchemas []string `yaml:"tenantSchemas"`
+}
+
+func (config Config) String() string {
+	c, _ := yaml.Marshal(config)
+	return strings.TrimSpace(string(c))
 }
 
 func readConfigFromFile(configFile string) (*Config, error) {
