@@ -1,6 +1,6 @@
 baseDir: test/migrations
-driver: mysql
-dataSource: "root@(127.0.0.1:3306)/migrator_test"
+driver: mymysql
+dataSource: "tcp:127.0.0.1:3306*migrator_test/root/"
 singleSchemas:
   - public
   - ref

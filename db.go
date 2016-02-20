@@ -3,9 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/ziutek/mymysql/godrv"
 	"strings"
+	"time"
 )
 
 const (
@@ -29,7 +30,7 @@ const (
 		created timestamp default now()
 	)
 	`
-	selectMigrations          = "select distinct name, source_dir, file, type from %v order by name, source_dir"
+	selectMigrations          = "select distinct name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
 	insertMigrationPostgresql = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
 	insertMigrationMysql      = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
 	defaultSelectTenants      = "select name from %v"
@@ -65,7 +66,7 @@ func listAllDBTenants(config Config, db *sql.DB) ([]string, error) {
 	return tenants, nil
 }
 
-func listAllDBMigrations(config Config) ([]MigrationDefinition, error) {
+func listAllDBMigrations(config Config) ([]DBMigration, error) {
 	db, err := sql.Open(config.Driver, config.DataSource)
 	if err != nil {
 		return nil, err
@@ -83,18 +84,21 @@ func listAllDBMigrations(config Config) ([]MigrationDefinition, error) {
 		return nil, err
 	}
 
-	var dbMigrations []MigrationDefinition
+	var dbMigrations []DBMigration
 	for rows.Next() {
 		var (
 			name          string
 			sourceDir     string
 			file          string
 			migrationType MigrationType
+			schema        string
+			created       time.Time
 		)
-		if err := rows.Scan(&name, &sourceDir, &file, &migrationType); err != nil {
+		if err := rows.Scan(&name, &sourceDir, &file, &migrationType, &schema, &created); err != nil {
 			return nil, err
 		}
-		dbMigrations = append(dbMigrations, MigrationDefinition{name, sourceDir, file, migrationType})
+		mdef := MigrationDefinition{name, sourceDir, file, migrationType}
+		dbMigrations = append(dbMigrations, DBMigration{mdef, schema, created})
 	}
 
 	db.Close()

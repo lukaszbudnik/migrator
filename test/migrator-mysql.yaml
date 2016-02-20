@@ -1,6 +1,6 @@
 baseDir: test/migrations
 driver: mysql
-dataSource: "A@(B:C)/D"
+dataSource: "tcp:A"
 singleSchemas:
   - public
   - ref

@@ -1,9 +1,0 @@
-baseDir: test/migrations
-driver: mysql
-dataSource: "root@(192.168.99.100:33066)/migrator_test"
-singleSchemas:
-  - public
-  - ref
-  - config
-tenantSchemas:
-  - tenants
