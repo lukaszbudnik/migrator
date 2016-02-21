@@ -2,12 +2,31 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	_ "github.com/lib/pq"
-	_ "github.com/ziutek/mymysql/godrv"
 	"strings"
 	"time"
 )
+
+type Connector interface {
+	ListAllDBTenants(config Config, db *sql.DB) ([]string, error)
+	ListAllDBMigrations(config Config) ([]DBMigration, error)
+	ApplyMigrations(config Config, migrations []Migration) error
+}
+
+type BaseConnector struct {
+}
+
+func CreateConnector(driver string) (Connector, error) {
+	switch driver {
+	case "mymysql":
+		return new(MySQLConnector), nil
+	case "postgres":
+		return new(PostgresqlConnector), nil
+	default:
+		return nil, errors.New("Invalid ConnectorType")
+	}
+}
 
 const (
 	migrationsTableName     = "public.migrator_migrations"
@@ -30,13 +49,11 @@ const (
 		created timestamp default now()
 	)
 	`
-	selectMigrations          = "select distinct name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
-	insertMigrationPostgresql = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
-	insertMigrationMysql      = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
-	defaultSelectTenants      = "select name from %v"
+	selectMigrations     = "select distinct name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
+	defaultSelectTenants = "select name from %v"
 )
 
-func listAllDBTenants(config Config, db *sql.DB) ([]string, error) {
+func (bc *BaseConnector) ListAllDBTenants(config Config, db *sql.DB) ([]string, error) {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
 	if config.TenantsSQL != "" && config.TenantsSQL != defaultTenantsSQL {
@@ -66,7 +83,7 @@ func listAllDBTenants(config Config, db *sql.DB) ([]string, error) {
 	return tenants, nil
 }
 
-func listAllDBMigrations(config Config) ([]DBMigration, error) {
+func (bc *BaseConnector) ListAllDBMigrations(config Config) ([]DBMigration, error) {
 	db, err := sql.Open(config.Driver, config.DataSource)
 	if err != nil {
 		return nil, err
@@ -106,7 +123,11 @@ func listAllDBMigrations(config Config) ([]DBMigration, error) {
 	return dbMigrations, err
 }
 
-func applyMigrations(config Config, migrations []Migration) error {
+func (bc *BaseConnector) ApplyMigrations(config Config, migrations []Migration) error {
+	panic("ApplyMigrations() must be overwritten by specific connector")
+}
+
+func (bc *BaseConnector) applyMigrationsWithInsertMigration(config Config, migrations []Migration, insertMigration string) error {
 
 	if len(migrations) == 0 {
 		return nil
@@ -117,7 +138,7 @@ func applyMigrations(config Config, migrations []Migration) error {
 		return err
 	}
 
-	tenants, err := listAllDBTenants(config, db)
+	tenants, err := bc.ListAllDBTenants(config, db)
 	if err != nil {
 		return err
 	}
@@ -125,13 +146,6 @@ func applyMigrations(config Config, migrations []Migration) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
-	}
-
-	var insertMigration string
-	if config.Driver == "postgres" {
-		insertMigration = insertMigrationPostgresql
-	} else {
-		insertMigration = insertMigrationMysql
 	}
 
 	query := fmt.Sprintf(insertMigration, migrationsTableName)
@@ -173,3 +187,7 @@ func applyMigrations(config Config, migrations []Migration) error {
 
 	return nil
 }
+
+// func (bc *BaseConnector) InsertMigrationSQL() string {
+// 	panic("InsertMigrationSQL() must be overwritten")
+// }

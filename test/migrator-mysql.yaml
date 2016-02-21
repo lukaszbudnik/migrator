@@ -1,5 +1,5 @@
 baseDir: test/migrations
-driver: mysql
+driver: mymysql
 dataSource: "tcp:A"
 singleSchemas:
   - public
