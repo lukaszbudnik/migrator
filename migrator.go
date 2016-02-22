@@ -18,11 +18,11 @@ func main() {
 
 	configFile := flag.String("configFile", defaultConfigFile, "path to migrator.yaml")
 	action := flag.String("action", applyAction, fmt.Sprintf("migrator action to apply, valid actions are: %q", []string{applyAction, listDBMigrationsAction, listDiskMigrationsAction}))
-	verbose := flag.Bool("verbose", false, "set to true/1 to print more data to output")
+	verbose := flag.Bool("verbose", false, "set to \"true\" to print more data to output")
 	flag.Parse()
 
 	if *action != applyAction && *action != listDBMigrationsAction && *action != listDiskMigrationsAction {
-		log.Fatalf("Unknown action to run %#v", *action)
+		log.Fatalf("Unknown action to run %#v. For usage please run migrator with -h", *action)
 	}
 
 	config, err := readConfigFromFile(*configFile)
@@ -46,12 +46,18 @@ func main() {
 		log.Printf("List of all disk migrations ==>\n%v\n", migrationDefinitionsString(allMigrations))
 	}
 
-	connector, err := CreateConnector(config.Driver)
+	connector, err := CreateConnector(config)
 	if err != nil {
 		log.Fatalf("Failed to create DB connector ==> %q", err)
 	}
 
-	dbMigrations, err := connector.ListAllDBMigrations(*config)
+	err = connector.Init()
+	if err != nil {
+		log.Fatalf("Failed to init DB connector ==> %q", err)
+	}
+	defer connector.Dispose()
+
+	dbMigrations, err := connector.ListAllDBMigrations()
 	if err != nil {
 		log.Fatalf("Failed to read migrations from db ==> %q", err)
 	}
@@ -74,7 +80,7 @@ func main() {
 
 	migrations, err := loadMigrations(*config, migrationsToApply)
 
-	err = connector.ApplyMigrations(*config, migrations)
+	err = connector.ApplyMigrations(migrations)
 	if err != nil {
 		log.Fatalf("Failed to apply migrations to db ==> %q", err)
 	}

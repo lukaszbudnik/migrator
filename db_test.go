@@ -1,35 +1,39 @@
 package main
 
 import (
-	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestListAllDBTenants(t *testing.T) {
 	config, err := readConfigFromFile("test/migrator.yaml")
-	db, err := sql.Open(config.Driver, config.DataSource)
-
 	assert.Nil(t, err)
 
-	connector, err := CreateConnector(config.Driver)
-	tenants, err := connector.ListAllDBTenants(*config, db)
+	connector, err := CreateConnector(config)
+	assert.Nil(t, err)
+
+	connector.Init()
+	defer connector.Dispose()
+
+	tenants, err := connector.ListAllDBTenants()
+	assert.Nil(t, err)
 
 	assert.Len(t, tenants, 3)
 	assert.Equal(t, []string{"abc", "def", "xyz"}, tenants)
-
-	db.Close()
 }
 
 func TestApplyMigrations(t *testing.T) {
-	config, _ := readConfigFromFile("test/migrator.yaml")
-
-	connector, err := CreateConnector(config.Driver)
-
+	config, err := readConfigFromFile("test/migrator.yaml")
 	assert.Nil(t, err)
 
+	connector, err := CreateConnector(config)
+	assert.Nil(t, err)
+
+	connector.Init()
+	defer connector.Dispose()
+
 	allMigrations, _ := listAllMigrations(*config)
-	dbMigrations, err := connector.ListAllDBMigrations(*config)
+	dbMigrations, err := connector.ListAllDBMigrations()
 
 	assert.Nil(t, err)
 	assert.Len(t, dbMigrations, 0)
@@ -37,11 +41,10 @@ func TestApplyMigrations(t *testing.T) {
 	migrationDefs := computeMigrationsToApply(allMigrations, dbMigrations)
 	migrations, _ := loadMigrations(*config, migrationDefs)
 
-	err = connector.ApplyMigrations(*config, migrations)
-
+	err = connector.ApplyMigrations(migrations)
 	assert.Nil(t, err)
 
-	dbMigrations, err = connector.ListAllDBMigrations(*config)
+	dbMigrations, err = connector.ListAllDBMigrations()
 
 	assert.Nil(t, err)
 	assert.Len(t, dbMigrations, 12)
