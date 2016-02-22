@@ -4,7 +4,7 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
-type MySQLConnector struct {
+type mySQLConnector struct {
 	BaseConnector
 }
 
@@ -12,6 +12,6 @@ const (
 	insertMigrationMySQLDialectSQL = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
 )
 
-func (mc *MySQLConnector) ApplyMigrations(migrations []Migration) error {
+func (mc *mySQLConnector) ApplyMigrations(migrations []Migration) error {
 	return mc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationMySQLDialectSQL)
 }

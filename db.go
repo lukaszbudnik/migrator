@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init() error
 	ListAllDBTenants() ([]string, error)
@@ -16,11 +17,13 @@ type Connector interface {
 	Dispose()
 }
 
+// BaseConnector struct is a base struct for implementing DB specific dialects
 type BaseConnector struct {
 	Config *Config
-	DB *sql.DB
+	DB     *sql.DB
 }
 
+// CreateConnector constructs Connector instance based on the passed Config
 func CreateConnector(config *Config) (Connector, error) {
 	bc := BaseConnector{config, nil}
 	switch config.Driver {
@@ -58,6 +61,7 @@ const (
 	defaultSelectTenants = "select name from %v"
 )
 
+// Init initialises connector by opening a connection to database
 func (bc *BaseConnector) Init() error {
 	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
 	if err != nil {
@@ -67,10 +71,13 @@ func (bc *BaseConnector) Init() error {
 	return nil
 }
 
+// Dispose closes all resources allocated by connector
 func (bc *BaseConnector) Dispose() {
 	bc.DB.Close()
 }
 
+// ListAllDBTenants returns a list of all DB tenants as specified by
+// defaultSelectTenants or the value specified in config
 func (bc *BaseConnector) ListAllDBTenants() ([]string, error) {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
@@ -101,6 +108,7 @@ func (bc *BaseConnector) ListAllDBTenants() ([]string, error) {
 	return tenants, nil
 }
 
+// ListAllDBMigrations returns a list of all applied DB migrations
 func (bc *BaseConnector) ListAllDBMigrations() ([]DBMigration, error) {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
@@ -134,10 +142,13 @@ func (bc *BaseConnector) ListAllDBMigrations() ([]DBMigration, error) {
 	return dbMigrations, err
 }
 
+// ApplyMigrations applies passed migrations
 func (bc *BaseConnector) ApplyMigrations(migrations []Migration) error {
 	panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
+// applyMigrationsWithInsertMigrationSQL is called by specific implementations
+// insertMigrationSQL varies based on database dialect
 func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []Migration, insertMigrationSQL string) error {
 
 	if len(migrations) == 0 {
