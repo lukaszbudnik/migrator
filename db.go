@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -24,15 +24,16 @@ type BaseConnector struct {
 }
 
 // CreateConnector constructs Connector instance based on the passed Config
-func CreateConnector(config *Config) (Connector, error) {
+func CreateConnector(config *Config) Connector {
 	bc := BaseConnector{config, nil}
 	switch config.Driver {
 	case "mymysql":
-		return &MySQLConnector{bc}, nil
+		return &mySQLConnector{bc}
 	case "postgres":
-		return &PostgresqlConnector{bc}, nil
+		return &postgresqlConnector{bc}
 	default:
-		return nil, errors.New("Invalid ConnectorType")
+		log.Panicln("Failed to create Connector: unknown driver.")
+		return nil
 	}
 }
 
