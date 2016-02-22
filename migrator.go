@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 )
 
 const (
@@ -19,6 +20,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "set to \"true\" to print more data to output")
 	flag.Parse()
 
-	executeMigrator(configFile, action, verbose)
+	ret := executeMigrator(configFile, action, verbose, CreateConnector)
+	os.Exit(ret)
 
 }

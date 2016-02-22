@@ -68,7 +68,7 @@ func migrationDefinitionsString(migrations []MigrationDefinition) string {
 
 	buffer.WriteString("+")
 	buffer.WriteString(strings.Repeat("-", 75))
-	buffer.WriteString("+\n")
+	buffer.WriteString("+")
 
 	return buffer.String()
 }
@@ -92,7 +92,7 @@ func dbMigrationsString(migrations []DBMigration) string {
 
 	buffer.WriteString("+")
 	buffer.WriteString(strings.Repeat("-", 111))
-	buffer.WriteString("+\n")
+	buffer.WriteString("+")
 
 	return buffer.String()
 }

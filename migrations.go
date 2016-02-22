@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,7 +24,7 @@ func readMigrations(migrations map[string][]MigrationDefinition, baseDir string,
 	for _, f := range sourceDirs {
 		ms, err := ioutil.ReadDir(filepath.Join(baseDir, f))
 		if err != nil {
-			return err
+			log.Panicf("Could not read migration source dir ==> %v", err)
 		}
 		for _, m := range ms {
 			if !m.IsDir() {
@@ -41,16 +42,16 @@ func readMigrations(migrations map[string][]MigrationDefinition, baseDir string,
 	return nil
 }
 
-func listAllMigrations(config Config) ([]MigrationDefinition, error) {
+func listDiskMigrations(config Config) []MigrationDefinition {
 
 	baseDir, err := filepath.Rel(".", config.BaseDir)
 	if err != nil {
-		return nil, err
+		log.Panicf("Could not get path to migration base dir ==> %v", err)
 	}
 
 	dirs, err := ioutil.ReadDir(baseDir)
 	if err != nil {
-		return nil, err
+		log.Panicf("Could not read migration base dir ==> %v", err)
 	}
 
 	singleSchemasDirs := filterSchemaDirs(baseDir, dirs, config.SingleSchemas)
@@ -75,8 +76,7 @@ func listAllMigrations(config Config) ([]MigrationDefinition, error) {
 		}
 	}
 
-	return migrations, nil
-
+	return migrations
 }
 
 func flattenDBMigrations(dbMigrations []DBMigration) []MigrationDefinition {

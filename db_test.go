@@ -6,9 +6,7 @@ import (
 )
 
 func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
-	config, err := readConfigFromFile("test/migrator.yaml")
-	assert.Nil(t, err)
-
+	config := &Config{}
 	config.Driver = "abcxyz"
 
 	assert.Panics(t, func() {
@@ -17,8 +15,7 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 }
 
 func TestListAllDBTenants(t *testing.T) {
-	config, err := readConfigFromFile("test/migrator.yaml")
-	assert.Nil(t, err)
+	config := readConfigFromFile("test/migrator.yaml")
 
 	connector := CreateConnector(config)
 
@@ -33,15 +30,14 @@ func TestListAllDBTenants(t *testing.T) {
 }
 
 func TestApplyMigrations(t *testing.T) {
-	config, err := readConfigFromFile("test/migrator.yaml")
-	assert.Nil(t, err)
+	config := readConfigFromFile("test/migrator.yaml")
 
 	connector := CreateConnector(config)
 
 	connector.Init()
 	defer connector.Dispose()
 
-	allMigrations, _ := listAllMigrations(*config)
+	allMigrations := listDiskMigrations(*config)
 	dbMigrations, err := connector.ListAllDBMigrations()
 
 	assert.Nil(t, err)

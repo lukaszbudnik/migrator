@@ -6,16 +6,17 @@ import (
 	"time"
 )
 
-func TestReadAllMigrationsNonExistingSourceDir(t *testing.T) {
-
-	var config Config
-	config.BaseDir = "xyzabc"
-	migrations, err := listAllMigrations(config)
-
-	assert.Nil(t, migrations)
-	assert.Error(t, err)
-
-}
+// func TestReadAllMigrationsNonExistingSourceDir(t *testing.T) {
+//
+//TODO
+// 	var config Config
+// 	config.BaseDir = "xyzabc"
+// 	migrations := listAllMigrations(config)
+//
+// 	assert.Nil(t, migrations)
+// 	assert.Error(t, err)
+//
+// }
 
 func TestFlattenDBMigrations1(t *testing.T) {
 
@@ -62,9 +63,7 @@ func TestListAllMigrationsExistingSourceDir(t *testing.T) {
 	config.BaseDir = "test/migrations"
 	config.SingleSchemas = []string{"public", "ref"}
 	config.TenantSchemas = []string{"tenants"}
-	migrations, err := listAllMigrations(config)
-
-	assert.Nil(t, err)
+	migrations := listDiskMigrations(config)
 
 	assert.Len(t, migrations, 6)
 
@@ -77,6 +76,7 @@ func TestListAllMigrationsExistingSourceDir(t *testing.T) {
 
 }
 
+// TODO
 // func TestComputeMigrationsToApply(t *testing.T) {
 // 	migrations := computeMigrationsToApply([]MigrationDefinition{{"a", "a", "a", ModeSingleSchema}, {"b", "b", "b", ModeSingleSchema}, {"c", "c", "c", ModeSingleSchema}, {"d", "d", "d", ModeSingleSchema}}, []MigrationDefinition{{"a", "a", "a", ModeSingleSchema}, {"b", "b", "b", ModeSingleSchema}})
 //

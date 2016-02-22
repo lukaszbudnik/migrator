@@ -2,70 +2,64 @@ package main
 
 import (
 	"log"
-	"os"
 )
 
-func executeMigrator(configFile *string, action *string, verbose *bool) {
+func executeMigrator(configFile *string, action *string, verbose *bool, createConnector func(*Config) Connector) int {
 
-	if *action != applyAction && *action != listDBMigrationsAction && *action != listDiskMigrationsAction {
-		log.Panicf("Unknown action to run %#v. For usage please run migrator with -h flag.", *action)
+	readConfig := func() *Config {
+		config := readConfigFromFile(*configFile)
+
+		log.Println("Read configuration file ==> OK")
+		if *verbose {
+			log.Printf("Configuration file ==>\n%v\n", config)
+		}
+		return config
 	}
 
-	config, err := readConfigFromFile(*configFile)
-	if err != nil {
-		log.Panicf("Could not read config file %q ==> %q", *configFile, err)
+	loadDiskMigrations := func(config *Config) []MigrationDefinition {
+		diskMigrations := listDiskMigrations(*config)
+		log.Printf("Read disk migrations ==> OK")
+		if *verbose || *action == listDiskMigrationsAction {
+			log.Printf("List of disk migrations ==>\n%v", migrationDefinitionsString(diskMigrations))
+		}
+		return diskMigrations
 	}
 
-	log.Println("Read configuration file ==> OK")
-	if *verbose {
-		log.Printf("Configuration file ==>\n%v\n", config)
+	loadDBMigrations := func(connector Connector) []DBMigration {
+		dbMigrations, _ := connector.ListAllDBMigrations()
+		if *verbose || *action == listDBMigrationsAction {
+			log.Printf("List of db migrations ==> \n%v", dbMigrationsString(dbMigrations))
+		}
+		return dbMigrations
 	}
 
-	allMigrations, err := listAllMigrations(*config)
-	if err != nil {
-		log.Fatalf("Failed to process migrations ==> %q", err)
+	switch *action {
+	case listDiskMigrationsAction:
+		config := readConfig()
+		loadDiskMigrations(config)
+		return 0
+	case listDBMigrationsAction:
+		config := readConfig()
+		connector := createConnector(config)
+		loadDBMigrations(connector)
+		return 0
+	case applyAction:
+		config := readConfig()
+		diskMigrations := loadDiskMigrations(config)
+		connector := createConnector(config)
+		dbMigrations := loadDBMigrations(connector)
+		migrationsToApply := computeMigrationsToApply(diskMigrations, dbMigrations)
+		if *verbose {
+			log.Printf("List of migrations to apply ==>\n%v", migrationDefinitionsString(migrationsToApply))
+		}
+		migrations, err := loadMigrations(*config, migrationsToApply)
+		err = connector.ApplyMigrations(migrations)
+		if err != nil {
+			log.Printf("Failed to apply migrations to db ==> %q", err)
+		}
+		return 0
+	default:
+		log.Printf("Unknown action to run %q. For usage please run migrator with -h flag.", *action)
+		return 1
 	}
-
-	log.Printf("Read all migrations ==> OK")
-
-	if *verbose || *action == listDiskMigrationsAction {
-		log.Printf("List of all disk migrations ==>\n%v\n", migrationDefinitionsString(allMigrations))
-	}
-
-	connector := CreateConnector(config)
-
-	err = connector.Init()
-	if err != nil {
-		log.Fatalf("Failed to init DB connector ==> %q", err)
-	}
-	defer connector.Dispose()
-
-	dbMigrations, err := connector.ListAllDBMigrations()
-	if err != nil {
-		log.Fatalf("Failed to read migrations from db ==> %q", err)
-	}
-
-	log.Println("Read all db migrations ==> OK")
-
-	if *verbose || *action == listDBMigrationsAction {
-		log.Printf("List of all db migrations ==> \n%v\n", dbMigrationsString(dbMigrations))
-	}
-
-	if *action != applyAction {
-		os.Exit(0)
-	}
-
-	migrationsToApply := computeMigrationsToApply(allMigrations, dbMigrations)
-
-	if *verbose {
-		log.Printf("List of migrations to apply ==>\n%v\n", migrationDefinitionsString(migrationsToApply))
-	}
-
-	migrations, err := loadMigrations(*config, migrationsToApply)
-
-	err = connector.ApplyMigrations(migrations)
-	if err != nil {
-		log.Fatalf("Failed to apply migrations to db ==> %q", err)
-	}
-
 }

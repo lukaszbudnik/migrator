@@ -10,7 +10,7 @@ import (
 
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
-	Init() error
+	Init()
 	ListAllDBTenants() ([]string, error)
 	ListAllDBMigrations() ([]DBMigration, error)
 	ApplyMigrations(migrations []Migration) error
@@ -25,16 +25,21 @@ type BaseConnector struct {
 
 // CreateConnector constructs Connector instance based on the passed Config
 func CreateConnector(config *Config) Connector {
-	bc := BaseConnector{config, nil}
+	var bc = BaseConnector{config, nil}
+	var connector Connector
+
 	switch config.Driver {
 	case "mymysql":
-		return &mySQLConnector{bc}
+		connector = &mySQLConnector{bc}
 	case "postgres":
-		return &postgresqlConnector{bc}
+		connector = &postgresqlConnector{bc}
 	default:
-		log.Panicln("Failed to create Connector: unknown driver.")
-		return nil
+		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
 	}
+
+	connector.Init()
+
+	return connector
 }
 
 const (
@@ -63,13 +68,12 @@ const (
 )
 
 // Init initialises connector by opening a connection to database
-func (bc *BaseConnector) Init() error {
+func (bc *BaseConnector) Init() {
 	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
 	if err != nil {
-		return err
+		log.Panicf("Failed to init base connector ==> %v", err)
 	}
 	bc.DB = db
-	return nil
 }
 
 // Dispose closes all resources allocated by connector
@@ -140,7 +144,9 @@ func (bc *BaseConnector) ListAllDBMigrations() ([]DBMigration, error) {
 		dbMigrations = append(dbMigrations, DBMigration{mdef, schema, created})
 	}
 
-	return dbMigrations, err
+	log.Println("Read db migrations ==> OK")
+
+	return dbMigrations, nil
 }
 
 // ApplyMigrations applies passed migrations
