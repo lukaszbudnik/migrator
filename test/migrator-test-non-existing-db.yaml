@@ -1,6 +1,6 @@
 baseDir: test/migrations
 driver: postgres
-dataSource: "user=p dbname=m host=1.1.1.1 port=5 sslmode=disable"
+dataSource: "user=p dbname=m host=127.0.0.1 port=1 sslmode=disable"
 tenantsSql: "select name from public.migrator_tenants"
 singleSchemas:
   - public

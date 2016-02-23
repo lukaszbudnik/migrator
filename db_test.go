@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
@@ -18,6 +19,22 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	assert.Panics(t, func() {
 		CreateConnector(config)
 	}, "Should panic because of unknown driver")
+}
+
+func TestDBCreateConnectorPostgresDriver(t *testing.T) {
+	config := &Config{}
+	config.Driver = "postgres"
+	connector := CreateConnector(config)
+	connectorName := reflect.TypeOf(connector).String()
+	assert.Equal(t, "*main.postgresqlConnector", connectorName)
+}
+
+func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
+	config := &Config{}
+	config.Driver = "mymysql"
+	connector := CreateConnector(config)
+	connectorName := reflect.TypeOf(connector).String()
+	assert.Equal(t, "*main.mysqlConnector", connectorName)
 }
 
 func TestDBConnectorInitPanicConnectionError(t *testing.T) {
