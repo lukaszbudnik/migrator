@@ -32,7 +32,7 @@ func CreateConnector(config *Config) Connector {
 	case "mymysql":
 		connector = &mySQLConnector{bc}
 	case "postgres":
-		connector = &postgresqlConnector{bc}
+		connector = &postgreSQLConnector{bc}
 	default:
 		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
 	}

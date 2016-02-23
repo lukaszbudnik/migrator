@@ -26,7 +26,7 @@ func TestDBCreateConnectorPostgresDriver(t *testing.T) {
 	config.Driver = "postgres"
 	connector := CreateConnector(config)
 	connectorName := reflect.TypeOf(connector).String()
-	assert.Equal(t, "*main.postgresqlConnector", connectorName)
+	assert.Equal(t, "*main.postgreSQLConnector", connectorName)
 }
 
 func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
@@ -34,7 +34,7 @@ func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
 	config.Driver = "mymysql"
 	connector := CreateConnector(config)
 	connectorName := reflect.TypeOf(connector).String()
-	assert.Equal(t, "*main.mysqlConnector", connectorName)
+	assert.Equal(t, "*main.mySQLConnector", connectorName)
 }
 
 func TestDBConnectorInitPanicConnectionError(t *testing.T) {
