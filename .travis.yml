@@ -23,4 +23,4 @@ before_script:
   - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
 
 script:
-  - go test -v
+  - go test -v -cover

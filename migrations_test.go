@@ -18,7 +18,7 @@ import (
 //
 // }
 
-func TestFlattenDBMigrations1(t *testing.T) {
+func TestMigrationsFlattenDBMigrations1(t *testing.T) {
 
 	m1 := MigrationDefinition{"001.sql", "public", "public/001.sql", ModeSingleSchema}
 	db1 := DBMigration{m1, "public", time.Now()}
@@ -39,7 +39,7 @@ func TestFlattenDBMigrations1(t *testing.T) {
 
 }
 
-func TestFlattenDBMigrations2(t *testing.T) {
+func TestMigrationsFlattenDBMigrations2(t *testing.T) {
 
 	m2 := MigrationDefinition{"002.sql", "tenants", "tenants/002.sql", ModeTenantSchema}
 	db2 := DBMigration{m2, "abc", time.Now()}
@@ -57,24 +57,24 @@ func TestFlattenDBMigrations2(t *testing.T) {
 
 }
 
-func TestListAllMigrationsExistingSourceDir(t *testing.T) {
-
-	var config Config
-	config.BaseDir = "test/migrations"
-	config.SingleSchemas = []string{"public", "ref"}
-	config.TenantSchemas = []string{"tenants"}
-	migrations := listDiskMigrations(config)
-
-	assert.Len(t, migrations, 6)
-
-	assert.Equal(t, "public/201602160001.sql", migrations[0].File)
-	assert.Equal(t, "tenants/201602160002.sql", migrations[1].File)
-	assert.Equal(t, "tenants/201602160003.sql", migrations[2].File)
-	assert.Equal(t, "public/201602160004.sql", migrations[3].File)
-	assert.Equal(t, "ref/201602160004.sql", migrations[4].File)
-	assert.Equal(t, "tenants/201602160004.sql", migrations[5].File)
-
-}
+// func TestListAllMigrationsExistingSourceDir(t *testing.T) {
+//
+// 	var config Config
+// 	config.BaseDir = "test/migrations"
+// 	config.SingleSchemas = []string{"public", "ref"}
+// 	config.TenantSchemas = []string{"tenants"}
+// 	migrations := listDiskMigrations(config)
+//
+// 	assert.Len(t, migrations, 6)
+//
+// 	assert.Equal(t, "public/201602160001.sql", migrations[0].File)
+// 	assert.Equal(t, "tenants/201602160002.sql", migrations[1].File)
+// 	assert.Equal(t, "tenants/201602160003.sql", migrations[2].File)
+// 	assert.Equal(t, "public/201602160004.sql", migrations[3].File)
+// 	assert.Equal(t, "ref/201602160004.sql", migrations[4].File)
+// 	assert.Equal(t, "tenants/201602160004.sql", migrations[5].File)
+//
+// }
 
 // TODO
 // func TestComputeMigrationsToApply(t *testing.T) {

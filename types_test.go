@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-func TestTypesMigrationDefinitionString(t *testing.T) {
+func TestTypesMigrationsString(t *testing.T) {
 
 	m1 := MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", ModeSingleSchema}
 	m2 := MigrationDefinition{"201602220001.sql", "tenants", "tenants/201602220001.sql", ModeTenantSchema}
 	m3 := MigrationDefinition{"201602220002.sql", "tenants", "tenants/201602220002.sql", ModeTenantSchema}
-	var ms = []MigrationDefinition{m1, m2, m3}
+	var ms = []Migration{{m1, ""}, {m2, ""}, {m3, ""}}
 
 	expected := `+---------------------------------------------------------------------------+
 | SourceDir  | Name                 | File                           | Type |
@@ -20,7 +20,7 @@ func TestTypesMigrationDefinitionString(t *testing.T) {
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       |    2 |
 | tenants    | 201602220002.sql     | tenants/201602220002.sql       |    2 |
 +---------------------------------------------------------------------------+`
-	actual := migrationDefinitionsString(ms)
+	actual := migrationsString(ms)
 
 	assert.Equal(t, expected, actual)
 }

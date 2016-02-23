@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-func executeMigrator(configFile *string, action *string, verbose *bool, createConnector func(*Config) Connector) int {
+func executeMigrator(configFile *string, action *string, verbose *bool, createConnector func(*Config) Connector, createLoader func(*Config) Loader) int {
 
 	readConfig := func() *Config {
 		config := readConfigFromFile(*configFile)
@@ -16,17 +16,17 @@ func executeMigrator(configFile *string, action *string, verbose *bool, createCo
 		return config
 	}
 
-	loadDiskMigrations := func(config *Config) []MigrationDefinition {
-		diskMigrations := listDiskMigrations(*config)
+	loadDiskMigrations := func(loader Loader) []Migration {
+		diskMigrations := loader.GetDiskMigrations()
 		log.Printf("Read disk migrations ==> OK")
 		if *verbose || *action == listDiskMigrationsAction {
-			log.Printf("List of disk migrations ==>\n%v", migrationDefinitionsString(diskMigrations))
+			log.Printf("List of disk migrations ==>\n%v", migrationsString(diskMigrations))
 		}
 		return diskMigrations
 	}
 
 	loadDBMigrations := func(connector Connector) []DBMigration {
-		dbMigrations, _ := connector.ListAllDBMigrations()
+		dbMigrations := connector.GetDBMigrations()
 		if *verbose || *action == listDBMigrationsAction {
 			log.Printf("List of db migrations ==> \n%v", dbMigrationsString(dbMigrations))
 		}
@@ -36,7 +36,8 @@ func executeMigrator(configFile *string, action *string, verbose *bool, createCo
 	switch *action {
 	case listDiskMigrationsAction:
 		config := readConfig()
-		loadDiskMigrations(config)
+		loader := createLoader(config)
+		loadDiskMigrations(loader)
 		return 0
 	case listDBMigrationsAction:
 		config := readConfig()
@@ -45,15 +46,15 @@ func executeMigrator(configFile *string, action *string, verbose *bool, createCo
 		return 0
 	case applyAction:
 		config := readConfig()
-		diskMigrations := loadDiskMigrations(config)
+		loader := createLoader(config)
 		connector := createConnector(config)
+		diskMigrations := loadDiskMigrations(loader)
 		dbMigrations := loadDBMigrations(connector)
 		migrationsToApply := computeMigrationsToApply(diskMigrations, dbMigrations)
 		if *verbose {
-			log.Printf("List of migrations to apply ==>\n%v", migrationDefinitionsString(migrationsToApply))
+			log.Printf("List of migrations to apply ==>\n%v", migrationsString(migrationsToApply))
 		}
-		migrations, err := loadMigrations(*config, migrationsToApply)
-		err = connector.ApplyMigrations(migrations)
+		err := connector.ApplyMigrations(migrationsToApply)
 		if err != nil {
 			log.Printf("Failed to apply migrations to db ==> %q", err)
 		}

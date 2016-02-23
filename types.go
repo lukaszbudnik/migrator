@@ -38,7 +38,7 @@ type DBMigration struct {
 	Created time.Time
 }
 
-func (m MigrationDefinition) String() string {
+func (m Migration) String() string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %4d |", m.SourceDir, m.Name, m.File, m.MigrationType)
 }
 
@@ -49,7 +49,7 @@ func (m DBMigration) String() string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
 }
 
-func migrationDefinitionsString(migrations []MigrationDefinition) string {
+func migrationsString(migrations []Migration) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")

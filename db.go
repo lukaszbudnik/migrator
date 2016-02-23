@@ -11,8 +11,8 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
-	ListAllDBTenants() ([]string, error)
-	ListAllDBMigrations() ([]DBMigration, error)
+	GetDBTenants() ([]string, error)
+	GetDBMigrations() []DBMigration
 	ApplyMigrations(migrations []Migration) error
 	Dispose()
 }
@@ -83,7 +83,7 @@ func (bc *BaseConnector) Dispose() {
 
 // ListAllDBTenants returns a list of all DB tenants as specified by
 // defaultSelectTenants or the value specified in config
-func (bc *BaseConnector) ListAllDBTenants() ([]string, error) {
+func (bc *BaseConnector) GetDBTenants() ([]string, error) {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
 	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
@@ -114,17 +114,17 @@ func (bc *BaseConnector) ListAllDBTenants() ([]string, error) {
 }
 
 // ListAllDBMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) ListAllDBMigrations() ([]DBMigration, error) {
+func (bc *BaseConnector) GetDBMigrations() []DBMigration {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
 	}
 
 	query := fmt.Sprintf(selectMigrations, migrationsTableName)
 
 	rows, err := bc.DB.Query(query)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Could not query DB migrations ==> %v", err))
 	}
 
 	var dbMigrations []DBMigration
@@ -138,15 +138,13 @@ func (bc *BaseConnector) ListAllDBMigrations() ([]DBMigration, error) {
 			created       time.Time
 		)
 		if err := rows.Scan(&name, &sourceDir, &file, &migrationType, &schema, &created); err != nil {
-			return nil, err
+			panic(fmt.Sprintf("Could not read DB migration ==> %v", err))
 		}
 		mdef := MigrationDefinition{name, sourceDir, file, migrationType}
 		dbMigrations = append(dbMigrations, DBMigration{mdef, schema, created})
 	}
 
-	log.Println("Read db migrations ==> OK")
-
-	return dbMigrations, nil
+	return dbMigrations
 }
 
 // ApplyMigrations applies passed migrations
@@ -162,7 +160,7 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []Migr
 		return nil
 	}
 
-	tenants, err := bc.ListAllDBTenants()
+	tenants, err := bc.GetDBTenants()
 	if err != nil {
 		return err
 	}

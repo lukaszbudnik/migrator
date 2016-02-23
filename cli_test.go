@@ -14,18 +14,18 @@ var (
 )
 
 func TestCliExitUnknownAction(t *testing.T) {
-	ret := executeMigrator(&nonExistingConfig, &unknownAction, &verbose, CreateConnector)
+	ret := executeMigrator(&nonExistingConfig, &unknownAction, &verbose, CreateConnector, CreateLoader)
 	assert.Equal(t, 1, ret)
 }
 
 func TestCliPanicReadFromNonExistingConfigFile(t *testing.T) {
 	assert.Panics(t, func() {
-		executeMigrator(&nonExistingConfig, &defaultAction, &verbose, CreateConnector)
+		executeMigrator(&nonExistingConfig, &defaultAction, &verbose, CreateConnector, CreateLoader)
 	}, "Should panic because of non-existing config file")
 }
 
 func TestCliPanicReadDiskMigrationsFromNonExistingBaseDir(t *testing.T) {
 	assert.Panics(t, func() {
-		executeMigrator(&configFileWithNonExistingBaseDir, &defaultAction, &verbose, CreateConnector)
+		executeMigrator(&configFileWithNonExistingBaseDir, &defaultAction, &verbose, CreateConnector, CreateLoader)
 	}, "Should panic because of non-existing base dir file")
 }

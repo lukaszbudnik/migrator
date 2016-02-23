@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	defaultConfigFile        = "migrator.yaml"
-	applyAction              = "apply"
-	listDBMigrationsAction   = "listDBMigrations"
+	defaultConfigFile      = "migrator.yaml"
+	applyAction            = "apply"
+	listDBMigrationsAction = "listDBMigrations"
+	// TODO implement it!
+	listDBTenantsAction      = "listDBTenants"
 	listDiskMigrationsAction = "listDiskMigrations"
 )
 
@@ -20,7 +22,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "set to \"true\" to print more data to output")
 	flag.Parse()
 
-	ret := executeMigrator(configFile, action, verbose, CreateConnector)
+	ret := executeMigrator(configFile, action, verbose, CreateConnector, CreateLoader)
 	os.Exit(ret)
 
 }
