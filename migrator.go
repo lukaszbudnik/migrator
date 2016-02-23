@@ -7,10 +7,9 @@ import (
 )
 
 const (
-	defaultConfigFile      = "migrator.yaml"
-	applyAction            = "apply"
-	listDBMigrationsAction = "listDBMigrations"
-	// TODO implement it!
+	defaultConfigFile        = "migrator.yaml"
+	applyAction              = "apply"
+	listDBMigrationsAction   = "listDBMigrations"
 	listDBTenantsAction      = "listDBTenants"
 	listDiskMigrationsAction = "listDiskMigrations"
 )

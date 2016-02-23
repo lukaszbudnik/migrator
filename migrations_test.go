@@ -6,18 +6,6 @@ import (
 	"time"
 )
 
-// func TestReadAllMigrationsNonExistingSourceDir(t *testing.T) {
-//
-//TODO
-// 	var config Config
-// 	config.BaseDir = "xyzabc"
-// 	migrations := listAllMigrations(config)
-//
-// 	assert.Nil(t, migrations)
-// 	assert.Error(t, err)
-//
-// }
-
 func TestMigrationsFlattenDBMigrations1(t *testing.T) {
 
 	m1 := MigrationDefinition{"001.sql", "public", "public/001.sql", ModeSingleSchema}
@@ -57,31 +45,18 @@ func TestMigrationsFlattenDBMigrations2(t *testing.T) {
 
 }
 
-// func TestListAllMigrationsExistingSourceDir(t *testing.T) {
-//
-// 	var config Config
-// 	config.BaseDir = "test/migrations"
-// 	config.SingleSchemas = []string{"public", "ref"}
-// 	config.TenantSchemas = []string{"tenants"}
-// 	migrations := listDiskMigrations(config)
-//
-// 	assert.Len(t, migrations, 6)
-//
-// 	assert.Equal(t, "public/201602160001.sql", migrations[0].File)
-// 	assert.Equal(t, "tenants/201602160002.sql", migrations[1].File)
-// 	assert.Equal(t, "tenants/201602160003.sql", migrations[2].File)
-// 	assert.Equal(t, "public/201602160004.sql", migrations[3].File)
-// 	assert.Equal(t, "ref/201602160004.sql", migrations[4].File)
-// 	assert.Equal(t, "tenants/201602160004.sql", migrations[5].File)
-//
-// }
+func TestComputeMigrationsToApply(t *testing.T) {
+	mdef1 := MigrationDefinition{"a", "a", "a", ModeSingleSchema}
+	mdef2 := MigrationDefinition{"b", "b", "b", ModeTenantSchema}
+	mdef3 := MigrationDefinition{"c", "c", "c", ModeTenantSchema}
+	mdef4 := MigrationDefinition{"d", "d", "d", ModeSingleSchema}
 
-// TODO
-// func TestComputeMigrationsToApply(t *testing.T) {
-// 	migrations := computeMigrationsToApply([]MigrationDefinition{{"a", "a", "a", ModeSingleSchema}, {"b", "b", "b", ModeSingleSchema}, {"c", "c", "c", ModeSingleSchema}, {"d", "d", "d", ModeSingleSchema}}, []MigrationDefinition{{"a", "a", "a", ModeSingleSchema}, {"b", "b", "b", ModeSingleSchema}})
-//
-// 	assert.Len(t, migrations, 2)
-//
-// 	assert.Equal(t, "c", migrations[0].File)
-// 	assert.Equal(t, "d", migrations[1].File)
-// }
+	diskMigrations := []Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {mdef4, ""}}
+	dbMigrations := []DBMigration{{mdef1, "a", time.Now()}, {mdef2, "abc", time.Now()}, {mdef2, "def", time.Now()}}
+	migrations := computeMigrationsToApply(diskMigrations, dbMigrations)
+
+	assert.Len(t, migrations, 2)
+
+	assert.Equal(t, "c", migrations[0].File)
+	assert.Equal(t, "d", migrations[1].File)
+}

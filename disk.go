@@ -18,16 +18,13 @@ type DiskLoader struct {
 	Config *Config
 }
 
+// CreateLoader abstracts all disk operations performed by migrator
 func CreateLoader(config *Config) Loader {
 	return &DiskLoader{config}
 }
 
+// GetDiskMigrations loads all migrations from disk
 func (dl *DiskLoader) GetDiskMigrations() []Migration {
-	// baseDir, err := filepath.Rel(".", dl.Config.BaseDir)
-	// if err != nil {
-	// 	log.Panicf("Could not get path to migration base dir ==> %v", err)
-	// }
-
 	dirs, err := ioutil.ReadDir(dl.Config.BaseDir)
 	if err != nil {
 		log.Panicf("Could not read migration base dir ==> %v", err)

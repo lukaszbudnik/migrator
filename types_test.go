@@ -6,6 +6,19 @@ import (
 	"time"
 )
 
+func TestTypesDBTenantsString(t *testing.T) {
+	dbTenants := []string{"abcabc", "dedededededededededede", "opopopop"}
+	expected := `+------------------------------+
+| abcabc                       |
+| dedededededededededede       |
+| opopopop                     |
++------------------------------+`
+
+	actual := dbTenantsString(dbTenants)
+
+	assert.Equal(t, expected, actual)
+}
+
 func TestTypesMigrationsString(t *testing.T) {
 
 	m1 := MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", ModeSingleSchema}
@@ -25,6 +38,20 @@ func TestTypesMigrationsString(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
+func TestTypesMigrationsEmptyArrayString(t *testing.T) {
+
+	var ms = []Migration{}
+
+	expected := `+---------------------------------------------------------------------------+
+| SourceDir  | Name                 | File                           | Type |
++---------------------------------------------------------------------------+
+| Empty                                                                     |
++---------------------------------------------------------------------------+`
+	actual := migrationsString(ms)
+
+	assert.Equal(t, expected, actual)
+}
+
 func TestTypesDBMigrationsString(t *testing.T) {
 	m1 := MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", ModeSingleSchema}
 	m2 := MigrationDefinition{"201602220001.sql", "tenants", "tenants/201602220001.sql", ModeTenantSchema}
@@ -38,6 +65,19 @@ func TestTypesDBMigrationsString(t *testing.T) {
 | source     | 201602220000.sql     | source/201602220000.sql        | source     | 2016-02-22 16:41:01  |    1 |
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | abc        | 2016-02-22 16:41:02  |    2 |
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | def        | 2016-02-22 16:41:02  |    2 |
++---------------------------------------------------------------------------------------------------------------+`
+	actual := dbMigrationsString(ms)
+
+	assert.Equal(t, expected, actual)
+}
+
+func TestTypesDBMigrationsEmptyArrayString(t *testing.T) {
+	var ms = []DBMigration{}
+
+	expected := `+---------------------------------------------------------------------------------------------------------------+
+| SourceDir  | Name                 | File                           | Schema     | Created              | Type |
++---------------------------------------------------------------------------------------------------------------+
+| Empty                                                                                                         |
 +---------------------------------------------------------------------------------------------------------------+`
 	actual := dbMigrationsString(ms)
 

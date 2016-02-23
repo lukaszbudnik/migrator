@@ -12,6 +12,6 @@ const (
 	insertMigrationMySQLDialectSQL = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
 )
 
-func (mc *mySQLConnector) ApplyMigrations(migrations []Migration) error {
-	return mc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationMySQLDialectSQL)
+func (mc *mySQLConnector) ApplyMigrations(migrations []Migration) {
+	mc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationMySQLDialectSQL)
 }

@@ -62,8 +62,12 @@ func migrationsString(migrations []Migration) string {
 	buffer.WriteString(strings.Repeat("-", 75))
 	buffer.WriteString("+\n")
 
-	for _, m := range migrations {
-		buffer.WriteString(fmt.Sprintf("%v\n", m))
+	if len(migrations) > 0 {
+		for _, m := range migrations {
+			buffer.WriteString(fmt.Sprintf("%v\n", m))
+		}
+	} else {
+		buffer.WriteString(fmt.Sprintf("| %-73s |\n", "Empty"))
 	}
 
 	buffer.WriteString("+")
@@ -86,8 +90,12 @@ func dbMigrationsString(migrations []DBMigration) string {
 	buffer.WriteString(strings.Repeat("-", 111))
 	buffer.WriteString("+\n")
 
-	for _, m := range migrations {
-		buffer.WriteString(fmt.Sprintf("%v\n", m))
+	if len(migrations) > 0 {
+		for _, m := range migrations {
+			buffer.WriteString(fmt.Sprintf("%v\n", m))
+		}
+	} else {
+		buffer.WriteString(fmt.Sprintf("| %-109s |\n", "Empty"))
 	}
 
 	buffer.WriteString("+")
@@ -95,4 +103,23 @@ func dbMigrationsString(migrations []DBMigration) string {
 	buffer.WriteString("+")
 
 	return buffer.String()
+}
+
+func dbTenantsString(dbTenants []string) string {
+	var buffer bytes.Buffer
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 30))
+	buffer.WriteString("+\n")
+
+	for _, t := range dbTenants {
+		buffer.WriteString(fmt.Sprintf("| %-28s |\n", t))
+	}
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 30))
+	buffer.WriteString("+")
+
+	return buffer.String()
+
 }
