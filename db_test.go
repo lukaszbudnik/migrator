@@ -1,48 +1,108 @@
 package main
 
+// These are integration tests.
+// The following tests must be working in order to get this one working:
+// * config_test.go
+// * disk_test.go
+// * migrations_test.go
+
 import (
-	"database/sql"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
-func TestListAllDBTenants(t *testing.T) {
-	config, err := readConfigFromFile("test/migrator.yaml")
-	db, err := sql.Open(config.Driver, config.DataSource)
+func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
+	config := &Config{}
+	config.Driver = "abcxyz"
 
-	assert.Nil(t, err)
+	assert.Panics(t, func() {
+		CreateConnector(config)
+	}, "Should panic because of unknown driver")
+}
 
-	connector, err := CreateConnector(config.Driver)
-	tenants, err := connector.ListAllDBTenants(*config, db)
+func TestDBCreateConnectorPostgresDriver(t *testing.T) {
+	config := &Config{}
+	config.Driver = "postgres"
+	connector := CreateConnector(config)
+	connectorName := reflect.TypeOf(connector).String()
+	assert.Equal(t, "*main.postgreSQLConnector", connectorName)
+}
+
+func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
+	config := &Config{}
+	config.Driver = "mymysql"
+	connector := CreateConnector(config)
+	connectorName := reflect.TypeOf(connector).String()
+	assert.Equal(t, "*main.mySQLConnector", connectorName)
+}
+
+func TestDBConnectorInitPanicConnectionError(t *testing.T) {
+	config := readConfigFromFile("test/migrator-test-non-existing-db.yaml")
+
+	connector := CreateConnector(config)
+	assert.Panics(t, func() {
+		connector.Init()
+	}, "Should panic because of connection error")
+}
+
+func TestDBGetTenantsPanicSQLSyntaxError(t *testing.T) {
+	config := readConfigFromFile("test/migrator.yaml")
+	config.TenantsSQL = "sadfdsfdsf"
+	connector := CreateConnector(config)
+	connector.Init()
+	assert.Panics(t, func() {
+		connector.GetDBTenants()
+	}, "Should panic because of tenants SQL syntax error")
+}
+
+func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
+	config := readConfigFromFile("test/migrator.yaml")
+	config.SingleSchemas = []string{"error"}
+
+	connector := CreateConnector(config)
+	connector.Init()
+	defer connector.Dispose()
+	m := MigrationDefinition{"201602220002.sql", "tenants", "tenants/201602220002.sql", ModeTenantSchema}
+	ms := []Migration{{m, "createtablexyx ( idint primary key (id) )"}}
+
+	assert.Panics(t, func() {
+		connector.ApplyMigrations(ms)
+	}, "Should panic because of migration SQL syntax error")
+}
+
+func TestDBGetTenants(t *testing.T) {
+	config := readConfigFromFile("test/migrator.yaml")
+
+	connector := CreateConnector(config)
+
+	connector.Init()
+	defer connector.Dispose()
+
+	tenants := connector.GetDBTenants()
 
 	assert.Len(t, tenants, 3)
 	assert.Equal(t, []string{"abc", "def", "xyz"}, tenants)
-
-	db.Close()
 }
 
-func TestApplyMigrations(t *testing.T) {
-	config, _ := readConfigFromFile("test/migrator.yaml")
+func TestDBApplyMigrations(t *testing.T) {
+	config := readConfigFromFile("test/migrator.yaml")
 
-	connector, err := CreateConnector(config.Driver)
+	loader := CreateLoader(config)
 
-	assert.Nil(t, err)
+	connector := CreateConnector(config)
+	connector.Init()
+	defer connector.Dispose()
 
-	allMigrations, _ := listAllMigrations(*config)
-	dbMigrations, err := connector.ListAllDBMigrations(*config)
+	dbMigrationsBefore := connector.GetDBMigrations()
 
-	assert.Nil(t, err)
-	assert.Len(t, dbMigrations, 0)
+	diskMigrations := loader.GetDiskMigrations()
+	migrationsToApply := computeMigrationsToApply(diskMigrations, dbMigrationsBefore)
 
-	migrationDefs := computeMigrationsToApply(allMigrations, dbMigrations)
-	migrations, _ := loadMigrations(*config, migrationDefs)
+	connector.ApplyMigrations(migrationsToApply)
 
-	err = connector.ApplyMigrations(*config, migrations)
+	dbMigrationsAfter := connector.GetDBMigrations()
 
-	assert.Nil(t, err)
-
-	dbMigrations, err = connector.ListAllDBMigrations(*config)
-
-	assert.Nil(t, err)
-	assert.Len(t, dbMigrations, 12)
+	assert.Len(t, dbMigrationsBefore, 0)
+	assert.Len(t, dbMigrationsAfter, 12)
 }

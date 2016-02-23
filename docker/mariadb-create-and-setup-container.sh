@@ -25,7 +25,7 @@ if [[ "true" == "$running" ]]; then
   mysql -u root -h $ip -P $port -e "create database $database"
   mysql -u root -h $ip -P $port -D $database < ../test/create-test-tenants.sql
 
-  cat ../test/migrator-mysql.yaml | sed "s/\"[^@]*@[^:]*:[^\/]*\/[^\"]*/\"root@($ip:$port)\/$database/g" > ../test/migrator.yaml
+  cat ../test/migrator-mysql.yaml | sed "s/tcp:A/tcp:$ip:$port\*$database\/root\//g" > ../test/migrator.yaml
 else
   echo "Could not setup mariadb"
 fi

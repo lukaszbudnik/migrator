@@ -4,14 +4,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PostgresqlConnector struct {
+type postgreSQLConnector struct {
 	BaseConnector
 }
 
 const (
-	insertMigrationPostgresql = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
+	insertMigrationPostgreSQLDialectSQL = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
 )
 
-func (pc *PostgresqlConnector) ApplyMigrations(config Config, migrations []Migration) error {
-	return pc.BaseConnector.applyMigrationsWithInsertMigration(config, migrations, insertMigrationPostgresql)
+func (pc *postgreSQLConnector) ApplyMigrations(migrations []Migration) {
+	pc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationPostgreSQLDialectSQL)
 }

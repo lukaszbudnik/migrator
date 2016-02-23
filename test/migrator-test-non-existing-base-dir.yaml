@@ -1,0 +1,5 @@
+baseDir: non-existing-base-dir
+driver: postgres
+dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
+singleSchemas:
+  - public

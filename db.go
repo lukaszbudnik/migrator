@@ -2,30 +2,42 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
 
+// Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
-	ListAllDBTenants(config Config, db *sql.DB) ([]string, error)
-	ListAllDBMigrations(config Config) ([]DBMigration, error)
-	ApplyMigrations(config Config, migrations []Migration) error
+	Init()
+	GetDBTenants() []string
+	GetDBMigrations() []DBMigration
+	ApplyMigrations(migrations []Migration)
+	Dispose()
 }
 
+// BaseConnector struct is a base struct for implementing DB specific dialects
 type BaseConnector struct {
+	Config *Config
+	DB     *sql.DB
 }
 
-func CreateConnector(driver string) (Connector, error) {
-	switch driver {
+// CreateConnector constructs Connector instance based on the passed Config
+func CreateConnector(config *Config) Connector {
+	var bc = BaseConnector{config, nil}
+	var connector Connector
+
+	switch config.Driver {
 	case "mymysql":
-		return new(MySQLConnector), nil
+		connector = &mySQLConnector{bc}
 	case "postgres":
-		return new(PostgresqlConnector), nil
+		connector = &postgreSQLConnector{bc}
 	default:
-		return nil, errors.New("Invalid ConnectorType")
+		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
 	}
+
+	return connector
 }
 
 const (
@@ -53,52 +65,67 @@ const (
 	defaultSelectTenants = "select name from %v"
 )
 
-func (bc *BaseConnector) ListAllDBTenants(config Config, db *sql.DB) ([]string, error) {
+// Init initialises connector by opening a connection to database
+func (bc *BaseConnector) Init() {
+	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
+	if err != nil {
+		log.Panicf("Failed to create database connection ==> %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		log.Panicf("Failed to connect to database ==> %v", err)
+	}
+	bc.DB = db
+}
+
+// Dispose closes all resources allocated by connector
+func (bc *BaseConnector) Dispose() {
+	bc.DB.Close()
+}
+
+// GetDBTenants returns a list of all DB tenants as specified by
+// defaultSelectTenants or the value specified in config
+func (bc *BaseConnector) GetDBTenants() []string {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
-	if config.TenantsSQL != "" && config.TenantsSQL != defaultTenantsSQL {
-		tenantsSQL = config.TenantsSQL
+	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
+		tenantsSQL = bc.Config.TenantsSQL
 	} else {
 		createTableQuery := fmt.Sprintf(createDefaultTenantsTable, defaultTenantsTableName)
 
-		if _, err := db.Query(createTableQuery); err != nil {
-			return nil, err
+		if _, err := bc.DB.Query(createTableQuery); err != nil {
+			panic(fmt.Sprintf("Could not create default tenants table ==> %v", err))
 		}
 
 		tenantsSQL = defaultTenantsSQL
 	}
 
-	rows, err := db.Query(tenantsSQL)
+	rows, err := bc.DB.Query(tenantsSQL)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Could not query tenants ==> %v", err))
 	}
 	var tenants []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, err
+			panic(fmt.Sprintf("Could not read tenants ==> %v", err))
 		}
 		tenants = append(tenants, name)
 	}
-	return tenants, nil
+	return tenants
 }
 
-func (bc *BaseConnector) ListAllDBMigrations(config Config) ([]DBMigration, error) {
-	db, err := sql.Open(config.Driver, config.DataSource)
-	if err != nil {
-		return nil, err
-	}
-
+// GetDBMigrations returns a list of all applied DB migrations
+func (bc *BaseConnector) GetDBMigrations() []DBMigration {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
-	if _, err := db.Query(createTableQuery); err != nil {
-		return nil, err
+	if _, err := bc.DB.Query(createTableQuery); err != nil {
+		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
 	}
 
 	query := fmt.Sprintf(selectMigrations, migrationsTableName)
 
-	rows, err := db.Query(query)
+	rows, err := bc.DB.Query(query)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Could not query DB migrations ==> %v", err))
 	}
 
 	var dbMigrations []DBMigration
@@ -112,46 +139,39 @@ func (bc *BaseConnector) ListAllDBMigrations(config Config) ([]DBMigration, erro
 			created       time.Time
 		)
 		if err := rows.Scan(&name, &sourceDir, &file, &migrationType, &schema, &created); err != nil {
-			return nil, err
+			panic(fmt.Sprintf("Could not read DB migration ==> %v", err))
 		}
 		mdef := MigrationDefinition{name, sourceDir, file, migrationType}
 		dbMigrations = append(dbMigrations, DBMigration{mdef, schema, created})
 	}
 
-	db.Close()
-
-	return dbMigrations, err
+	return dbMigrations
 }
 
-func (bc *BaseConnector) ApplyMigrations(config Config, migrations []Migration) error {
+// ApplyMigrations applies passed migrations
+func (bc *BaseConnector) ApplyMigrations(migrations []Migration) {
 	panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
-func (bc *BaseConnector) applyMigrationsWithInsertMigration(config Config, migrations []Migration, insertMigration string) error {
+// applyMigrationsWithInsertMigrationSQL is called by specific implementations
+// insertMigrationSQL varies based on database dialect
+func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []Migration, insertMigrationSQL string) {
 
 	if len(migrations) == 0 {
-		return nil
+		return
 	}
 
-	db, err := sql.Open(config.Driver, config.DataSource)
+	tenants := bc.GetDBTenants()
+
+	tx, err := bc.DB.Begin()
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("Could not start DB transaction ==> %v", err))
 	}
 
-	tenants, err := bc.ListAllDBTenants(config, db)
+	query := fmt.Sprintf(insertMigrationSQL, migrationsTableName)
+	insert, err := bc.DB.Prepare(query)
 	if err != nil {
-		return err
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	query := fmt.Sprintf(insertMigration, migrationsTableName)
-	insert, err := db.Prepare(query)
-	if err != nil {
-		return err
+		panic(fmt.Sprintf("Could not create prepared statement ==> %v", err))
 	}
 
 	for _, m := range migrations {
@@ -170,24 +190,18 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigration(config Config, migra
 					_, err = tx.Exec(sql)
 					if err != nil {
 						tx.Rollback()
-						return err
+						panic(fmt.Sprintf("SQL failed, transaction rollback was called ==> %v", err))
 					}
 				}
 			}
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s)
 			if err != nil {
 				tx.Rollback()
-				return err
+				panic(fmt.Sprintf("Failed to add migration entry, transaction rollback was called ==> %v", err))
 			}
 		}
 
 	}
 
 	tx.Commit()
-
-	return nil
 }
-
-// func (bc *BaseConnector) InsertMigrationSQL() string {
-// 	panic("InsertMigrationSQL() must be overwritten")
-// }
