@@ -15,7 +15,7 @@ var (
 	unknownAction                    = "unknown"
 	nonExistingConfig                = "idontexist"
 	configFileWithNonExistingBaseDir = "test/migrator-test-non-existing-base-dir.yaml"
-	configFile                       = "test/migrator-test.yaml"
+	configFile                       = "test/migrator.yaml"
 	verbose                          = true
 	notVerbose                       = false
 )
