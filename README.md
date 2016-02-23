@@ -4,7 +4,20 @@ DB migration tool written in go.
 
 # Usage
 
-Short and sweet. Migrator requires a simple `migrator.yaml` file:
+Short and sweet.
+
+```
+$ migrator -h
+Usage of migrator:
+  -action string
+    	migrator action to apply, valid actions are: ["apply" "listDiskMigrations" "listDBTenants" "listDBMigrations"] (default "apply")
+  -configFile string
+    	path to migrator.yaml (default "migrator.yaml")
+  -verbose
+    	set to "true" to print more data to output
+```
+
+Migrator requires a simple `migrator.yaml` file:
 
 ```
 baseDir: test/migrations
@@ -26,8 +39,8 @@ Migrator will scan all directories under `baseDir` directory. Migrations listed 
 
 Currently migrator supports the following databases:
 
-* PostgreSQL - true multitenant database, with transactions spanning DDL statements
-* MySQL - pseudo multitenant database, transactions do not span DDL statements
+* PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements
+* MySQL - database-based multi-tenant database, transactions do not span DDL statements
 * MariaDB - enhanced MySQL
 
 # Examples
