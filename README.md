@@ -33,7 +33,14 @@ tenantSchemas:
   - tenants
 ```
 
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` will be applied once. Migrations listed under `tenantSchemas` will be applied for all tenants fetched using `tenantsSql`.
+Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantsSql`.
+
+SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which is automatically replaced by migrator to the current schema. For example:
+
+```
+create table if not exists {schema}.modules ( k int, v text );
+insert into {schema}.modules values ( 123, '123' );
+```
 
 # Supported databases
 
@@ -41,7 +48,7 @@ Currently migrator supports the following databases:
 
 * PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements
 * MySQL - database-based multi-tenant database, transactions do not span DDL statements
-* MariaDB - enhanced MySQL
+* MariaDB - enhanced near linearly scalable multi-master MySQL
 
 # Examples
 
@@ -49,7 +56,7 @@ PostgreSQL:
 
 ```
 $ docker/postgresql-create-and-setup-container.sh
-$ go test -v
+$ ./coverage.sh
 $ docker/postgresql-destroy-container.sh
 ```
 
@@ -57,7 +64,7 @@ MySQL:
 
 ```
 $ docker/mysql-create-and-setup-container.sh
-$ go test -v
+$ ./coverage.sh
 $ docker/mysql-destroy-container.sh
 ```
 
@@ -65,7 +72,7 @@ MariaDB:
 
 ```
 $ docker/mariadb-create-and-setup-container.sh
-$ go test -v
+$ ./coverage.sh
 $ docker/mariadb-destroy-container.sh
 ```
 
