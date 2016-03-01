@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"bytes"
@@ -49,7 +49,7 @@ func (m DBMigration) String() string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
 }
 
-func migrationsString(migrations []Migration) string {
+func MigrationsString(migrations []Migration) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")
@@ -77,7 +77,7 @@ func migrationsString(migrations []Migration) string {
 	return buffer.String()
 }
 
-func dbMigrationsString(migrations []DBMigration) string {
+func DBMigrationsString(migrations []DBMigration) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")
@@ -105,7 +105,7 @@ func dbMigrationsString(migrations []DBMigration) string {
 	return buffer.String()
 }
 
-func dbTenantsString(dbTenants []string) string {
+func DBTenantsString(dbTenants []string) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")

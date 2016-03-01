@@ -1,7 +1,8 @@
-package main
+package db
 
 import (
 	_ "github.com/lib/pq"
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 type postgreSQLConnector struct {
@@ -12,6 +13,6 @@ const (
 	insertMigrationPostgreSQLDialectSQL = "insert into %v (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)"
 )
 
-func (pc *postgreSQLConnector) ApplyMigrations(migrations []Migration) {
+func (pc *postgreSQLConnector) ApplyMigrations(migrations []types.Migration) {
 	pc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationPostgreSQLDialectSQL)
 }

@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ func TestTypesDBTenantsString(t *testing.T) {
 | opopopop                     |
 +------------------------------+`
 
-	actual := dbTenantsString(dbTenants)
+	actual := DBTenantsString(dbTenants)
 
 	assert.Equal(t, expected, actual)
 }
@@ -33,7 +33,7 @@ func TestTypesMigrationsString(t *testing.T) {
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       |    2 |
 | tenants    | 201602220002.sql     | tenants/201602220002.sql       |    2 |
 +---------------------------------------------------------------------------+`
-	actual := migrationsString(ms)
+	actual := MigrationsString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -47,7 +47,7 @@ func TestTypesMigrationsEmptyArrayString(t *testing.T) {
 +---------------------------------------------------------------------------+
 | Empty                                                                     |
 +---------------------------------------------------------------------------+`
-	actual := migrationsString(ms)
+	actual := MigrationsString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -66,7 +66,7 @@ func TestTypesDBMigrationsString(t *testing.T) {
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | abc        | 2016-02-22 16:41:02  |    2 |
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | def        | 2016-02-22 16:41:02  |    2 |
 +---------------------------------------------------------------------------------------------------------------+`
-	actual := dbMigrationsString(ms)
+	actual := DBMigrationsString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -79,7 +79,7 @@ func TestTypesDBMigrationsEmptyArrayString(t *testing.T) {
 +---------------------------------------------------------------------------------------------------------------+
 | Empty                                                                                                         |
 +---------------------------------------------------------------------------------------------------------------+`
-	actual := dbMigrationsString(ms)
+	actual := DBMigrationsString(ms)
 
 	assert.Equal(t, expected, actual)
 }

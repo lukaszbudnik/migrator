@@ -1,6 +1,6 @@
-package main
+package utils
 
-func stringInSlice(a string, list []string) bool {
+func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
 			return true
