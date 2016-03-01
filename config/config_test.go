@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestConfigReadFromFile(t *testing.T) {
-	config := readConfigFromFile("test/migrator-test.yaml")
+func TestFromFile(t *testing.T) {
+	config := FromFile("../test/migrator-test.yaml")
 	assert.Equal(t, "test/migrations", config.BaseDir)
 	assert.Equal(t, "select name from public.migrator_tenants", config.TenantsSQL)
 	assert.Equal(t, "postgres", config.Driver)
@@ -31,20 +31,20 @@ tenantSchemas:
 	assert.Equal(t, expected, actual)
 }
 
-func TestConfigPanicReadFromEmptyFile(t *testing.T) {
+func TestConfigPanicFromEmptyFile(t *testing.T) {
 	assert.Panics(t, func() {
-		readConfigFromFile("test/empty.yaml")
+		FromFile("../test/empty.yaml")
 	}, "Should panic because of validation errors")
 }
 
-func TestConfigPanicReadFromNonExistingFile(t *testing.T) {
+func TestConfigPanicFromNonExistingFile(t *testing.T) {
 	assert.Panics(t, func() {
-		readConfigFromFile("abcxyz.yaml")
+		FromFile("abcxyz.yaml")
 	}, "Should panic because of non-existing file")
 }
 
-func TestConfigReadFromWrongSyntaxFile(t *testing.T) {
+func TestConfigFromWrongSyntaxFile(t *testing.T) {
 	assert.Panics(t, func() {
-		readConfigFromFile("README.md")
+		FromFile("../README.md")
 	}, "Should panic because of wrong yaml syntax")
 }

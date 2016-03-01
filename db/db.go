@@ -1,9 +1,10 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 	"strings"
 	"time"
 )
@@ -11,20 +12,20 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
-	GetDBTenants() []string
-	GetDBMigrations() []DBMigration
-	ApplyMigrations(migrations []Migration)
+	GetTenants() []string
+	GetMigrations() []types.MigrationDB
+	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
 
 // BaseConnector struct is a base struct for implementing DB specific dialects
 type BaseConnector struct {
-	Config *Config
+	Config *config.Config
 	DB     *sql.DB
 }
 
 // CreateConnector constructs Connector instance based on the passed Config
-func CreateConnector(config *Config) Connector {
+func CreateConnector(config *config.Config) Connector {
 	var bc = BaseConnector{config, nil}
 	var connector Connector
 
@@ -34,7 +35,7 @@ func CreateConnector(config *Config) Connector {
 	case "postgres":
 		connector = &postgreSQLConnector{bc}
 	default:
-		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
+		panic(fmt.Sprintf("Failed to create Connector: %q is an unknown driver.", config.Driver))
 	}
 
 	return connector
@@ -69,10 +70,10 @@ const (
 func (bc *BaseConnector) Init() {
 	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
 	if err != nil {
-		log.Panicf("Failed to create database connection ==> %v", err)
+		panic(fmt.Sprintf("Failed to create database connection ==> %v", err))
 	}
 	if err := db.Ping(); err != nil {
-		log.Panicf("Failed to connect to database ==> %v", err)
+		panic(fmt.Sprintf("Failed to connect to database ==> %v", err))
 	}
 	bc.DB = db
 }
@@ -84,7 +85,7 @@ func (bc *BaseConnector) Dispose() {
 
 // GetDBTenants returns a list of all DB tenants as specified by
 // defaultSelectTenants or the value specified in config
-func (bc *BaseConnector) GetDBTenants() []string {
+func (bc *BaseConnector) GetTenants() []string {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
 	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
@@ -115,7 +116,7 @@ func (bc *BaseConnector) GetDBTenants() []string {
 }
 
 // GetDBMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) GetDBMigrations() []DBMigration {
+func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
 		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
@@ -128,40 +129,40 @@ func (bc *BaseConnector) GetDBMigrations() []DBMigration {
 		panic(fmt.Sprintf("Could not query DB migrations ==> %v", err))
 	}
 
-	var dbMigrations []DBMigration
+	var dbMigrations []types.MigrationDB
 	for rows.Next() {
 		var (
 			name          string
 			sourceDir     string
 			file          string
-			migrationType MigrationType
+			migrationType types.MigrationType
 			schema        string
 			created       time.Time
 		)
 		if err := rows.Scan(&name, &sourceDir, &file, &migrationType, &schema, &created); err != nil {
 			panic(fmt.Sprintf("Could not read DB migration ==> %v", err))
 		}
-		mdef := MigrationDefinition{name, sourceDir, file, migrationType}
-		dbMigrations = append(dbMigrations, DBMigration{mdef, schema, created})
+		mdef := types.MigrationDefinition{name, sourceDir, file, migrationType}
+		dbMigrations = append(dbMigrations, types.MigrationDB{mdef, schema, created})
 	}
 
 	return dbMigrations
 }
 
 // ApplyMigrations applies passed migrations
-func (bc *BaseConnector) ApplyMigrations(migrations []Migration) {
+func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 	panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
 // applyMigrationsWithInsertMigrationSQL is called by specific implementations
 // insertMigrationSQL varies based on database dialect
-func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []Migration, insertMigrationSQL string) {
+func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []types.Migration, insertMigrationSQL string) {
 
 	if len(migrations) == 0 {
 		return
 	}
 
-	tenants := bc.GetDBTenants()
+	tenants := bc.GetTenants()
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
@@ -176,7 +177,7 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []Migr
 
 	for _, m := range migrations {
 		var schemas []string
-		if m.MigrationType == ModeTenantSchema {
+		if m.MigrationType == types.MigrationTypeTenantSchema {
 			schemas = tenants
 		} else {
 			schemas = []string{m.SourceDir}

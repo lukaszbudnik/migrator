@@ -1,13 +1,14 @@
-package main
+package disk
 
 import (
+	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestDiskPanicReadDiskMigrationsNonExistingBaseDir(t *testing.T) {
 
-	var config Config
+	var config config.Config
 	config.BaseDir = "xyzabc"
 
 	loader := CreateLoader(&config)
@@ -20,8 +21,8 @@ func TestDiskPanicReadDiskMigrationsNonExistingBaseDir(t *testing.T) {
 
 func TestDiskGetDiskMigrations(t *testing.T) {
 
-	var config Config
-	config.BaseDir = "test/migrations"
+	var config config.Config
+	config.BaseDir = "../test/migrations"
 	config.SingleSchemas = []string{"public", "ref"}
 	config.TenantSchemas = []string{"tenants"}
 
