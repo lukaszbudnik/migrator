@@ -12,8 +12,8 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
-	GetDBTenants() []string
-	GetDBMigrations() []types.MigrationDB
+	GetTenants() []string
+	GetMigrations() []types.MigrationDB
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
@@ -85,7 +85,7 @@ func (bc *BaseConnector) Dispose() {
 
 // GetDBTenants returns a list of all DB tenants as specified by
 // defaultSelectTenants or the value specified in config
-func (bc *BaseConnector) GetDBTenants() []string {
+func (bc *BaseConnector) GetTenants() []string {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
 	var tenantsSQL string
 	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
@@ -116,7 +116,7 @@ func (bc *BaseConnector) GetDBTenants() []string {
 }
 
 // GetDBMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
+func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
 		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
@@ -162,7 +162,7 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		return
 	}
 
-	tenants := bc.GetDBTenants()
+	tenants := bc.GetTenants()
 
 	tx, err := bc.DB.Begin()
 	if err != nil {

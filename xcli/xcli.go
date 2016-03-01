@@ -38,7 +38,7 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 	}
 
 	loadDBMigrations := func(connector db.Connector) []types.MigrationDB {
-		dbMigrations := connector.GetDBMigrations()
+		dbMigrations := connector.GetMigrations()
 		if *verbose || *action == ListDBMigrationsAction {
 			log.Printf("List of db migrations ==> \n%v", types.MigrationDBArrayString(dbMigrations))
 		}
@@ -46,7 +46,7 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 	}
 
 	loadDBTenants := func(connector db.Connector) []string {
-		dbTenants := connector.GetDBTenants()
+		dbTenants := connector.GetTenants()
 		if *verbose || *action == ListDBTenantsAction {
 			log.Printf("List of db tenants ==> \n%v", types.TenantArrayString(dbTenants))
 		}
@@ -76,10 +76,10 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 	case ApplyAction:
 		config := readConfig()
 		loader := createLoader(config)
+		diskMigrations := loadDiskMigrations(loader)
 		connector := createConnector(config)
 		connector.Init()
 		defer connector.Dispose()
-		diskMigrations := loadDiskMigrations(loader)
 		dbMigrations := loadDBMigrations(connector)
 		migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
 		if *verbose {

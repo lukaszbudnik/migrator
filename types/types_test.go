@@ -14,7 +14,7 @@ func TestTypesDBTenantsString(t *testing.T) {
 | opopopop                     |
 +------------------------------+`
 
-	actual := DBTenantsString(dbTenants)
+	actual := TenantArrayString(dbTenants)
 
 	assert.Equal(t, expected, actual)
 }
@@ -33,7 +33,7 @@ func TestTypesMigrationsString(t *testing.T) {
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       |    2 |
 | tenants    | 201602220002.sql     | tenants/201602220002.sql       |    2 |
 +---------------------------------------------------------------------------+`
-	actual := MigrationsString(ms)
+	actual := MigrationArrayString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -47,7 +47,7 @@ func TestTypesMigrationsEmptyArrayString(t *testing.T) {
 +---------------------------------------------------------------------------+
 | Empty                                                                     |
 +---------------------------------------------------------------------------+`
-	actual := MigrationsString(ms)
+	actual := MigrationArrayString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -66,7 +66,7 @@ func TestTypesMigrationDBsString(t *testing.T) {
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | abc        | 2016-02-22 16:41:02  |    2 |
 | tenants    | 201602220001.sql     | tenants/201602220001.sql       | def        | 2016-02-22 16:41:02  |    2 |
 +---------------------------------------------------------------------------------------------------------------+`
-	actual := MigrationDBsString(ms)
+	actual := MigrationDBArrayString(ms)
 
 	assert.Equal(t, expected, actual)
 }
@@ -79,7 +79,7 @@ func TestTypesMigrationDBsEmptyArrayString(t *testing.T) {
 +---------------------------------------------------------------------------------------------------------------+
 | Empty                                                                                                         |
 +---------------------------------------------------------------------------------------------------------------+`
-	actual := MigrationDBsString(ms)
+	actual := MigrationDBArrayString(ms)
 
 	assert.Equal(t, expected, actual)
 }
