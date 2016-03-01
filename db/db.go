@@ -13,7 +13,7 @@ import (
 type Connector interface {
 	Init()
 	GetDBTenants() []string
-	GetDBMigrations() []types.DBMigration
+	GetDBMigrations() []types.MigrationDB
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
@@ -115,8 +115,8 @@ func (bc *BaseConnector) GetDBTenants() []string {
 	return tenants
 }
 
-// Gettypes.DBMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) GetDBMigrations() []types.DBMigration {
+// GetDBMigrations returns a list of all applied DB migrations
+func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
 		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
@@ -129,7 +129,7 @@ func (bc *BaseConnector) GetDBMigrations() []types.DBMigration {
 		panic(fmt.Sprintf("Could not query DB migrations ==> %v", err))
 	}
 
-	var dbMigrations []types.DBMigration
+	var dbMigrations []types.MigrationDB
 	for rows.Next() {
 		var (
 			name          string
@@ -143,7 +143,7 @@ func (bc *BaseConnector) GetDBMigrations() []types.DBMigration {
 			panic(fmt.Sprintf("Could not read DB migration ==> %v", err))
 		}
 		mdef := types.MigrationDefinition{name, sourceDir, file, migrationType}
-		dbMigrations = append(dbMigrations, types.DBMigration{mdef, schema, created})
+		dbMigrations = append(dbMigrations, types.MigrationDB{mdef, schema, created})
 	}
 
 	return dbMigrations
@@ -177,7 +177,7 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 
 	for _, m := range migrations {
 		var schemas []string
-		if m.MigrationType == types.ModeTenantSchema {
+		if m.MigrationType == types.MigrationTypeTenantSchema {
 			schemas = tenants
 		} else {
 			schemas = []string{m.SourceDir}

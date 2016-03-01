@@ -11,10 +11,10 @@ import (
 type MigrationType uint32
 
 const (
-	// ModeSingleSchema is used to mark single migration
-	ModeSingleSchema MigrationType = 1
-	// ModeTenantSchema is used to mark tenant migrations
-	ModeTenantSchema MigrationType = 2
+	// MigrationTypeSingleSchema is used to mark single migration
+	MigrationTypeSingleSchema MigrationType = 1
+	// MigrationTypeTenantSchema is used to mark tenant migrations
+	MigrationTypeTenantSchema MigrationType = 2
 )
 
 // MigrationDefinition contains basic information about migration
@@ -31,8 +31,8 @@ type Migration struct {
 	Contents string
 }
 
-// DBMigration embeds MigrationDefinition and contain other DB properties
-type DBMigration struct {
+// MigrationDB embeds MigrationDefinition and contain other DB properties
+type MigrationDB struct {
 	MigrationDefinition
 	Schema  string
 	Created time.Time
@@ -42,14 +42,14 @@ func (m Migration) String() string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %4d |", m.SourceDir, m.Name, m.File, m.MigrationType)
 }
 
-func (m DBMigration) String() string {
+func (m MigrationDB) String() string {
 	created := fmt.Sprintf("%v", m.Created)
 	index := strings.Index(created, ".")
 	created = created[:index]
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
 }
 
-func MigrationsString(migrations []Migration) string {
+func MigrationArrayString(migrations []Migration) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")
@@ -77,7 +77,7 @@ func MigrationsString(migrations []Migration) string {
 	return buffer.String()
 }
 
-func DBMigrationsString(migrations []DBMigration) string {
+func MigrationDBArrayString(migrations []MigrationDB) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")
@@ -105,7 +105,7 @@ func DBMigrationsString(migrations []DBMigration) string {
 	return buffer.String()
 }
 
-func DBTenantsString(dbTenants []string) string {
+func TenantArrayString(dbTenants []string) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteString("+")

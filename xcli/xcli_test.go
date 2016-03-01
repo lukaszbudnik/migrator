@@ -7,10 +7,10 @@
 package xcli
 
 import (
+	"github.com/lukaszbudnik/migrator/db"
+	"github.com/lukaszbudnik/migrator/disk"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/lukaszbudnik/migrator/disk"
-		"github.com/lukaszbudnik/migrator/db"
 )
 
 var (
@@ -51,8 +51,8 @@ func TestCliListDBTenants(t *testing.T) {
 	ExecuteMigrator(&configFile, &action, &notVerbose, db.CreateConnector, disk.CreateLoader)
 }
 
-func TestCliListDBMigrations(t *testing.T) {
-	action := ListDBMigrationsAction
+func TestCliListMigrationDBs(t *testing.T) {
+	action := ListMigrationDBsAction
 	ExecuteMigrator(&configFile, &action, &notVerbose, db.CreateConnector, disk.CreateLoader)
 }
 

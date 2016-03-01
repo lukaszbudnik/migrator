@@ -1,11 +1,11 @@
 package disk
 
 import (
+	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/lukaszbudnik/migrator/utils"
 	"io/ioutil"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -38,8 +38,8 @@ func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
 
 	migrationsMap := make(map[string][]types.Migration)
 
-	dl.readMigrationsFromSchemaDirs(migrationsMap, singleSchemasDirs, types.ModeSingleSchema)
-	dl.readMigrationsFromSchemaDirs(migrationsMap, tenantSchemasDirs, types.ModeTenantSchema)
+	dl.readMigrationsFromSchemaDirs(migrationsMap, singleSchemasDirs, types.MigrationTypeSingleSchema)
+	dl.readMigrationsFromSchemaDirs(migrationsMap, tenantSchemasDirs, types.MigrationTypeTenantSchema)
 
 	keys := make([]string, 0, len(migrationsMap))
 	for key := range migrationsMap {

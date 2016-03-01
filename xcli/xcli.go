@@ -32,15 +32,15 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 		diskMigrations := loader.GetDiskMigrations()
 		log.Printf("Read disk migrations ==> OK")
 		if *verbose || *action == ListDiskMigrationsAction {
-			log.Printf("List of disk migrations ==>\n%v", types.MigrationsString(diskMigrations))
+			log.Printf("List of disk migrations ==>\n%v", types.MigrationArrayString(diskMigrations))
 		}
 		return diskMigrations
 	}
 
-	loadDBMigrations := func(connector db.Connector) []types.DBMigration {
+	loadDBMigrations := func(connector db.Connector) []types.MigrationDB {
 		dbMigrations := connector.GetDBMigrations()
 		if *verbose || *action == ListDBMigrationsAction {
-			log.Printf("List of db migrations ==> \n%v", types.DBMigrationsString(dbMigrations))
+			log.Printf("List of db migrations ==> \n%v", types.MigrationDBArrayString(dbMigrations))
 		}
 		return dbMigrations
 	}
@@ -48,7 +48,7 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 	loadDBTenants := func(connector db.Connector) []string {
 		dbTenants := connector.GetDBTenants()
 		if *verbose || *action == ListDBTenantsAction {
-			log.Printf("List of db tenants ==> \n%v", types.DBTenantsString(dbTenants))
+			log.Printf("List of db tenants ==> \n%v", types.TenantArrayString(dbTenants))
 		}
 		return dbTenants
 	}
@@ -83,7 +83,7 @@ func ExecuteMigrator(configFile *string, action *string, verbose *bool, createCo
 		dbMigrations := loadDBMigrations(connector)
 		migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
 		if *verbose {
-			log.Printf("List of migrations to apply ==>\n%v", types.MigrationsString(migrationsToApply))
+			log.Printf("List of migrations to apply ==>\n%v", types.MigrationArrayString(migrationsToApply))
 		}
 		connector.ApplyMigrations(migrationsToApply)
 		return 0

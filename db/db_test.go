@@ -5,13 +5,13 @@ package db
 // they only depended on config package (reading config from file)
 
 import (
+	"fmt"
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 	"time"
-	"fmt"
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/types"
 )
 
 func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
@@ -65,7 +65,7 @@ func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
 	connector := CreateConnector(config)
 	connector.Init()
 	defer connector.Dispose()
-	m := types.MigrationDefinition{"201602220002.sql", "error", "error/201602220002.sql", types.ModeTenantSchema}
+	m := types.MigrationDefinition{"201602220002.sql", "error", "error/201602220002.sql", types.MigrationTypeTenantSchema}
 	ms := []types.Migration{{m, "createtablexyx ( idint primary key (id) )"}}
 
 	assert.Panics(t, func() {
@@ -94,7 +94,7 @@ func TestDBApplyMigrations(t *testing.T) {
 	connector.Init()
 	defer connector.Dispose()
 
-	dbMigrationsBefore := connector.GetDBMigrations()
+	dbMigrationsBefore := connector.GetMigrationDBs()
 	lenBefore := len(dbMigrationsBefore)
 
 	p1 := time.Now().UnixNano()
@@ -102,13 +102,13 @@ func TestDBApplyMigrations(t *testing.T) {
 	t1 := time.Now().UnixNano()
 	t2 := time.Now().UnixNano()
 
-	publicdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p1), "public", fmt.Sprintf("public/%v.sql", p1), types.ModeSingleSchema}
-	publicdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p2), "public", fmt.Sprintf("public/%v.sql", p2), types.ModeSingleSchema}
-	public1 := types.Migration{publicdef1, "create table if not exists {schema}.modules ( key int, value text )" }
-	public2 := types.Migration{publicdef2, "insert into {schema}.modules values ( 123, '123' )" }
+	publicdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p1), "public", fmt.Sprintf("public/%v.sql", p1), types.MigrationTypeSingleSchema}
+	publicdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p2), "public", fmt.Sprintf("public/%v.sql", p2), types.MigrationTypeSingleSchema}
+	public1 := types.Migration{publicdef1, "create table if not exists {schema}.modules ( key int, value text )"}
+	public2 := types.Migration{publicdef2, "insert into {schema}.modules values ( 123, '123' )"}
 
-	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.ModeTenantSchema}
-	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.ModeTenantSchema}
+	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.MigrationTypeTenantSchema}
+	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
 	tenant1 := types.Migration{tenantdef1, "create table if not exists {schema}.settings (key int, value text) "}
 	tenant2 := types.Migration{tenantdef2, "insert into {schema}.settings values (456, '456') "}
 
@@ -116,8 +116,8 @@ func TestDBApplyMigrations(t *testing.T) {
 
 	connector.ApplyMigrations(migrationsToApply)
 
-	dbMigrationsAfter := connector.GetDBMigrations()
+	dbMigrationsAfter := connector.GetMigrationDBs()
 	lenAfter := len(dbMigrationsAfter)
 
-	assert.Equal(t, lenAfter - lenBefore, 8)
+	assert.Equal(t, lenAfter-lenBefore, 8)
 }

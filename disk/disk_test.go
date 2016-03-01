@@ -1,9 +1,9 @@
 package disk
 
 import (
+	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/lukaszbudnik/migrator/config"
 )
 
 func TestDiskPanicReadDiskMigrationsNonExistingBaseDir(t *testing.T) {
