@@ -40,7 +40,8 @@ func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
 }
 
 func TestDBConnectorInitPanicConnectionError(t *testing.T) {
-	config := config.FromFile("../test/migrator-test-non-existing-db.yaml")
+	config := config.FromFile("../test/migrator.yaml")
+	config.DataSource = ""
 
 	connector := CreateConnector(config)
 	assert.Panics(t, func() {
@@ -120,4 +121,24 @@ func TestDBApplyMigrations(t *testing.T) {
 	lenAfter := len(dbMigrationsAfter)
 
 	assert.Equal(t, lenAfter-lenBefore, 8)
+}
+
+func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
+	config := config.FromFile("../test/migrator.yaml")
+
+	connector := CreateConnector(config)
+	connector.Init()
+	defer connector.Dispose()
+
+	dbMigrationsBefore := connector.GetMigrations()
+	lenBefore := len(dbMigrationsBefore)
+
+	migrationsToApply := []types.Migration{}
+
+	connector.ApplyMigrations(migrationsToApply)
+
+	dbMigrationsAfter := connector.GetMigrations()
+	lenAfter := len(dbMigrationsAfter)
+
+	assert.Equal(t, lenAfter, lenBefore)
 }
