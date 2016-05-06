@@ -1,12 +1,13 @@
 // These are integration tests.
 // The following tests must be working in order to get this one working:
 // * config_test.go
-// * disk_test.go
 // * migrations_test.go
+// DB & Disk operations are mocked using xcli_mocks.go
 
 package xcli
 
 import (
+	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -14,31 +15,40 @@ import (
 var (
 	unknownAction = "unknown"
 	configFile    = "../test/migrator.yaml"
-	verbose       = true
-	notVerbose    = false
 )
 
 func TestCliExitUnknownAction(t *testing.T) {
-	ret := ExecuteMigrator(&configFile, &unknownAction, &notVerbose, nil, nil)
+	config := config.FromFile(configFile)
+	ret := ExecuteMigrator(config, &unknownAction, nil, nil)
 	assert.Equal(t, 1, ret)
 }
 
 func TestCliListDiskMigrations(t *testing.T) {
+	config := config.FromFile(configFile)
 	action := ListDiskMigrationsAction
-	ExecuteMigrator(&configFile, &action, &notVerbose, nil, createMockedDiskLoader)
+	ExecuteMigrator(config, &action, nil, createMockedDiskLoader)
 }
 
 func TestCliListDBTenants(t *testing.T) {
+	config := config.FromFile(configFile)
 	action := ListDBTenantsAction
-	ExecuteMigrator(&configFile, &action, &notVerbose, createMockedConnector, nil)
+	ExecuteMigrator(config, &action, createMockedConnector, nil)
 }
 
 func TestCliListMigrationDBs(t *testing.T) {
+	config := config.FromFile(configFile)
 	action := ListDBMigrationsAction
-	ExecuteMigrator(&configFile, &action, &notVerbose, createMockedConnector, nil)
+	ExecuteMigrator(config, &action, createMockedConnector, nil)
 }
 
 func TestCliApply(t *testing.T) {
+	config := config.FromFile(configFile)
 	action := ApplyAction
-	ExecuteMigrator(&configFile, &action, &verbose, createMockedConnector, createMockedDiskLoader)
+	ExecuteMigrator(config, &action, createMockedConnector, createMockedDiskLoader)
+}
+
+func TestCliPrintConfig(t *testing.T) {
+	config := config.FromFile(configFile)
+	action := PrintConfigAction
+	ExecuteMigrator(config, &action, nil, nil)
 }
