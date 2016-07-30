@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -12,6 +13,16 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, "select name from public.migrator_tenants", config.TenantsSQL)
 	assert.Equal(t, "postgres", config.Driver)
 	assert.Equal(t, "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
+	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
+	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
+}
+
+func TestWithEnvFromFile(t *testing.T) {
+	config := FromFile("../test/migrator-test-envs.yaml")
+	assert.Equal(t, os.Getenv("HOME"), config.BaseDir)
+	assert.Equal(t, os.Getenv("PATH"), config.TenantsSQL)
+	assert.Equal(t, os.Getenv("PWD"), config.Driver)
+	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 }

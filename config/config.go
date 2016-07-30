@@ -5,6 +5,7 @@ import (
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -44,5 +45,22 @@ func FromBytes(contents []byte) *Config {
 		panic(fmt.Sprintf("Could not validate config file ==> %v", err))
 	}
 
+	substituteEnvVariables(&config)
+
 	return &config
+}
+
+func substituteEnvVariables(config *Config) {
+	if strings.HasPrefix(config.BaseDir, "$") {
+		config.BaseDir = os.Getenv(config.BaseDir[1:])
+	}
+	if strings.HasPrefix(config.Driver, "$") {
+		config.Driver = os.Getenv(config.Driver[1:])
+	}
+	if strings.HasPrefix(config.DataSource, "$") {
+		config.DataSource = os.Getenv(config.DataSource[1:])
+	}
+	if strings.HasPrefix(config.TenantsSQL, "$") {
+		config.TenantsSQL = os.Getenv(config.TenantsSQL[1:])
+	}
 }
