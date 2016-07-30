@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	defaultPort string = "8080"
+)
+
 // Config represents Migrator's yaml configuration file
 type Config struct {
 	BaseDir       string   `yaml:"baseDir" validate:"nonzero"`
@@ -17,6 +21,8 @@ type Config struct {
 	TenantsSQL    string   `yaml:"tenantsSql"`
 	SingleSchemas []string `yaml:"singleSchemas" validate:"min=1"`
 	TenantSchemas []string `yaml:"tenantSchemas"`
+	Port          string   `yaml:"port"`
+	SlackWebHook  string   `yaml:"slackWebHook"`
 }
 
 func (config Config) String() string {
@@ -47,6 +53,11 @@ func FromBytes(contents []byte) *Config {
 
 	substituteEnvVariables(&config)
 
+	if len(strings.TrimSpace(config.Port)) == 0 {
+		config.Port = defaultPort
+	}
+
+
 	return &config
 }
 
@@ -63,4 +74,8 @@ func substituteEnvVariables(config *Config) {
 	if strings.HasPrefix(config.TenantsSQL, "$") {
 		config.TenantsSQL = os.Getenv(config.TenantsSQL[1:])
 	}
+	if strings.HasPrefix(config.Port, "$") {
+		config.Port = os.Getenv(config.Port[1:])
+	}
+
 }
