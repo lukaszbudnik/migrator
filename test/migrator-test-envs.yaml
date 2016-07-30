@@ -1,0 +1,12 @@
+# migrator configuration
+baseDir: $HOME
+driver: $PWD
+dataSource: $TERM
+# override only if you have own specific way of determining tenants
+tenantsSql: $PATH
+singleSchemas:
+  - public
+  - ref
+  - config
+tenantSchemas:
+  - tenants
