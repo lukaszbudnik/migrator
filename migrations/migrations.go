@@ -16,6 +16,7 @@ func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.MigrationDefi
 	return flattened
 }
 
+// ComputeMigrationsToApply computes which disk migrations should be applied to DB based on migrations already present in DB
 func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []types.MigrationDB) []types.Migration {
 	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
 

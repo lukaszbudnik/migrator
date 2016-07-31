@@ -24,7 +24,8 @@ func TestWithEnvFromFile(t *testing.T) {
 	assert.Equal(t, os.Getenv("PATH"), config.TenantsSQL)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
 	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
-	assert.Equal(t, os.Getenv("PS1"), config.Port)
+	assert.Equal(t, os.Getenv("_"), config.Port)
+	assert.Equal(t, os.Getenv("SHLVL"), config.SlackWebHook)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 }

@@ -1,6 +1,7 @@
 package db
 
 import (
+	// blank import for PostgreSQL driver
 	_ "github.com/lib/pq"
 	"github.com/lukaszbudnik/migrator/types"
 )

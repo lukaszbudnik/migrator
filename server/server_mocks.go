@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/disk"
+	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/lukaszbudnik/migrator/types"
 	"time"
 )
@@ -11,13 +11,13 @@ import (
 type mockedDiskLoader struct {
 }
 
-func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
+func (m *mockedDiskLoader) GetMigrations() []types.Migration {
 	m1 := types.MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", types.MigrationTypeSingleSchema}
 	m2 := types.MigrationDefinition{"201602220001.sql", "source", "source/201602220001.sql", types.MigrationTypeSingleSchema}
 	return []types.Migration{{m1, "select abc"}, {m2, "select def"}}
 }
 
-func createMockedDiskLoader(config *config.Config) disk.Loader {
+func createMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedDiskLoader)
 }
 

@@ -49,6 +49,7 @@ func (m MigrationDB) String() string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
 }
 
+// MigrationArrayString creates a string representation of migrations list
 func MigrationArrayString(migrations []Migration) string {
 	var buffer bytes.Buffer
 
@@ -77,6 +78,7 @@ func MigrationArrayString(migrations []Migration) string {
 	return buffer.String()
 }
 
+// MigrationDBArrayString creates a string representation of DB migrations list
 func MigrationDBArrayString(migrations []MigrationDB) string {
 	var buffer bytes.Buffer
 
@@ -105,6 +107,7 @@ func MigrationDBArrayString(migrations []MigrationDB) string {
 	return buffer.String()
 }
 
+// TenantArrayString creates a string representation of DB tenants list
 func TenantArrayString(dbTenants []string) string {
 	var buffer bytes.Buffer
 

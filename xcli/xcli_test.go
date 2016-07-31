@@ -47,6 +47,11 @@ func TestCliApply(t *testing.T) {
 	ExecuteMigrator(config, &action, createMockedConnector, createMockedDiskLoader)
 }
 
+func TestCliReadConfig(t *testing.T) {
+	config := ReadConfig(&configFile)
+	assert.NotNil(t, config)
+}
+
 func TestCliPrintConfig(t *testing.T) {
 	config := config.FromFile(configFile)
 	action := PrintConfigAction
