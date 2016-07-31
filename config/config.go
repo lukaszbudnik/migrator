@@ -30,6 +30,7 @@ func (config Config) String() string {
 	return strings.TrimSpace(string(c))
 }
 
+// FromFile reads config from file which name is passed as an argument
 func FromFile(configFileName string) *Config {
 	contents, err := ioutil.ReadFile(configFileName)
 
@@ -40,6 +41,7 @@ func FromFile(configFileName string) *Config {
 	return FromBytes(contents)
 }
 
+// FromBytes reads config from raw bytes passed as an argument
 func FromBytes(contents []byte) *Config {
 	var config Config
 
@@ -56,7 +58,6 @@ func FromBytes(contents []byte) *Config {
 	if len(strings.TrimSpace(config.Port)) == 0 {
 		config.Port = defaultPort
 	}
-
 
 	return &config
 }
@@ -76,6 +77,9 @@ func substituteEnvVariables(config *Config) {
 	}
 	if strings.HasPrefix(config.Port, "$") {
 		config.Port = os.Getenv(config.Port[1:])
+	}
+	if strings.HasPrefix(config.SlackWebHook, "$") {
+		config.SlackWebHook = os.Getenv(config.SlackWebHook[1:])
 	}
 
 }

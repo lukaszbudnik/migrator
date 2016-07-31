@@ -83,7 +83,7 @@ func (bc *BaseConnector) Dispose() {
 	bc.DB.Close()
 }
 
-// GetDBTenants returns a list of all DB tenants as specified by
+// GetTenants returns a list of all DB tenants as specified by
 // defaultSelectTenants or the value specified in config
 func (bc *BaseConnector) GetTenants() []string {
 	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
@@ -115,7 +115,7 @@ func (bc *BaseConnector) GetTenants() []string {
 	return tenants
 }
 
-// GetDBMigrations returns a list of all applied DB migrations
+// GetMigrations returns a list of all applied DB migrations
 func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {

@@ -1,4 +1,4 @@
-package disk
+package loader
 
 import (
 	"fmt"
@@ -11,23 +11,13 @@ import (
 	"sort"
 )
 
-// Loader interface abstracts all disk operations performed by migrator
-type Loader interface {
-	GetDiskMigrations() []types.Migration
-}
-
-// DiskLoader struct is a base struct for implementing Loader interface
+// DiskLoader is struct used for implementing Loader interface for loading migrations from disk
 type DiskLoader struct {
 	Config *config.Config
 }
 
-// CreateLoader abstracts all disk operations performed by migrator
-func CreateLoader(config *config.Config) Loader {
-	return &DiskLoader{config}
-}
-
-// GetDiskMigrations loads all migrations from disk
-func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
+// GetMigrations loads all migrations from disk
+func (dl *DiskLoader) GetMigrations() []types.Migration {
 	dirs, err := ioutil.ReadDir(dl.Config.BaseDir)
 	if err != nil {
 		panic(fmt.Sprintf("Could not read migration base dir ==> %v", err))

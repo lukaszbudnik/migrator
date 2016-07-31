@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/disk"
+	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/lukaszbudnik/migrator/migrations"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/types"
@@ -12,26 +12,36 @@ import (
 )
 
 const (
-	ApplyAction              = "apply"
-	PrintConfigAction        = "config"
-	ListDBMigrationsAction   = "dbMigrations"
-	ListDBTenantsAction      = "dbTenants"
+	// ApplyAction is an action which applies disk migrations to database
+	ApplyAction = "apply"
+	// PrintConfigAction is an action which prints contents of config
+	PrintConfigAction = "config"
+	// ListDBMigrationsAction is an action which lists migrations recorded in DB
+	ListDBMigrationsAction = "dbMigrations"
+	// ListDBTenantsAction is an action which list tenants for multi-tenant schemas
+	ListDBTenantsAction = "dbTenants"
+	// ListDiskMigrationsAction is an action which lists migrations stored on disk
 	ListDiskMigrationsAction = "diskMigrations"
 )
 
+// ReadConfig is a function which reads config from a file which names is passed as argument
 func ReadConfig(configFile *string) *config.Config {
 	config := config.FromFile(*configFile)
 	log.Printf("Read config file ==> OK")
 	return config
 }
 
-func LoadDiskMigrations(config *config.Config, createLoader func(*config.Config) disk.Loader) []types.Migration {
+// LoadDiskMigrations is a function which loads all migrations from disk as defined in config passed as first argument
+// and using loader created by a function passed as second argument
+func LoadDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) []types.Migration {
 	loader := createLoader(config)
-	diskMigrations := loader.GetDiskMigrations()
+	diskMigrations := loader.GetMigrations()
 	log.Printf("Read [%d] disk migrations ==> OK", len(diskMigrations))
 	return diskMigrations
 }
 
+// LoadDBTenants is a function which loads all tenants for multi-tenant schemas from DB as defined in config passed as first argument
+// and using connector created by a function passed as second argument
 func LoadDBTenants(config *config.Config, createConnector func(*config.Config) db.Connector) []string {
 	connector := createConnector(config)
 	connector.Init()
@@ -41,6 +51,8 @@ func LoadDBTenants(config *config.Config, createConnector func(*config.Config) d
 	return dbTenants
 }
 
+// LoadDBMigrations is a function which loads all DB migrations for multi-tenant schemas from DB as defined in config passed as first argument
+// and using connector created by a function passed as second argument
 func LoadDBMigrations(config *config.Config, createConnector func(*config.Config) db.Connector) []types.MigrationDB {
 	connector := createConnector(config)
 	connector.Init()
@@ -57,7 +69,9 @@ func doApplyMigrations(migrationsToApply []types.Migration, config *config.Confi
 	connector.ApplyMigrations(migrationsToApply)
 }
 
-func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) disk.Loader) []types.Migration {
+// ApplyMigrations is a function which applies disk migrations to DB as defined in config passed as first argument
+// and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
+func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
 	diskMigrations := LoadDiskMigrations(config, createLoader)
 	dbMigrations := LoadDBMigrations(config, createConnector)
 	migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
@@ -78,7 +92,9 @@ func ApplyMigrations(config *config.Config, createConnector func(*config.Config)
 	return migrationsToApply
 }
 
-func ExecuteMigrator(config *config.Config, action *string, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) disk.Loader) int {
+// ExecuteMigrator is a function which executes actions on resources defined in config passed as first argument action defined as second argument
+// and using connector created by a function passed as third argument and disk loader created by a function passed as fourth argument
+func ExecuteMigrator(config *config.Config, action *string, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) int {
 
 	switch *action {
 	case PrintConfigAction:

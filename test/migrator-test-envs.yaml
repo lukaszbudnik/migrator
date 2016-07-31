@@ -4,7 +4,8 @@ driver: $PWD
 dataSource: $TERM
 # override only if you have own specific way of determining tenants
 tenantsSql: $PATH
-port: $PS1
+port: $_
+slackWebHook: $SHLVL
 singleSchemas:
   - public
   - ref

@@ -3,19 +3,19 @@ package xcli
 import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/disk"
+	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
 type mockedDiskLoader struct {
 }
 
-func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
+func (m *mockedDiskLoader) GetMigrations() []types.Migration {
 	// returns empty array
 	return []types.Migration{}
 }
 
-func createMockedDiskLoader(config *config.Config) disk.Loader {
+func createMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedDiskLoader)
 }
 

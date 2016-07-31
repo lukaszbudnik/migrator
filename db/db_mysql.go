@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/lukaszbudnik/migrator/types"
+	// blank import for MySQL driver
 	_ "github.com/ziutek/mymysql/godrv"
 )
 

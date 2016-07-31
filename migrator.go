@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/disk"
+	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/lukaszbudnik/migrator/server"
 	"github.com/lukaszbudnik/migrator/xcli"
 	"os"
@@ -26,10 +26,10 @@ func main() {
 	config := xcli.ReadConfig(configFile)
 
 	if *mode == "tool" {
-		ret := xcli.ExecuteMigrator(config, action, db.CreateConnector, disk.CreateLoader)
+		ret := xcli.ExecuteMigrator(config, action, db.CreateConnector, loader.CreateLoader)
 		os.Exit(ret)
 	} else {
-		server.Start(config, db.CreateConnector, disk.CreateLoader)
+		server.Start(config, db.CreateConnector, loader.CreateLoader)
 	}
 
 }
