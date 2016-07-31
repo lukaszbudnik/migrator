@@ -14,9 +14,6 @@ do
   if [[ "main" == "$package" ]]; then
     continue
   fi
-  if [[ "db" == "$package" ]]; then
-    continue
-  fi
   go test -cover -coverprofile=coverage-$package.txt ./$package
   cat coverage-$package.txt | sed '/^mode/d' >> coverage-all.txt
 done
