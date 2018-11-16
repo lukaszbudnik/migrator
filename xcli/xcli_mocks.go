@@ -28,6 +28,14 @@ func (m *mockedConnector) Init() {
 func (m *mockedConnector) Dispose() {
 }
 
+func (m *mockedConnector) GetSchemaPlaceHolder() string {
+	return ""
+}
+
+func (m *mockedConnector) GetTenantsSQL() string {
+	return ""
+}
+
 func (m *mockedConnector) GetTenants() []string {
 	// returns empty array
 	return []string{}

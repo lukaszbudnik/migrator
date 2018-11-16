@@ -4,7 +4,7 @@ set -x
 
 cd `dirname $0`
 
-ip=`docker-machine ip default`
+ip=127.0.0.1
 port=55432
 database=migrator_test
 

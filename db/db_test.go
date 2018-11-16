@@ -120,7 +120,7 @@ func TestDBApplyMigrations(t *testing.T) {
 	dbMigrationsAfter := connector.GetMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
-	assert.Equal(t, lenAfter-lenBefore, 8)
+	assert.Equal(t, 8, lenAfter-lenBefore)
 }
 
 func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
@@ -141,4 +141,48 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 	lenAfter := len(dbMigrationsAfter)
 
 	assert.Equal(t, lenAfter, lenBefore)
+}
+
+func TestGetTenantsSQLDefault(t *testing.T) {
+	config := config.FromFile("../test/migrator.yaml")
+
+	connector := CreateConnector(config)
+	defer connector.Dispose()
+
+	tenantsSQL := connector.GetTenantsSQL()
+
+	assert.Equal(t, "select name from public.migrator_tenants", tenantsSQL)
+}
+
+func TestGetTenantsSQLOverride(t *testing.T) {
+	config := config.FromFile("../test/migrator-overrides.yaml")
+
+	connector := CreateConnector(config)
+	defer connector.Dispose()
+
+	tenantsSQL := connector.GetTenantsSQL()
+
+	assert.Equal(t, "select somename from someschema.sometable", tenantsSQL)
+}
+
+func TestGetSchemaPlaceHolderDefault(t *testing.T) {
+	config := config.FromFile("../test/migrator.yaml")
+
+	connector := CreateConnector(config)
+	defer connector.Dispose()
+
+	tenantsSQL := connector.GetSchemaPlaceHolder()
+
+	assert.Equal(t, "{schema}", tenantsSQL)
+}
+
+func TestGetSchemaPlaceHolderOverride(t *testing.T) {
+	config := config.FromFile("../test/migrator-overrides.yaml")
+
+	connector := CreateConnector(config)
+	defer connector.Dispose()
+
+	tenantsSQL := connector.GetSchemaPlaceHolder()
+
+	assert.Equal(t, "[schema]", tenantsSQL)
 }

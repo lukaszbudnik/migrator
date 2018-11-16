@@ -23,8 +23,10 @@ Migrator requires a simple `migrator.yaml` file:
 baseDir: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# override only if you have own specific way of determining tenants
+# override only if you have a specific way of determining tenants, default is:
 tenantsSql: "select name from public.migrator_tenants"
+# override only if you have a specific schema placeholder, default is:
+schemaPlaceHolder: {schema}
 singleSchemas:
   - public
   - ref
@@ -105,7 +107,7 @@ To install migrator use:
 
 `go get github.com/lukaszbudnik/migrator`
 
-Migrator supports the following Go versions: 1.2, 1.3, 1.4, 1.5, 1.6 (all built on Travis).
+Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11 (all built on Travis).
 
 # Code Style
 
