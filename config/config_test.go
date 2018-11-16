@@ -16,6 +16,7 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 	assert.Equal(t, "8080", config.Port)
+	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
 }
 
 func TestWithEnvFromFile(t *testing.T) {
@@ -26,17 +27,19 @@ func TestWithEnvFromFile(t *testing.T) {
 	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
 	assert.Equal(t, os.Getenv("_"), config.Port)
 	assert.Equal(t, os.Getenv("SHLVL"), config.SlackWebHook)
+	assert.Equal(t, os.Getenv("USER"), config.SchemaPlaceHolder)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX"}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX"}
 	// check if go naming convention applies
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
 tenantsSql: select abc
+schemaPlaceHolder: :tenant
 singleSchemas:
 - ref
 tenantSchemas:

@@ -12,7 +12,9 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
+	GetTenantsSQL() string
 	GetTenants() []string
+	GetSchemaPlaceHolder() string
 	GetMigrations() []types.MigrationDB
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
@@ -62,8 +64,9 @@ const (
 		created timestamp default now()
 	)
 	`
-	selectMigrations     = "select distinct name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
-	defaultSelectTenants = "select name from %v"
+	selectMigrations         = "select name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
+	defaultTenantsSQLPattern = "select name from %v"
+	defaultSchemaPlaceHolder = "{schema}"
 )
 
 // Init initialises connector by opening a connection to database
@@ -76,29 +79,40 @@ func (bc *BaseConnector) Init() {
 		panic(fmt.Sprintf("Failed to connect to database ==> %v", err))
 	}
 	bc.DB = db
-}
 
-// Dispose closes all resources allocated by connector
-func (bc *BaseConnector) Dispose() {
-	bc.DB.Close()
-}
-
-// GetTenants returns a list of all DB tenants as specified by
-// defaultSelectTenants or the value specified in config
-func (bc *BaseConnector) GetTenants() []string {
-	defaultTenantsSQL := fmt.Sprintf(defaultSelectTenants, defaultTenantsTableName)
-	var tenantsSQL string
+	defaultTenantsSQL := fmt.Sprintf(defaultTenantsSQLPattern, defaultTenantsTableName)
 	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
-		tenantsSQL = bc.Config.TenantsSQL
-	} else {
 		createTableQuery := fmt.Sprintf(createDefaultTenantsTable, defaultTenantsTableName)
 
 		if _, err := bc.DB.Query(createTableQuery); err != nil {
 			panic(fmt.Sprintf("Could not create default tenants table ==> %v", err))
 		}
-
-		tenantsSQL = defaultTenantsSQL
 	}
+
+}
+
+// Dispose closes all resources allocated by connector
+func (bc *BaseConnector) Dispose() {
+	if bc.DB != nil {
+		bc.DB.Close()
+	}
+}
+
+// GetTenantsSQL returns SQL to be execute to list all DB tenants
+func (bc *BaseConnector) GetTenantsSQL() string {
+	var tenantsSQL string
+	if bc.Config.TenantsSQL != "" {
+		tenantsSQL = bc.Config.TenantsSQL
+	} else {
+		tenantsSQL = fmt.Sprintf(defaultTenantsSQLPattern, defaultTenantsTableName)
+	}
+	return tenantsSQL
+}
+
+// GetTenants returns a list of all DB tenants as specified by
+// defaultSelectTenants or the value specified in config
+func (bc *BaseConnector) GetTenants() []string {
+	tenantsSQL := bc.GetTenantsSQL()
 
 	rows, err := bc.DB.Query(tenantsSQL)
 	if err != nil {
@@ -154,6 +168,16 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 	panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
+func (bc *BaseConnector) GetSchemaPlaceHolder() string {
+	var schemaPlaceHolder string
+	if bc.Config.SchemaPlaceHolder != "" {
+		schemaPlaceHolder = bc.Config.SchemaPlaceHolder
+	} else {
+		schemaPlaceHolder = defaultSchemaPlaceHolder
+	}
+	return schemaPlaceHolder
+}
+
 // applyMigrationsWithInsertMigrationSQL is called by specific implementations
 // insertMigrationSQL varies based on database dialect
 func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []types.Migration, insertMigrationSQL string) {
@@ -161,6 +185,8 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 	if len(migrations) == 0 {
 		return
 	}
+
+	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
 
 	tenants := bc.GetTenants()
 
@@ -184,7 +210,7 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		}
 
 		for _, s := range schemas {
-			contents := strings.Replace(m.Contents, "{schema}", s, -1)
+			contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
 			sqls := strings.Split(contents, ";")
 			for _, sql := range sqls {
 				if strings.TrimSpace(sql) != "" {

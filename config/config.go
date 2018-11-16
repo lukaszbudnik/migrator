@@ -15,14 +15,15 @@ const (
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	BaseDir       string   `yaml:"baseDir" validate:"nonzero"`
-	Driver        string   `yaml:"driver" validate:"nonzero"`
-	DataSource    string   `yaml:"dataSource" validate:"nonzero"`
-	TenantsSQL    string   `yaml:"tenantsSql"`
-	SingleSchemas []string `yaml:"singleSchemas" validate:"min=1"`
-	TenantSchemas []string `yaml:"tenantSchemas"`
-	Port          string   `yaml:"port"`
-	SlackWebHook  string   `yaml:"slackWebHook"`
+	BaseDir           string   `yaml:"baseDir" validate:"nonzero"`
+	Driver            string   `yaml:"driver" validate:"nonzero"`
+	DataSource        string   `yaml:"dataSource" validate:"nonzero"`
+	TenantsSQL        string   `yaml:"tenantsSql"`
+	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder"`
+	SingleSchemas     []string `yaml:"singleSchemas" validate:"min=1"`
+	TenantSchemas     []string `yaml:"tenantSchemas"`
+	Port              string   `yaml:"port"`
+	SlackWebHook      string   `yaml:"slackWebHook"`
 }
 
 func (config Config) String() string {
@@ -80,6 +81,9 @@ func substituteEnvVariables(config *Config) {
 	}
 	if strings.HasPrefix(config.SlackWebHook, "$") {
 		config.SlackWebHook = os.Getenv(config.SlackWebHook[1:])
+	}
+	if strings.HasPrefix(config.SchemaPlaceHolder, "$") {
+		config.SchemaPlaceHolder = os.Getenv(config.SchemaPlaceHolder[1:])
 	}
 
 }

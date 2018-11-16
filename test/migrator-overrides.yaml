@@ -1,0 +1,11 @@
+baseDir: test/migrations
+driver: postgres
+dataSource: "user=postgres dbname=A host=B port=C sslmode=disable"
+tenantsSql: select somename from someschema.sometable
+schemaPlaceHolder: "[schema]"
+singleSchemas:
+  - public
+  - ref
+  - config
+tenantSchemas:
+  - tenants
