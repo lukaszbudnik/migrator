@@ -17,43 +17,26 @@ var (
 	configFile    = "../test/migrator.yaml"
 )
 
-func TestCliExitUnknownAction(t *testing.T) {
-	config := config.FromFile(configFile)
-	ret := ExecuteMigrator(config, &unknownAction, nil, nil)
-	assert.Equal(t, 1, ret)
+func TestLoadDiskMigrations(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	LoadDiskMigrations(config, createMockedDiskLoader)
 }
 
-func TestCliListDiskMigrations(t *testing.T) {
-	config := config.FromFile(configFile)
-	action := ListDiskMigrationsAction
-	ExecuteMigrator(config, &action, nil, createMockedDiskLoader)
+func TestLoadDBTenants(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	LoadDBTenants(config, createMockedConnector)
 }
 
-func TestCliListDBTenants(t *testing.T) {
-	config := config.FromFile(configFile)
-	action := ListDBTenantsAction
-	ExecuteMigrator(config, &action, createMockedConnector, nil)
+func TestLoadDBMigrations(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	LoadDBMigrations(config, createMockedConnector)
 }
 
-func TestCliListMigrationDBs(t *testing.T) {
-	config := config.FromFile(configFile)
-	action := ListDBMigrationsAction
-	ExecuteMigrator(config, &action, createMockedConnector, nil)
-}
-
-func TestCliApply(t *testing.T) {
-	config := config.FromFile(configFile)
-	action := ApplyAction
-	ExecuteMigrator(config, &action, createMockedConnector, createMockedDiskLoader)
-}
-
-func TestCliReadConfig(t *testing.T) {
-	config := ReadConfig(&configFile)
-	assert.NotNil(t, config)
-}
-
-func TestCliPrintConfig(t *testing.T) {
-	config := config.FromFile(configFile)
-	action := PrintConfigAction
-	ExecuteMigrator(config, &action, nil, nil)
+func TestApplyMigrations(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	ApplyMigrations(config, createMockedConnector, createMockedDiskLoader)
 }

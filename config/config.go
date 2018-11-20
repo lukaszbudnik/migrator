@@ -1,10 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
@@ -32,26 +32,29 @@ func (config Config) String() string {
 }
 
 // FromFile reads config from file which name is passed as an argument
-func FromFile(configFileName string) *Config {
+func FromFile(configFileName string) (*Config, error) {
 	contents, err := ioutil.ReadFile(configFileName)
 
 	if err != nil {
-		panic(fmt.Sprintf("Could not read config file ==> %v", err))
+		log.Printf("Could not read config file ==> %v", err)
+		return nil, err
 	}
 
 	return FromBytes(contents)
 }
 
 // FromBytes reads config from raw bytes passed as an argument
-func FromBytes(contents []byte) *Config {
+func FromBytes(contents []byte) (*Config, error) {
 	var config Config
 
 	if err := yaml.Unmarshal(contents, &config); err != nil {
-		panic(fmt.Sprintf("Could not parse config file ==> %v", err))
+		log.Printf("Could not parse config file ==> %v", err)
+		return nil, err
 	}
 
 	if err := validator.Validate(config); err != nil {
-		panic(fmt.Sprintf("Could not validate config file ==> %v", err))
+		log.Printf("Could not validate config file ==> %v", err)
+		return nil, err
 	}
 
 	substituteEnvVariables(&config)
@@ -60,7 +63,7 @@ func FromBytes(contents []byte) *Config {
 		config.Port = defaultPort
 	}
 
-	return &config
+	return &config, nil
 }
 
 func substituteEnvVariables(config *Config) {

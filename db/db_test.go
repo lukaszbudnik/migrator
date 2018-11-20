@@ -40,7 +40,9 @@ func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
 }
 
 func TestDBConnectorInitPanicConnectionError(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
 	config.DataSource = ""
 
 	connector := CreateConnector(config)
@@ -50,7 +52,9 @@ func TestDBConnectorInitPanicConnectionError(t *testing.T) {
 }
 
 func TestDBGetTenantsPanicSQLSyntaxError(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
 	config.TenantsSQL = "sadfdsfdsf"
 	connector := CreateConnector(config)
 	connector.Init()
@@ -60,7 +64,9 @@ func TestDBGetTenantsPanicSQLSyntaxError(t *testing.T) {
 }
 
 func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
 	config.SingleSchemas = []string{"error"}
 
 	connector := CreateConnector(config)
@@ -75,7 +81,8 @@ func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
 }
 
 func TestDBGetTenants(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 
@@ -89,7 +96,8 @@ func TestDBGetTenants(t *testing.T) {
 }
 
 func TestDBApplyMigrations(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	connector.Init()
@@ -124,7 +132,8 @@ func TestDBApplyMigrations(t *testing.T) {
 }
 
 func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	connector.Init()
@@ -144,7 +153,8 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 }
 
 func TestGetTenantsSQLDefault(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
@@ -155,7 +165,8 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 }
 
 func TestGetTenantsSQLOverride(t *testing.T) {
-	config := config.FromFile("../test/migrator-overrides.yaml")
+	config, err := config.FromFile("../test/migrator-overrides.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
@@ -166,7 +177,8 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 }
 
 func TestGetSchemaPlaceHolderDefault(t *testing.T) {
-	config := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
@@ -177,7 +189,8 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 }
 
 func TestGetSchemaPlaceHolderOverride(t *testing.T) {
-	config := config.FromFile("../test/migrator-overrides.yaml")
+	config, err := config.FromFile("../test/migrator-overrides.yaml")
+	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()

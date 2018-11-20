@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
+	"log"
 	"strings"
 	"time"
 )
@@ -37,7 +38,7 @@ func CreateConnector(config *config.Config) Connector {
 	case "postgres":
 		connector = &postgreSQLConnector{bc}
 	default:
-		panic(fmt.Sprintf("Failed to create Connector: %q is an unknown driver.", config.Driver))
+		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
 	}
 
 	return connector
@@ -73,10 +74,10 @@ const (
 func (bc *BaseConnector) Init() {
 	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to create database connection ==> %v", err))
+		log.Panicf("Failed to create database connection: %v", err)
 	}
 	if err := db.Ping(); err != nil {
-		panic(fmt.Sprintf("Failed to connect to database ==> %v", err))
+		log.Panicf("Failed to connect to database: %v", err)
 	}
 	bc.DB = db
 
@@ -85,7 +86,7 @@ func (bc *BaseConnector) Init() {
 		createTableQuery := fmt.Sprintf(createDefaultTenantsTable, defaultTenantsTableName)
 
 		if _, err := bc.DB.Query(createTableQuery); err != nil {
-			panic(fmt.Sprintf("Could not create default tenants table ==> %v", err))
+			log.Panicf("Could not create default tenants table: %v", err)
 		}
 	}
 
@@ -116,13 +117,13 @@ func (bc *BaseConnector) GetTenants() []string {
 
 	rows, err := bc.DB.Query(tenantsSQL)
 	if err != nil {
-		panic(fmt.Sprintf("Could not query tenants ==> %v", err))
+		log.Panicf("Could not query tenants: %v", err)
 	}
 	var tenants []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			panic(fmt.Sprintf("Could not read tenants ==> %v", err))
+			log.Panicf("Could not read tenants: %v", err)
 		}
 		tenants = append(tenants, name)
 	}
@@ -133,14 +134,14 @@ func (bc *BaseConnector) GetTenants() []string {
 func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
-		panic(fmt.Sprintf("Could not create migrations table ==> %v", err))
+		log.Panicf("Could not create migrations table: %v", err)
 	}
 
 	query := fmt.Sprintf(selectMigrations, migrationsTableName)
 
 	rows, err := bc.DB.Query(query)
 	if err != nil {
-		panic(fmt.Sprintf("Could not query DB migrations ==> %v", err))
+		log.Panicf("Could not query DB migrations: %v", err)
 	}
 
 	var dbMigrations []types.MigrationDB
@@ -154,7 +155,7 @@ func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 			created       time.Time
 		)
 		if err := rows.Scan(&name, &sourceDir, &file, &migrationType, &schema, &created); err != nil {
-			panic(fmt.Sprintf("Could not read DB migration ==> %v", err))
+			log.Panicf("Could not read DB migration: %v", err)
 		}
 		mdef := types.MigrationDefinition{name, sourceDir, file, migrationType}
 		dbMigrations = append(dbMigrations, types.MigrationDB{mdef, schema, created})
@@ -165,7 +166,7 @@ func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 
 // ApplyMigrations applies passed migrations
 func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
-	panic("ApplyMigrations() must be overwritten by specific connector")
+	log.Panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
 func (bc *BaseConnector) GetSchemaPlaceHolder() string {
@@ -192,13 +193,13 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		panic(fmt.Sprintf("Could not start DB transaction ==> %v", err))
+		log.Panicf("Could not start DB transaction: %v", err)
 	}
 
 	query := fmt.Sprintf(insertMigrationSQL, migrationsTableName)
 	insert, err := bc.DB.Prepare(query)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create prepared statement ==> %v", err))
+		log.Panicf("Could not create prepared statement: %v", err)
 	}
 
 	for _, m := range migrations {
@@ -210,6 +211,8 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		}
 
 		for _, s := range schemas {
+			log.Printf("Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
+
 			contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
 			sqls := strings.Split(contents, ";")
 			for _, sql := range sqls {
@@ -217,14 +220,14 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 					_, err = tx.Exec(sql)
 					if err != nil {
 						tx.Rollback()
-						panic(fmt.Sprintf("SQL failed, transaction rollback was called ==> %v", err))
+						log.Panicf("SQL failed, transaction rollback was called: %v", err)
 					}
 				}
 			}
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s)
 			if err != nil {
 				tx.Rollback()
-				panic(fmt.Sprintf("Failed to add migration entry, transaction rollback was called ==> %v", err))
+				log.Panicf("Failed to add migration entry, transaction rollback was called: %v", err)
 			}
 		}
 
