@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/server"
-	"github.com/lukaszbudnik/migrator/xcli"
+	"github.com/lukaszbudnik/migrator/core"
 	"log"
 	"os"
 )
@@ -24,16 +24,16 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	validActions := []string{xcli.ApplyAction, xcli.PrintConfigAction, xcli.ListDiskMigrationsAction, xcli.ListDBTenantsAction, xcli.ListDBMigrationsAction}
-	validModes := []string{xcli.ToolMode, xcli.ServerMode}
+	validActions := []string{core.ApplyAction, core.PrintConfigAction, core.ListDiskMigrationsAction, core.ListDBTenantsAction, core.ListDBMigrationsAction}
+	validModes := []string{core.ToolMode, core.ServerMode}
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)
 	flag.SetOutput(buf)
 
-	configFile := flag.String("configFile", xcli.DefaultConfigFile, "path to migrator configuration yaml file")
-	action := flag.String("action", xcli.ApplyAction, fmt.Sprintf("migrator action to apply, valid actions are: %q", validActions))
-	mode := flag.String("mode", xcli.ToolMode, fmt.Sprintf("migrator mode to run: %q", validModes))
+	configFile := flag.String("configFile", core.DefaultConfigFile, "path to migrator configuration yaml file")
+	action := flag.String("action", core.ApplyAction, fmt.Sprintf("migrator action to apply, valid actions are: %q", validActions))
+	mode := flag.String("mode", core.ToolMode, fmt.Sprintf("migrator mode to run: %q", validModes))
 	err := flag.Parse(os.Args[1:])
 
 	if err != nil {
@@ -61,7 +61,7 @@ func main() {
 		if *mode == "server" {
 			server.Start(config)
 		} else {
-			xcli.ExecuteMigrator(config, action)
+			core.ExecuteMigrator(config, action)
 		}
 	}
 

@@ -1,4 +1,4 @@
-package xcli
+package core
 
 import (
 	"fmt"

@@ -5,7 +5,7 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
-	"github.com/lukaszbudnik/migrator/xcli"
+	"github.com/lukaszbudnik/migrator/core"
 	"log"
 	"net/http"
 )
@@ -26,19 +26,19 @@ func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config
 }
 
 func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	diskMigrations := xcli.LoadDiskMigrations(config, createLoader)
+	diskMigrations := core.LoadDiskMigrations(config, createLoader)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(diskMigrations)
 }
 
 func dbTenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	dbTenants := xcli.LoadDBTenants(config, createConnector)
+	dbTenants := core.LoadDBTenants(config, createConnector)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dbTenants)
 }
 
 func dbMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	dbMigrations := xcli.LoadDBMigrations(config, createConnector)
+	dbMigrations := core.LoadDBMigrations(config, createConnector)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dbMigrations)
 }
@@ -48,7 +48,7 @@ func applyHandler(w http.ResponseWriter, r *http.Request, config *config.Config,
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	migrationsApplied := xcli.ApplyMigrations(config, createConnector, createLoader)
+	migrationsApplied := core.ApplyMigrations(config, createConnector, createLoader)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(migrationsApplied)
 }
