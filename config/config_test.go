@@ -3,12 +3,22 @@ package config
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/validator.v2"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
 	"os"
 	"testing"
 )
 
+func noopLogger() *log.Logger {
+	log := log.New(ioutil.Discard, "", 0)
+	return log
+}
+
 func TestFromFile(t *testing.T) {
-	config := FromFile("../test/migrator-test.yaml")
+	config, err := FromFile("../test/migrator-test.yaml")
+	assert.Nil(t, err)
 	assert.Equal(t, "test/migrations", config.BaseDir)
 	assert.Equal(t, "select name from public.migrator_tenants", config.TenantsSQL)
 	assert.Equal(t, "postgres", config.Driver)
@@ -20,7 +30,8 @@ func TestFromFile(t *testing.T) {
 }
 
 func TestWithEnvFromFile(t *testing.T) {
-	config := FromFile("../test/migrator-test-envs.yaml")
+	config, err := FromFile("../test/migrator-test-envs.yaml")
+	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("HOME"), config.BaseDir)
 	assert.Equal(t, os.Getenv("PATH"), config.TenantsSQL)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
@@ -51,19 +62,19 @@ slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX`
 }
 
 func TestConfigPanicFromEmptyFile(t *testing.T) {
-	assert.Panics(t, func() {
-		FromFile("../test/empty.yaml")
-	}, "Should panic because of validation errors")
+	config, err := FromFile("../test/empty.yaml")
+	assert.Nil(t, config)
+	assert.IsType(t, (validator.ErrorMap)(nil), err, "Should error because of validation errors")
 }
 
 func TestConfigPanicFromNonExistingFile(t *testing.T) {
-	assert.Panics(t, func() {
-		FromFile("abcxyz.yaml")
-	}, "Should panic because of non-existing file")
+	config, err := FromFile("abcxyz.yaml")
+	assert.Nil(t, config)
+	assert.IsType(t, (*os.PathError)(nil), err, "Should error because non-existing file")
 }
 
 func TestConfigFromWrongSyntaxFile(t *testing.T) {
-	assert.Panics(t, func() {
-		FromFile("../README.md")
-	}, "Should panic because of wrong yaml syntax")
+	config, err := FromFile("../README.md")
+	assert.Nil(t, config)
+	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should panic because of wrong yaml syntax")
 }

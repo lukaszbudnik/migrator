@@ -64,8 +64,8 @@ func registerHandlers(config *config.Config, createConnector func(*config.Config
 
 // Start starts simple Migrator API endpoint using config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
-func Start(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	registerHandlers(config, createConnector, createLoader)
+func Start(config *config.Config) {
+	registerHandlers(config, db.CreateConnector, loader.CreateLoader)
 	log.Printf("Migrator web server starting on port %s...", config.Port)
 	http.ListenAndServe(":"+config.Port, nil)
 }

@@ -9,6 +9,8 @@ import (
 func TestTypesDBTenantsString(t *testing.T) {
 	dbTenants := []string{"abcabc", "dedededededededededede", "opopopop"}
 	expected := `+------------------------------+
+| Name                         |
++------------------------------+
 | abcabc                       |
 | dedededededededededede       |
 | opopopop                     |
@@ -45,7 +47,6 @@ func TestTypesMigrationsEmptyArrayString(t *testing.T) {
 	expected := `+---------------------------------------------------------------------------+
 | SourceDir  | Name                 | File                           | Type |
 +---------------------------------------------------------------------------+
-| Empty                                                                     |
 +---------------------------------------------------------------------------+`
 	actual := MigrationArrayString(ms)
 
@@ -77,7 +78,6 @@ func TestTypesMigrationDBsEmptyArrayString(t *testing.T) {
 	expected := `+---------------------------------------------------------------------------------------------------------------+
 | SourceDir  | Name                 | File                           | Schema     | Created              | Type |
 +---------------------------------------------------------------------------------------------------------------+
-| Empty                                                                                                         |
 +---------------------------------------------------------------------------------------------------------------+`
 	actual := MigrationDBArrayString(ms)
 

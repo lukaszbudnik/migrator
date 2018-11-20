@@ -20,7 +20,8 @@ var (
 )
 
 func TestRegisterHandlers(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 	registerHandlers(config, nil, nil)
 }
 
@@ -34,7 +35,8 @@ func TestServerDefaultHandler(t *testing.T) {
 }
 
 func TestServerConfig(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("GET", "http://example.com/config", nil)
 
@@ -47,7 +49,8 @@ func TestServerConfig(t *testing.T) {
 }
 
 func TestServerDBTenants(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("GET", "http://example.com/dbTenants", nil)
 
@@ -61,7 +64,8 @@ func TestServerDBTenants(t *testing.T) {
 }
 
 func TestServerDBMigrations(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("GET", "http://example.com/dbMigrations", nil)
 
@@ -75,7 +79,8 @@ func TestServerDBMigrations(t *testing.T) {
 }
 
 func TestServerDiskMigrations(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("GET", "http://example.com/dbMigrations", nil)
 
@@ -89,7 +94,8 @@ func TestServerDiskMigrations(t *testing.T) {
 }
 
 func TestServerApplyError(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("GET", "http://example.com/apply", nil)
 
@@ -101,7 +107,8 @@ func TestServerApplyError(t *testing.T) {
 }
 
 func TestServerApplyOK(t *testing.T) {
-	config := config.FromFile(configFile)
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
 
 	req, _ := http.NewRequest("POST", "http://example.com/apply", nil)
 

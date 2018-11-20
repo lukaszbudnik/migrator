@@ -63,12 +63,8 @@ func MigrationArrayString(migrations []Migration) string {
 	buffer.WriteString(strings.Repeat("-", 75))
 	buffer.WriteString("+\n")
 
-	if len(migrations) > 0 {
-		for _, m := range migrations {
-			buffer.WriteString(fmt.Sprintf("%v\n", m))
-		}
-	} else {
-		buffer.WriteString(fmt.Sprintf("| %-73s |\n", "Empty"))
+	for _, m := range migrations {
+		buffer.WriteString(fmt.Sprintf("%v\n", m))
 	}
 
 	buffer.WriteString("+")
@@ -92,12 +88,8 @@ func MigrationDBArrayString(migrations []MigrationDB) string {
 	buffer.WriteString(strings.Repeat("-", 111))
 	buffer.WriteString("+\n")
 
-	if len(migrations) > 0 {
-		for _, m := range migrations {
-			buffer.WriteString(fmt.Sprintf("%v\n", m))
-		}
-	} else {
-		buffer.WriteString(fmt.Sprintf("| %-109s |\n", "Empty"))
+	for _, m := range migrations {
+		buffer.WriteString(fmt.Sprintf("%v\n", m))
 	}
 
 	buffer.WriteString("+")
@@ -110,6 +102,12 @@ func MigrationDBArrayString(migrations []MigrationDB) string {
 // TenantArrayString creates a string representation of DB tenants list
 func TenantArrayString(dbTenants []string) string {
 	var buffer bytes.Buffer
+
+	buffer.WriteString("+")
+	buffer.WriteString(strings.Repeat("-", 30))
+	buffer.WriteString("+\n")
+
+	buffer.WriteString(fmt.Sprintf("| %-28s |\n", "Name"))
 
 	buffer.WriteString("+")
 	buffer.WriteString(strings.Repeat("-", 30))
