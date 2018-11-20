@@ -4,7 +4,7 @@
 // * migrations_test.go
 // DB & Disk operations are mocked using xcli_mocks.go
 
-package xcli
+package core
 
 import (
 	"github.com/lukaszbudnik/migrator/config"

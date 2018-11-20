@@ -1,4 +1,4 @@
-package xcli
+package core
 
 import (
 	"github.com/lukaszbudnik/migrator/config"
