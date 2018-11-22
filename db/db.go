@@ -33,7 +33,7 @@ func CreateConnector(config *config.Config) Connector {
 	var connector Connector
 
 	switch config.Driver {
-	case "mymysql":
+	case "mysql":
 		connector = &mySQLConnector{bc}
 	case "postgres":
 		connector = &postgreSQLConnector{bc}
@@ -169,6 +169,8 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 	log.Panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
+// GetSchemaPlaceHolder returns a schema placeholder which is
+// either the default one or overriden by user in config
 func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 	var schemaPlaceHolder string
 	if bc.Config.SchemaPlaceHolder != "" {
@@ -214,16 +216,13 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 			log.Printf("Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
 
 			contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
-			sqls := strings.Split(contents, ";")
-			for _, sql := range sqls {
-				if strings.TrimSpace(sql) != "" {
-					_, err = tx.Exec(sql)
-					if err != nil {
-						tx.Rollback()
-						log.Panicf("SQL failed, transaction rollback was called: %v", err)
-					}
-				}
+
+			_, err = tx.Exec(contents)
+			if err != nil {
+				tx.Rollback()
+				log.Panicf("SQL failed, transaction rollback was called: %v", err)
 			}
+
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s)
 			if err != nil {
 				tx.Rollback()

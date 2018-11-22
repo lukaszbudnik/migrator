@@ -14,15 +14,15 @@ docker run -d \
   -p $port:3306 \
   mysql
 
-sleep 10
+# mysql needs a little bit more time
+sleep 20
 
 running=`docker inspect -f {{.State.Running}} migrator-mysql`
 
 if [[ "true" == "$running" ]]; then
   mysql -u root -h $ip -P $port -e "create database $database"
   mysql -u root -h $ip -P $port -D $database < ../test/create-test-tenants.sql
-
-  cat ../test/migrator-mysql.yaml | sed "s/tcp:A/tcp:$ip:$port\*$database\/root\//g" > ../test/migrator.yaml
+  cat ../test/migrator-mysql.yaml | sed "s/A/root:@tcp($ip:$port)\/$database?parseTime=true/g" > ../test/migrator.yaml
 else
   echo "Could not setup mysql"
 fi

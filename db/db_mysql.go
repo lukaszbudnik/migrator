@@ -3,7 +3,7 @@ package db
 import (
 	"github.com/lukaszbudnik/migrator/types"
 	// blank import for MySQL driver
-	_ "github.com/ziutek/mymysql/godrv"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type mySQLConnector struct {

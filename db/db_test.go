@@ -31,9 +31,9 @@ func TestDBCreateConnectorPostgresDriver(t *testing.T) {
 	assert.Equal(t, "*db.postgreSQLConnector", connectorName)
 }
 
-func TestDBCreateConnectorMymysqlDriver(t *testing.T) {
+func TestDBCreateConnectorMysqlDriver(t *testing.T) {
 	config := &config.Config{}
-	config.Driver = "mymysql"
+	config.Driver = "mysql"
 	connector := CreateConnector(config)
 	connectorName := reflect.TypeOf(connector).String()
 	assert.Equal(t, "*db.mySQLConnector", connectorName)

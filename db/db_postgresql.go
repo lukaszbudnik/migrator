@@ -1,9 +1,9 @@
 package db
 
 import (
+	"github.com/lukaszbudnik/migrator/types"
 	// blank import for PostgreSQL driver
 	_ "github.com/lib/pq"
-	"github.com/lukaszbudnik/migrator/types"
 )
 
 type postgreSQLConnector struct {
