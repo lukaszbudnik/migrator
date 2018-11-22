@@ -3,9 +3,9 @@ package server
 import (
 	"encoding/json"
 	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/core"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
-	"github.com/lukaszbudnik/migrator/core"
 	"log"
 	"net/http"
 )

@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/server"
 	"github.com/lukaszbudnik/migrator/core"
+	"github.com/lukaszbudnik/migrator/server"
 	"log"
 	"os"
 )
