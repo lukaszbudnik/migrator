@@ -61,3 +61,36 @@ func TestComputeMigrationsToApply(t *testing.T) {
 	assert.Equal(t, "c", migrations[0].File)
 	assert.Equal(t, "d", migrations[1].File)
 }
+
+func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
+	// use case:
+	// development done in parallel, 2 devs fork from master
+	// dev1 adds migrations on Monday
+	// dev2 adds migrations on Tuesday
+	// dev2 merges and deploys his code on Tuesday
+	// dev1 merges and deploys his code on Wednesday
+	// migrator should detect dev1 migrations
+	// previous implementation relied only on counts and such migration was not applied
+
+	// todo: add some public migrations too
+	mdef1 := types.MigrationDefinition{"20181111", "tenants", "tenants/20181111", types.MigrationTypeTenantSchema}
+	mdef2 := types.MigrationDefinition{"20181111", "public", "public/20181111", types.MigrationTypeSingleSchema}
+	mdef3 := types.MigrationDefinition{"20181112", "public", "public/20181112", types.MigrationTypeSingleSchema}
+
+	dev1 := types.MigrationDefinition{"20181119", "tenants", "tenants/20181119", types.MigrationTypeTenantSchema}
+	dev1p1 := types.MigrationDefinition{"201811190", "public", "public/201811190", types.MigrationTypeSingleSchema}
+	dev1p2 := types.MigrationDefinition{"20181191", "public", "public/201811191", types.MigrationTypeSingleSchema}
+
+	dev2 := types.MigrationDefinition{"20181120", "tenants", "tenants/20181120", types.MigrationTypeTenantSchema}
+	dev2p := types.MigrationDefinition{"20181120", "public", "public/20181120", types.MigrationTypeSingleSchema}
+
+	diskMigrations := []types.Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {dev1, ""}, {dev1p1, ""}, {dev1p2, ""}, {dev2, ""}, {dev2p, ""}}
+	dbMigrations := []types.MigrationDB{{mdef1, "abc", time.Now()}, {mdef1, "def", time.Now()}, {mdef2, "public", time.Now()}, {mdef3, "public", time.Now()}, {dev2, "abc", time.Now()}, {dev2, "def", time.Now()}, {dev2p, "public", time.Now()}}
+	migrations := ComputeMigrationsToApply(diskMigrations, dbMigrations)
+
+	assert.Len(t, migrations, 3)
+
+	assert.Equal(t, dev1.File, migrations[0].File)
+	assert.Equal(t, dev1p1.File, migrations[1].File)
+	assert.Equal(t, dev1p2.File, migrations[2].File)
+}

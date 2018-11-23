@@ -17,6 +17,22 @@ func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.MigrationDefi
 	return flattened
 }
 
+// difference returns the elements on disk which are not yet in DB
+func difference(diskMigrations []types.Migration, flattenedMigrationDBs []types.MigrationDefinition) []types.Migration {
+		// key is Migration.File
+    existsInDB := map[string]bool{}
+    for _, m := range flattenedMigrationDBs {
+        existsInDB[m.File] = true
+    }
+    diff := []types.Migration{}
+    for _, m := range diskMigrations {
+        if _, ok := existsInDB[m.File]; !ok {
+            diff = append(diff, m)
+        }
+    }
+    return diff
+}
+
 // ComputeMigrationsToApply computes which disk migrations should be applied to DB based on migrations already present in DB
 func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []types.MigrationDB) []types.Migration {
 	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
@@ -24,11 +40,7 @@ func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []t
 	len := len(flattenedMigrationDBs)
 	log.Printf("Number of flattened DB migrations: %d", len)
 
-	var out []types.Migration
-
-	for _, m := range diskMigrations[len:] {
-		out = append(out, m)
-	}
+	out := difference(diskMigrations, flattenedMigrationDBs)
 
 	return out
 }
