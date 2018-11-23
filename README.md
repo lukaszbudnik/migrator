@@ -101,6 +101,21 @@ $ docker/mariadb-destroy-container.sh
 
 Or see `.travis.yml` to see how it's done on Travis.
 
+# Performance
+
+In my company we use proprietary Ruby framework for DB migrations. I used that framework as a benchmark.
+
+I used performance test generator shipped with migrator (see `test/performance`).
+
+Results are following:
+
+| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| Migrator time 	| Ruby time 	| Migrator times faster 	|
+|-----------	|-----------------------	|-----------------------	|---------------	|-----------	|-----------------------	|
+|        10 	|                     0 	|                 10001 	|          177s 	|      670s 	|                  3.78 	|
+|        10 	|                 10001 	|                    20 	|            2s 	|      455s 	|                 227.5 	|
+
+Note: The Ruby framework has a pretty undesired functionality of making a DB call to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better. The other thing to consider is the fact that migrator is written in golang which is known to be much faster than Ruby.
+
 # Installation and supported Go versions
 
 To install migrator use:
