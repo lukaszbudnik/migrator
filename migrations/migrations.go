@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"github.com/lukaszbudnik/migrator/types"
+	"log"
 )
 
 func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.MigrationDefinition {
@@ -21,6 +22,8 @@ func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []t
 	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
 
 	len := len(flattenedMigrationDBs)
+	log.Printf("Number of flattened DB migrations: %d", len)
+
 	var out []types.Migration
 
 	for _, m := range diskMigrations[len:] {
