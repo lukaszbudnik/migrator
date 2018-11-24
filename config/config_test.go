@@ -25,7 +25,7 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
-	assert.Equal(t, "8080", config.Port)
+	assert.Equal(t, "8811", config.Port)
 	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
 }
 

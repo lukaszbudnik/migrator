@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	defaultPort string = "8080"
-)
-
 // Config represents Migrator's yaml configuration file
 type Config struct {
 	BaseDir           string   `yaml:"baseDir" validate:"nonzero"`
@@ -58,10 +54,6 @@ func FromBytes(contents []byte) (*Config, error) {
 	}
 
 	substituteEnvVariables(&config)
-
-	if len(strings.TrimSpace(config.Port)) == 0 {
-		config.Port = defaultPort
-	}
 
 	return &config, nil
 }
