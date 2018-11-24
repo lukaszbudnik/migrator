@@ -8,13 +8,25 @@ import (
 	"github.com/lukaszbudnik/migrator/loader"
 	"log"
 	"net/http"
+	"strings"
 )
+
+const (
+	defaultPort string = "8080"
+)
+
+func getDefaultPort(config *config.Config) string {
+	if len(strings.TrimSpace(config.Port)) == 0 {
+		return defaultPort
+	}
+	return config.Port
+}
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(handler func(w http.ResponseWriter, r *http.Request, c *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader), config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) http.HandlerFunc {
+func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader), config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handler(w, r, config, createConnector, createLoader)
 	}
@@ -66,6 +78,7 @@ func registerHandlers(config *config.Config, createConnector func(*config.Config
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) {
 	registerHandlers(config, db.CreateConnector, loader.CreateLoader)
-	log.Printf("Migrator web server starting on port %s...", config.Port)
-	http.ListenAndServe(":"+config.Port, nil)
+	port := getDefaultPort(config)
+	log.Printf("Migrator web server starting on port %s", port)
+	http.ListenAndServe(":"+port, nil)
 }

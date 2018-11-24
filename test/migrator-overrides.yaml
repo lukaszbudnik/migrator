@@ -9,3 +9,4 @@ singleSchemas:
   - config
 tenantSchemas:
   - tenants
+port: 8811

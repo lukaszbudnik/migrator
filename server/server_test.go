@@ -16,8 +16,21 @@ import (
 )
 
 var (
-	configFile = "../test/migrator.yaml"
+	configFile          = "../test/migrator.yaml"
+	configFileOverrides = "../test/migrator-overrides.yaml"
 )
+
+func TestGetDefaultPort(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	assert.Equal(t, "8080", getDefaultPort(config))
+}
+
+func TestGetDefaultPortOverrides(t *testing.T) {
+	config, err := config.FromFile(configFileOverrides)
+	assert.Nil(t, err)
+	assert.Equal(t, "8811", getDefaultPort(config))
+}
 
 func TestRegisterHandlers(t *testing.T) {
 	config, err := config.FromFile(configFile)
