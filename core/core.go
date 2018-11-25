@@ -8,6 +8,7 @@ import (
 	"github.com/lukaszbudnik/migrator/migrations"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/types"
+	"github.com/lukaszbudnik/migrator/utils"
 	"log"
 )
 
@@ -101,22 +102,22 @@ func ExecuteMigrator(config *config.Config, action *string) {
 	case ListDiskMigrationsAction:
 		diskMigrations := LoadDiskMigrations(config, loader.CreateLoader)
 		if len(diskMigrations) > 0 {
-			log.Printf("List of disk migrations\n%v", types.MigrationArrayString(diskMigrations))
+			log.Printf("List of disk migrations\n%v", utils.MigrationArrayToString(diskMigrations))
 		}
 	case ListDBMigrationsAction:
 		dbMigrations := LoadDBMigrations(config, db.CreateConnector)
 		if len(dbMigrations) > 0 {
-			log.Printf("List of db migrations\n%v", types.MigrationDBArrayString(dbMigrations))
+			log.Printf("List of db migrations\n%v", utils.MigrationDBArrayToString(dbMigrations))
 		}
 	case ListDBTenantsAction:
 		dbTenants := LoadDBTenants(config, db.CreateConnector)
 		if len(dbTenants) > 0 {
-			log.Printf("List of db tenants\n%v", types.TenantArrayString(dbTenants))
+			log.Printf("List of db tenants\n%v", utils.TenantArrayToString(dbTenants))
 		}
 	case ApplyAction:
 		migrationsApplied := ApplyMigrations(config, db.CreateConnector, loader.CreateLoader)
 		if len(migrationsApplied) > 0 {
-			log.Printf("List of migrations applied\n%v", types.MigrationArrayString(migrationsApplied))
+			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	}
 }

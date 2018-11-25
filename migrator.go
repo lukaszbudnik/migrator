@@ -7,18 +7,10 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/core"
 	"github.com/lukaszbudnik/migrator/server"
+	"github.com/lukaszbudnik/migrator/utils"
 	"log"
 	"os"
 )
-
-func contains(slice []string, element *string) bool {
-	for _, a := range slice {
-		if a == *element {
-			return true
-		}
-	}
-	return false
-}
 
 func main() {
 
@@ -41,14 +33,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !contains(validActions, action) {
+	if !utils.Contains(validActions, action) {
 		log.Printf("Invalid action: %v", *action)
 		flag.Usage()
 		log.Fatal(buf)
 		os.Exit(1)
 	}
 
-	if !contains(validModes, mode) {
+	if !utils.Contains(validModes, mode) {
 		log.Printf("Invalid mode: %v", *mode)
 		flag.Usage()
 		log.Fatal(buf)

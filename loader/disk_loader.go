@@ -52,8 +52,9 @@ func (dl *DiskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string)
 	var dirs []string
 	for _, f := range files {
 		if f.IsDir() {
-			if utils.StringInSlice(f.Name(), schemaDirs) {
-				dirs = append(dirs, f.Name())
+			name := f.Name()
+			if utils.Contains(schemaDirs, &name) {
+				dirs = append(dirs, name)
 			}
 		}
 	}
