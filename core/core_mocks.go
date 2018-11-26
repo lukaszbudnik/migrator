@@ -41,6 +41,9 @@ func (m *mockedConnector) GetTenants() []string {
 	return []string{}
 }
 
+func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
+}
+
 func (m *mockedConnector) GetMigrations() []types.MigrationDB {
 	// returns empty array
 	return []types.MigrationDB{}

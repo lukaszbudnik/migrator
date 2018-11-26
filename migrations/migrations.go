@@ -44,3 +44,17 @@ func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []t
 
 	return out
 }
+
+func FilterTenantMigrations(diskMigrations []types.Migration) []types.Migration {
+	filteredTenantMigrations := []types.Migration{}
+	for _, m := range diskMigrations {
+		if m.MigrationType == types.MigrationTypeTenantSchema {
+			filteredTenantMigrations = append(filteredTenantMigrations, m)
+		}
+	}
+
+	len := len(filteredTenantMigrations)
+	log.Printf("Number of flattened DB migrations: %d", len)
+
+	return filteredTenantMigrations
+}

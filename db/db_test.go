@@ -199,3 +199,37 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 
 	assert.Equal(t, "[schema]", tenantsSQL)
 }
+
+func TestAddTenantAndApplyMigrations(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := CreateConnector(config)
+	connector.Init()
+	defer connector.Dispose()
+
+	dbMigrationsBefore := connector.GetMigrations()
+	lenBefore := len(dbMigrationsBefore)
+
+	t1 := time.Now().UnixNano()
+	t2 := time.Now().UnixNano()
+	t3 := time.Now().UnixNano()
+
+	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.MigrationTypeTenantSchema}
+	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
+	tenantdef3 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t3), "tenants", fmt.Sprintf("tenants/%v.sql", t3), types.MigrationTypeTenantSchema}
+	tenant1 := types.Migration{tenantdef1, "create schema {schema}"}
+	tenant2 := types.Migration{tenantdef2, "create table if not exists {schema}.settings (k int, v text) "}
+	tenant3 := types.Migration{tenantdef3, "insert into {schema}.settings values (456, '456') "}
+
+	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3}
+
+	unique_tenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
+
+	connector.AddTenantAndApplyMigrations(unique_tenant, migrationsToApply)
+
+	dbMigrationsAfter := connector.GetMigrations()
+	lenAfter := len(dbMigrationsAfter)
+
+	assert.Equal(t, 3, lenAfter-lenBefore)
+}

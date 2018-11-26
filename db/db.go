@@ -13,9 +13,13 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
+	// public method?
 	GetTenantsSQL() string
+	AddTenantAndApplyMigrations(string, []types.Migration)
 	GetTenants() []string
+	// public method?
 	GetSchemaPlaceHolder() string
+	// rename to GetAppliedMigrations
 	GetMigrations() []types.MigrationDB
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
@@ -169,6 +173,10 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 	log.Panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
+func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
+	log.Panic("AddTenantAndApplyMigrations() must be overwritten by specific conector")
+}
+
 // GetSchemaPlaceHolder returns a schema placeholder which is
 // either the default one or overriden by user in config
 func (bc *BaseConnector) GetSchemaPlaceHolder() string {
@@ -189,8 +197,6 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		return
 	}
 
-	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
-
 	tenants := bc.GetTenants()
 
 	tx, err := bc.DB.Begin()
@@ -198,8 +204,15 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		log.Panicf("Could not start DB transaction: %v", err)
 	}
 
-	query := fmt.Sprintf(insertMigrationSQL, migrationsTableName)
-	insert, err := bc.DB.Prepare(query)
+	bc.applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx, tenants, migrations, insertMigrationSQL)
+
+	tx.Commit()
+}
+
+func (bc *BaseConnector) applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx *sql.Tx, tenants []string, migrations []types.Migration, insertMigrationSQL string) {
+	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
+
+	insert, err := bc.DB.Prepare(insertMigrationSQL)
 	if err != nil {
 		log.Panicf("Could not create prepared statement: %v", err)
 	}
@@ -231,6 +244,26 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		}
 
 	}
+}
+
+func (bc *BaseConnector) addTenantAndApplyMigrationsWithInsertTenantSQL(tenant string, insertTenantSQL string, migrations []types.Migration, insertMigrationSQL string) {
+	tx, err := bc.DB.Begin()
+	if err != nil {
+		log.Panicf("Could not start DB transaction: %v", err)
+	}
+
+	insert, err := bc.DB.Prepare(insertTenantSQL)
+	if err != nil {
+		log.Panicf("Could not create prepared statement: %v", err)
+	}
+
+	_, err = tx.Stmt(insert).Exec(tenant)
+	if err != nil {
+		tx.Rollback()
+		log.Panicf("Failed to add tenant entry, transaction rollback was called: %v", err)
+	}
+
+	bc.applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx, []string{tenant}, migrations, insertMigrationSQL)
 
 	tx.Commit()
 }

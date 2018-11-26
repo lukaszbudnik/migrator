@@ -38,6 +38,9 @@ func (m *mockedConnector) GetTenantsSQL() string {
 	return ""
 }
 
+func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
+}
+
 func (m *mockedConnector) GetTenants() []string {
 	return []string{"a", "b", "c"}
 }
