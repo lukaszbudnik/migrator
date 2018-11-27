@@ -32,15 +32,15 @@ func (m *mockedConnector) GetSchemaPlaceHolder() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantsSQL() string {
+func (m *mockedConnector) GetTenantSelectSql() string {
 	return ""
 }
 
-func (m *mockedConnector) GetMigrationInsertSQL() string {
+func (m *mockedConnector) GetMigrationInsertSql() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantInsertSQL() string {
+func (m *mockedConnector) GetTenantInsertSql() string {
 	return ""
 }
 
