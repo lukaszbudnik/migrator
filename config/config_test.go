@@ -20,7 +20,7 @@ func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, "test/migrations", config.BaseDir)
-	assert.Equal(t, "select name from public.migrator_tenants", config.TenantsSQL)
+	assert.Equal(t, "select name from public.migrator_tenants", config.TenantSelectSql)
 	assert.Equal(t, "postgres", config.Driver)
 	assert.Equal(t, "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
@@ -33,7 +33,8 @@ func TestWithEnvFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test-envs.yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("HOME"), config.BaseDir)
-	assert.Equal(t, os.Getenv("PATH"), config.TenantsSQL)
+	assert.Equal(t, os.Getenv("PATH"), config.TenantSelectSql)
+	assert.Equal(t, os.Getenv("GOPATH"), config.TenantInsertSql)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
 	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
 	assert.Equal(t, os.Getenv("_"), config.Port)
@@ -44,12 +45,13 @@ func TestWithEnvFromFile(t *testing.T) {
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX"}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX"}
 	// check if go naming convention applies
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
-tenantsSql: select abc
+tenantSelectSql: select abc
+tenantInsertSql: insert into table
 schemaPlaceHolder: :tenant
 singleSchemas:
 - ref

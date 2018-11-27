@@ -3,8 +3,9 @@ baseDir: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # override only if you have own specific way of determining tenants
-tenantsSql: "select name from public.migrator_tenants"
+tenantSelectSql: "select name from public.migrator_tenants"
 schemaPlaceHolder: "{schema}"
+port: 8811
 singleSchemas:
   - public
   - ref

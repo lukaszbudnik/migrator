@@ -14,7 +14,8 @@ type Config struct {
 	BaseDir           string   `yaml:"baseDir" validate:"nonzero"`
 	Driver            string   `yaml:"driver" validate:"nonzero"`
 	DataSource        string   `yaml:"dataSource" validate:"nonzero"`
-	TenantsSQL        string   `yaml:"tenantsSql"`
+	TenantSelectSql   string   `yaml:"tenantSelectSql"`
+	TenantInsertSql   string   `yaml:"tenantInsertSql"`
 	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder"`
 	SingleSchemas     []string `yaml:"singleSchemas" validate:"min=1"`
 	TenantSchemas     []string `yaml:"tenantSchemas"`
@@ -68,8 +69,11 @@ func substituteEnvVariables(config *Config) {
 	if strings.HasPrefix(config.DataSource, "$") {
 		config.DataSource = os.Getenv(config.DataSource[1:])
 	}
-	if strings.HasPrefix(config.TenantsSQL, "$") {
-		config.TenantsSQL = os.Getenv(config.TenantsSQL[1:])
+	if strings.HasPrefix(config.TenantSelectSql, "$") {
+		config.TenantSelectSql = os.Getenv(config.TenantSelectSql[1:])
+	}
+	if strings.HasPrefix(config.TenantInsertSql, "$") {
+		config.TenantInsertSql = os.Getenv(config.TenantInsertSql[1:])
 	}
 	if strings.HasPrefix(config.Port, "$") {
 		config.Port = os.Getenv(config.Port[1:])

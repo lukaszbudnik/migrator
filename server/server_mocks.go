@@ -38,6 +38,14 @@ func (m *mockedConnector) GetTenantsSQL() string {
 	return ""
 }
 
+func (m *mockedConnector) GetMigrationInsertSQL() string {
+	return ""
+}
+
+func (m *mockedConnector) GetTenantInsertSQL() string {
+	return ""
+}
+
 func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
 }
 

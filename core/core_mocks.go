@@ -36,6 +36,14 @@ func (m *mockedConnector) GetTenantsSQL() string {
 	return ""
 }
 
+func (m *mockedConnector) GetMigrationInsertSQL() string {
+	return ""
+}
+
+func (m *mockedConnector) GetTenantInsertSQL() string {
+	return ""
+}
+
 func (m *mockedConnector) GetTenants() []string {
 	// returns empty array
 	return []string{}

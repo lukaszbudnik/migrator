@@ -13,14 +13,14 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
-	// public method?
-	GetTenantsSQL() string
+	GetTenantSelectSql() string
+	GetTenantInsertSql() string
 	AddTenantAndApplyMigrations(string, []types.Migration)
 	GetTenants() []string
-	// public method?
 	GetSchemaPlaceHolder() string
-	// rename to GetAppliedMigrations
+	// rename to GetDBMigrations, change type to DBMigration
 	GetMigrations() []types.MigrationDB
+	GetMigrationInsertSql() string
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
@@ -70,7 +70,7 @@ const (
 	)
 	`
 	selectMigrations         = "select name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
-	defaultTenantsSQLPattern = "select name from %v"
+	defaulttenantsSqlPattern = "select name from %v"
 	defaultSchemaPlaceHolder = "{schema}"
 )
 
@@ -85,8 +85,8 @@ func (bc *BaseConnector) Init() {
 	}
 	bc.DB = db
 
-	defaultTenantsSQL := fmt.Sprintf(defaultTenantsSQLPattern, defaultTenantsTableName)
-	if bc.Config.TenantsSQL != "" && bc.Config.TenantsSQL != defaultTenantsSQL {
+	defaulttenantsSql := fmt.Sprintf(defaulttenantsSqlPattern, defaultTenantsTableName)
+	if bc.Config.TenantSelectSql != "" && bc.Config.TenantSelectSql != defaulttenantsSql {
 		createTableQuery := fmt.Sprintf(createDefaultTenantsTable, defaultTenantsTableName)
 
 		if _, err := bc.DB.Query(createTableQuery); err != nil {
@@ -103,23 +103,23 @@ func (bc *BaseConnector) Dispose() {
 	}
 }
 
-// GetTenantsSQL returns SQL to be execute to list all DB tenants
-func (bc *BaseConnector) GetTenantsSQL() string {
-	var tenantsSQL string
-	if bc.Config.TenantsSQL != "" {
-		tenantsSQL = bc.Config.TenantsSQL
+// GettenantsSql returns SQL to be executed to list all DB tenants
+func (bc *BaseConnector) GetTenantSelectSql() string {
+	var tenantSelectSql string
+	if bc.Config.TenantSelectSql != "" {
+		tenantSelectSql = bc.Config.TenantSelectSql
 	} else {
-		tenantsSQL = fmt.Sprintf(defaultTenantsSQLPattern, defaultTenantsTableName)
+		tenantSelectSql = fmt.Sprintf(defaulttenantsSqlPattern, defaultTenantsTableName)
 	}
-	return tenantsSQL
+	return tenantSelectSql
 }
 
 // GetTenants returns a list of all DB tenants as specified by
 // defaultSelectTenants or the value specified in config
 func (bc *BaseConnector) GetTenants() []string {
-	tenantsSQL := bc.GetTenantsSQL()
+	tenantSelectSql := bc.GetTenantSelectSql()
 
-	rows, err := bc.DB.Query(tenantsSQL)
+	rows, err := bc.DB.Query(tenantSelectSql)
 	if err != nil {
 		log.Panicf("Could not query tenants: %v", err)
 	}
@@ -173,8 +173,19 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 	log.Panic("ApplyMigrations() must be overwritten by specific connector")
 }
 
+// AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
 func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
 	log.Panic("AddTenantAndApplyMigrations() must be overwritten by specific conector")
+}
+
+func (bc *BaseConnector) GetMigrationInsertSql() string {
+	log.Panic("GetMigrationInsertSQL() must be overwritten by specific connector")
+	return ""
+}
+
+func (bc *BaseConnector) GetTenantInsertSql() string {
+	log.Panic("GetTenantInsertSQL() must be overwritten by specific connector")
+	return ""
 }
 
 // GetSchemaPlaceHolder returns a schema placeholder which is
@@ -189,9 +200,9 @@ func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-// applyMigrationsWithInsertMigrationSQL is called by specific implementations
-// insertMigrationSQL varies based on database dialect
-func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []types.Migration, insertMigrationSQL string) {
+// virtual methods do not exist in golang
+// this method is called from ApplyMigrations
+func (bc *BaseConnector) doApplyMigrations(migrations []types.Migration, insertMigrationSQL string) {
 
 	if len(migrations) == 0 {
 		return
@@ -204,12 +215,12 @@ func (bc *BaseConnector) applyMigrationsWithInsertMigrationSQL(migrations []type
 		log.Panicf("Could not start DB transaction: %v", err)
 	}
 
-	bc.applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx, tenants, migrations, insertMigrationSQL)
+	bc.doApplyMigrationsInTx(tx, tenants, migrations, insertMigrationSQL)
 
 	tx.Commit()
 }
 
-func (bc *BaseConnector) applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx *sql.Tx, tenants []string, migrations []types.Migration, insertMigrationSQL string) {
+func (bc *BaseConnector) doApplyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration, insertMigrationSQL string) {
 	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
 
 	insert, err := bc.DB.Prepare(insertMigrationSQL)
@@ -246,7 +257,7 @@ func (bc *BaseConnector) applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx 
 	}
 }
 
-func (bc *BaseConnector) addTenantAndApplyMigrationsWithInsertTenantSQL(tenant string, insertTenantSQL string, migrations []types.Migration, insertMigrationSQL string) {
+func (bc *BaseConnector) doAddTenantAndApplyMigrations(tenant string, migrations []types.Migration, insertTenantSQL string, insertMigrationSQL string) {
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		log.Panicf("Could not start DB transaction: %v", err)
@@ -263,7 +274,7 @@ func (bc *BaseConnector) addTenantAndApplyMigrationsWithInsertTenantSQL(tenant s
 		log.Panicf("Failed to add tenant entry, transaction rollback was called: %v", err)
 	}
 
-	bc.applyMigrationsInTxForTenantsWithInsertMigrationSQL(tx, []string{tenant}, migrations, insertMigrationSQL)
+	bc.doApplyMigrationsInTx(tx, []string{tenant}, migrations, insertMigrationSQL)
 
 	tx.Commit()
 }

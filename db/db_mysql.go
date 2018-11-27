@@ -12,17 +12,31 @@ type mySQLConnector struct {
 }
 
 const (
-	insertMigrationMySQLDialectSQL = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
-	insertDefaultTenantMySQLDialectSQL = "insert into %v (name) values (?)"
+	insertMigrationMySQLDialectSql     = "insert into %v (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)"
+	defaultInsertTenantMySQLDialectSql = "insert into %v (name) values (?)"
 )
 
 func (mc *mySQLConnector) ApplyMigrations(migrations []types.Migration) {
-	insertMigrationSQL := fmt.Sprintf(insertMigrationMySQLDialectSQL, migrationsTableName)
-	mc.BaseConnector.applyMigrationsWithInsertMigrationSQL(migrations, insertMigrationSQL)
+	insertMigrationSql := mc.GetMigrationInsertSql()
+	mc.doApplyMigrations(migrations, insertMigrationSql)
 }
 
 func (mc *mySQLConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
-	insertMigrationSQL := fmt.Sprintf(insertMigrationMySQLDialectSQL, migrationsTableName)
-	insertTenantSQL := fmt.Sprintf(insertDefaultTenantMySQLDialectSQL, defaultTenantsTableName)
-	mc.BaseConnector.addTenantAndApplyMigrationsWithInsertTenantSQL(tenant, insertTenantSQL, migrations, insertMigrationSQL)
+	insertMigrationSql := mc.GetMigrationInsertSql()
+	insertTenantSql := mc.GetTenantInsertSql()
+	mc.doAddTenantAndApplyMigrations(tenant, migrations, insertTenantSql, insertMigrationSql)
+}
+
+func (mc *mySQLConnector) GetMigrationInsertSql() string {
+	return fmt.Sprintf(insertMigrationMySQLDialectSql, migrationsTableName)
+}
+
+func (mc *mySQLConnector) GetTenantInsertSql() string {
+	var tenantsInsertSql string
+	if mc.Config.TenantInsertSql != "" {
+		tenantsInsertSql = mc.Config.TenantInsertSql
+	} else {
+		tenantsInsertSql = fmt.Sprintf(defaultInsertTenantMySQLDialectSql, defaultTenantsTableName)
+	}
+	return tenantsInsertSql
 }

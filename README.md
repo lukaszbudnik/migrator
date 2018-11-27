@@ -101,6 +101,21 @@ $ docker/mariadb-destroy-container.sh
 
 Or see `.travis.yml` to see how it's done on Travis.
 
+# Customisation
+
+If you have an existing way of storing information about your tenants you can configure migrator to use it.
+In the config file you need to provide 2 parameters:
+
+* `tenantSelectSql` - a select statement which returns names of the tenants
+* `tenantInsertSql` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
+
+Here is an example:
+
+```
+tenantSelectSql: select name from global.customers
+tenantInsertSql: insert into global.customers (name, active, date_added) values (?, true, NOW())
+```
+
 # Performance
 
 In my company we use proprietary Ruby framework for DB migrations. I used that framework as a benchmark.
