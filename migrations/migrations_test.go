@@ -62,6 +62,31 @@ func TestComputeMigrationsToApply(t *testing.T) {
 	assert.Equal(t, "d", migrations[1].File)
 }
 
+func TestFilterTenantMigrations(t *testing.T) {
+	mdef1 := types.MigrationDefinition{"20181111", "tenants", "tenants/20181111", types.MigrationTypeTenantSchema}
+	mdef2 := types.MigrationDefinition{"20181111", "public", "public/20181111", types.MigrationTypeSingleSchema}
+	mdef3 := types.MigrationDefinition{"20181112", "public", "public/20181112", types.MigrationTypeSingleSchema}
+
+	dev1 := types.MigrationDefinition{"20181119", "tenants", "tenants/20181119", types.MigrationTypeTenantSchema}
+	dev1p1 := types.MigrationDefinition{"201811190", "public", "public/201811190", types.MigrationTypeSingleSchema}
+	dev1p2 := types.MigrationDefinition{"20181191", "public", "public/201811191", types.MigrationTypeSingleSchema}
+
+	dev2 := types.MigrationDefinition{"20181120", "tenants", "tenants/20181120", types.MigrationTypeTenantSchema}
+	dev2p := types.MigrationDefinition{"20181120", "public", "public/20181120", types.MigrationTypeSingleSchema}
+
+	diskMigrations := []types.Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {dev1, ""}, {dev1p1, ""}, {dev1p2, ""}, {dev2, ""}, {dev2p, ""}}
+	migrations := FilterTenantMigrations(diskMigrations)
+
+	assert.Len(t, migrations, 3)
+
+	assert.Equal(t, mdef1.File, migrations[0].File)
+	assert.Equal(t, types.MigrationTypeTenantSchema, migrations[0].MigrationType)
+	assert.Equal(t, dev1.File, migrations[1].File)
+	assert.Equal(t, types.MigrationTypeTenantSchema, migrations[1].MigrationType)
+	assert.Equal(t, dev2.File, migrations[2].File)
+	assert.Equal(t, types.MigrationTypeTenantSchema, migrations[2].MigrationType)
+}
+
 func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	// use case:
 	// development done in parallel, 2 devs fork from master
@@ -72,7 +97,6 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	// migrator should detect dev1 migrations
 	// previous implementation relied only on counts and such migration was not applied
 
-	// todo: add some public migrations too
 	mdef1 := types.MigrationDefinition{"20181111", "tenants", "tenants/20181111", types.MigrationTypeTenantSchema}
 	mdef2 := types.MigrationDefinition{"20181111", "public", "public/20181111", types.MigrationTypeSingleSchema}
 	mdef3 := types.MigrationDefinition{"20181112", "public", "public/20181112", types.MigrationTypeSingleSchema}

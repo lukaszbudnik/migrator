@@ -17,6 +17,9 @@ const (
 	DefaultConfigFile = "migrator.yaml"
 	// ApplyAction is an action which applies disk migrations to database
 	ApplyAction = "apply"
+	// AddTenantAction is an action which creates new tenant in database
+	// and applies all known migrations
+	AddTenantAction = "addTenant"
 	// PrintConfigAction is an action which prints contents of config
 	PrintConfigAction = "config"
 	// ListDBMigrationsAction is an action which lists migrations recorded in DB
@@ -62,13 +65,6 @@ func LoadDBMigrations(config *config.Config, createConnector func(*config.Config
 	return dbMigrations
 }
 
-func doApplyMigrations(migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) {
-	connector := createConnector(config)
-	connector.Init()
-	defer connector.Dispose()
-	connector.ApplyMigrations(migrationsToApply)
-}
-
 // ApplyMigrations is a function which applies disk migrations to DB as defined in config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
@@ -92,11 +88,35 @@ func ApplyMigrations(config *config.Config, createConnector func(*config.Config)
 	return migrationsToApply
 }
 
+func AddTenant(tenant string, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
+
+	diskMigrations := LoadDiskMigrations(config, createLoader)
+
+	// filter only tenant schemas
+	// var migrationsToApply []types.Migration
+	migrationsToApply := migrations.FilterTenantMigrations(diskMigrations)
+
+	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
+	createAndApplyMigrationsForTenant(tenant, migrationsToApply, config, createConnector)
+
+	notifier := notifications.CreateNotifier(config)
+	text := fmt.Sprintf("Tenant %q added, migrations applied: %d", tenant, len(migrationsToApply))
+	resp, err := notifier.Notify(text)
+
+	if err != nil {
+		log.Printf("Notifier err: %v", err)
+	} else {
+		log.Printf("Notifier response: %v", resp)
+	}
+
+	return diskMigrations
+}
+
 // ExecuteMigrator is a function which executes actions on resources defined in config passed as first argument action defined as second argument
 // and using connector created by a function passed as third argument and disk loader created by a function passed as fourth argument
-func ExecuteMigrator(config *config.Config, action *string) {
+func ExecuteMigrator(config *config.Config, action string, tenant string) {
 
-	switch *action {
+	switch action {
 	case PrintConfigAction:
 		log.Printf("Configuration file ==>\n%v\n", config)
 	case ListDiskMigrationsAction:
@@ -109,6 +129,8 @@ func ExecuteMigrator(config *config.Config, action *string) {
 		if len(dbMigrations) > 0 {
 			log.Printf("List of db migrations\n%v", utils.MigrationDBArrayToString(dbMigrations))
 		}
+	case AddTenantAction:
+		AddTenant(tenant, config, db.CreateConnector, loader.CreateLoader)
 	case ListDBTenantsAction:
 		dbTenants := LoadDBTenants(config, db.CreateConnector)
 		if len(dbTenants) > 0 {
@@ -120,4 +142,18 @@ func ExecuteMigrator(config *config.Config, action *string) {
 			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	}
+}
+
+func doApplyMigrations(migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) {
+	connector := createConnector(config)
+	connector.Init()
+	defer connector.Dispose()
+	connector.ApplyMigrations(migrationsToApply)
+}
+
+func createAndApplyMigrationsForTenant(tenant string, migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) {
+	connector := createConnector(config)
+	connector.Init()
+	defer connector.Dispose()
+	connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
 }

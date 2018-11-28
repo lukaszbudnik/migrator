@@ -55,15 +55,25 @@ When migrator is run with `-mode server` it starts a go HTTP server and exposes 
 
 All actions which you can invoke from command line can be invoked via REST API:
 
+* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
+* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
+* GET /tenants - returns tenants, response is `Content-Type: application/json`
+* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
+* GET /migrations - returns all applied migrations
+* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
+
+Some curl examples to get you started:
+
 ```
-curl http://localhost:8080/config
+curl http://localhost:8080/
 curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/dbTenants
-curl http://localhost:8080/dbMigrations
-curl -X POST http://localhost:8080/apply
+curl http://localhost:8080/tenants
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl http://localhost:8080/migrations
+curl -X POST http://localhost:8080/migrations
 ```
 
-Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for SSL/TLS offloading.
+Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
 
 # Supported databases
 
@@ -100,6 +110,21 @@ $ docker/mariadb-destroy-container.sh
 ```
 
 Or see `.travis.yml` to see how it's done on Travis.
+
+# Customisation
+
+If you have an existing way of storing information about your tenants you can configure migrator to use it.
+In the config file you need to provide 2 parameters:
+
+* `tenantSelectSql` - a select statement which returns names of the tenants
+* `tenantInsertSql` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
+
+Here is an example:
+
+```
+tenantSelectSql: select name from global.customers
+tenantInsertSql: insert into global.customers (name, active, date_added) values (?, true, NOW())
+```
 
 # Performance
 

@@ -34,8 +34,19 @@ func (m *mockedConnector) GetSchemaPlaceHolder() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantsSQL() string {
+func (m *mockedConnector) GetTenantSelectSql() string {
 	return ""
+}
+
+func (m *mockedConnector) GetMigrationInsertSql() string {
+	return ""
+}
+
+func (m *mockedConnector) GetTenantInsertSql() string {
+	return ""
+}
+
+func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
 }
 
 func (m *mockedConnector) GetTenants() []string {

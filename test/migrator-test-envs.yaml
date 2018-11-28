@@ -3,7 +3,8 @@ baseDir: $HOME
 driver: $PWD
 dataSource: $TERM
 # override only if you have own specific way of determining tenants
-tenantsSql: $PATH
+tenantSelectSql: $PATH
+tenantInsertSql: $GOPATH
 schemaPlaceHolder: $USER
 port: $_
 slackWebHook: $SHLVL

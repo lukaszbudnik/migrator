@@ -7,6 +7,7 @@
 package server
 
 import (
+	"bytes"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -51,24 +52,24 @@ func TestServerConfig(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/config", nil)
+	req, _ := http.NewRequest("GET", "http://example.com/", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(configHandler, config, nil, nil)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/x-yaml", w.HeaderMap["Content-Type"][0])
 }
 
-func TestServerDBTenants(t *testing.T) {
+func TestServerTenantsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/dbTenants", nil)
+	req, _ := http.NewRequest("GET", "http://example.com/tenants", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(dbTenantsHandler, config, createMockedConnector, nil)
+	handler := makeHandler(tenantsHandler, config, createMockedConnector, nil)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -76,26 +77,28 @@ func TestServerDBTenants(t *testing.T) {
 	assert.Equal(t, `["a","b","c"]`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerDBMigrations(t *testing.T) {
+func TestServerTenantsPost(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/dbMigrations", nil)
+	json := []byte(`{"name": "new_tenant"}`)
+	req, _ := http.NewRequest("POST", "http://example.com/tenants", bytes.NewBuffer(json))
+  req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(dbMigrationsHandler, config, createMockedConnector, nil)
+	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Schema":"source","Created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc"},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerDiskMigrations(t *testing.T) {
+func TestServerDiskMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/dbMigrations", nil)
+	req, _ := http.NewRequest("GET", "http://example.com/diskMigrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(diskMigrationsHandler, config, nil, createMockedDiskLoader)
@@ -106,27 +109,29 @@ func TestServerDiskMigrations(t *testing.T) {
 	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc"},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerApplyError(t *testing.T) {
+func TestServerMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/apply", nil)
+	req, _ := http.NewRequest("GET", "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(applyHandler, config, nil, nil)
+	handler := makeHandler(migrationsHandler, config, createMockedConnector, nil)
 	handler(w, req)
 
-	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Schema":"source","Created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerApplyOK(t *testing.T) {
+func TestServerMigrationsPost(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("POST", "http://example.com/apply", nil)
+	req, _ := http.NewRequest("POST", "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(applyHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler := makeHandler(migrationsHandler, config, createMockedConnector, createMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
