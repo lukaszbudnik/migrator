@@ -55,15 +55,25 @@ When migrator is run with `-mode server` it starts a go HTTP server and exposes 
 
 All actions which you can invoke from command line can be invoked via REST API:
 
+* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
+* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
+* GET /tenants - returns tenants, response is `Content-Type: application/json`
+* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
+* GET /migrations - returns all applied migrations
+* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
+
+Some curl examples to get you started:
+
 ```
-curl http://localhost:8080/config
+curl http://localhost:8080/
 curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/dbTenants
-curl http://localhost:8080/dbMigrations
-curl -X POST http://localhost:8080/apply
+curl http://localhost:8080/tenants
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl http://localhost:8080/migrations
+curl -X POST http://localhost:8080/migrations
 ```
 
-Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for SSL/TLS offloading.
+Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
 
 # Supported databases
 
