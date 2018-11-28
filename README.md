@@ -7,14 +7,15 @@ DB migration tool written in go.
 Short and sweet.
 
 ```
-$ migrator -h
-Usage of migrator:
+$ Usage of ./migrator:
   -action string
-       migrator action to apply, valid actions are: ["apply" "config" "diskMigrations" "dbTenants" "dbMigrations"] (default "apply")
+    	when run in tool mode, action to execute, valid actions are: ["apply" "addTenant" "config" "diskMigrations" "dbTenants" "dbMigrations"] (default "apply")
   -configFile string
-       path to migrator.yaml (default "migrator.yaml")
+    	path to migrator configuration yaml file (default "migrator.yaml")
   -mode string
-       migrator mode to run: "tool" or "server" (default "tool")
+    	migrator mode to run: ["tool" "server"] (default "tool")
+  -tenant string
+    	when run in tool mode and action set to "addTenant", specifies new tenant name
 ```
 
 Migrator requires a simple `migrator.yaml` file:
@@ -24,7 +25,9 @@ baseDir: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # override only if you have a specific way of determining tenants, default is:
-tenantsSql: "select name from public.migrator_tenants"
+tenantSelectSql: "select name from public.migrator_tenants"
+# override only if you have a specific way of creating tenants, default is:
+tenantInsertSql: "insert into public.migrator_tenants (name) values ($1)"
 # override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
 singleSchemas:
@@ -33,18 +36,18 @@ singleSchemas:
   - config
 tenantSchemas:
   - tenants
-# port is used only when migrator is run in server mode
-# optional element and defaults to 8080
-port: 8181
-# optional Slack Incoming Web Hook - every apply action posts a message to Slack
+# port is used only when migrator is run in server mode, defaults to:
+port: 8080
+# optional Slack Incoming Web Hook - if defined apply migrations action will post a message to Slack
 slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
 ```
 
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantsSql`.
+Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSql`.
 
 SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which is automatically replaced by migrator to the current schema. For example:
 
 ```
+create schema if not exists {schema};
 create table if not exists {schema}.modules ( k int, v text );
 insert into {schema}.modules values ( 123, '123' );
 ```
@@ -79,34 +82,18 @@ Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HT
 
 Currently migrator supports the following databases:
 
-* PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements
-* MySQL - database-based multi-tenant database, transactions do not span DDL statements
-* MariaDB - enhanced near linearly scalable multi-master MySQL
+* PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+* MySQL - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
+* MariaDB - enhanced near linearly scalable multi-master MySQL, driver used: https://github.com/go-sql-driver/mysql
 
-# Examples
+# Running unit & integration tests
 
-PostgreSQL:
+PostgreSQL, MySQL, and MariaDB:
 
 ```
-$ docker/postgresql-create-and-setup-container.sh
+$ docker/create-and-setup-container.sh [postgresql|mysql|mariadb]
 $ ./coverage.sh
-$ docker/postgresql-destroy-container.sh
-```
-
-MySQL:
-
-```
-$ docker/mysql-create-and-setup-container.sh
-$ ./coverage.sh
-$ docker/mysql-destroy-container.sh
-```
-
-MariaDB:
-
-```
-$ docker/mariadb-create-and-setup-container.sh
-$ ./coverage.sh
-$ docker/mariadb-destroy-container.sh
+$ docker/destroy-container.sh [postgresql|mysql|mariadb]
 ```
 
 Or see `.travis.yml` to see how it's done on Travis.
