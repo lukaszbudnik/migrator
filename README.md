@@ -1,6 +1,10 @@
 # Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator)
 
-DB migration tool written in go.
+Fast and lightweight DB migration & evolution tool written in go.
+
+migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
+
+migrator can run as a HTTP REST service. Further, there is a ready-to-go migrator docker image.
 
 # Usage
 
@@ -44,7 +48,7 @@ slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
 
 Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSql`.
 
-SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which is automatically replaced by migrator to the current schema. For example:
+SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
 ```
 create schema if not exists {schema};
@@ -54,7 +58,7 @@ insert into {schema}.modules values ( 123, '123' );
 
 # Server mode
 
-When migrator is run with `-mode server` it starts a go HTTP server and exposes simple REST API which you can use to invoke migrator actions remotely.
+When migrator is run with `-mode server` it starts a HTTP service and exposes simple REST API which you can use to invoke migrator actions remotely.
 
 All actions which you can invoke from command line can be invoked via REST API:
 
@@ -85,6 +89,12 @@ Currently migrator supports the following databases:
 * PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
 * MySQL - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
 * MariaDB - enhanced near linearly scalable multi-master MySQL, driver used: https://github.com/go-sql-driver/mysql
+
+# Do you speak docker?
+
+Yes, since the inception of migrator (2016) there is an official docker image available on docker hub.
+
+To find out more about migrator-docker please visit: https://github.com/lukaszbudnik/migrator-docker.
 
 # Running unit & integration tests
 
