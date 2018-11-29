@@ -18,6 +18,7 @@ fi
 function generate_first_table {
   year=$(date +'%Y')
   cat > "migrations/tenants/${year}0000000000.sql" <<EOL
+create schema :tenant;
 create table :tenant.table_for_inserts (
 col int
 );
