@@ -87,23 +87,30 @@ Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HT
 Currently migrator supports the following databases:
 
 * PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+  * PostgreSQL - original PostgreSQL server
+  * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 * MySQL - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
-* MariaDB - enhanced near linearly scalable multi-master MySQL, driver used: https://github.com/go-sql-driver/mysql
+  * MySQL - original MySQL server
+  * MariaDB - enhanced near linearly scalable multi-master MySQL
+  * Percona - an enhanced drop-in replacement for MySQL
+  * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
 
 # Do you speak docker?
 
-Yes, since the inception of migrator (2016) there is an official docker image available on docker hub.
+Yes, there is an official docker image available on docker hub.
 
-To find out more about migrator-docker please visit: https://github.com/lukaszbudnik/migrator-docker.
+migrator docker image is ultra lightweight and has a size of only 13.4MB. Ideal for micro-services deployments!
+
+To find out more about migrator docker please visit: https://github.com/lukaszbudnik/migrator-docker.
 
 # Running unit & integration tests
 
-PostgreSQL, MySQL, and MariaDB:
+PostgreSQL, MySQL, MariaDB, and Percona:
 
 ```
-$ docker/create-and-setup-container.sh [postgresql|mysql|mariadb]
+$ docker/create-and-setup-container.sh [postgresql|mysql|mariadb|percona]
 $ ./coverage.sh
-$ docker/destroy-container.sh [postgresql|mysql|mariadb]
+$ docker/destroy-container.sh [postgresql|mysql|mariadb|percona]
 ```
 
 Or see `.travis.yml` to see how it's done on Travis.
@@ -125,18 +132,27 @@ tenantInsertSql: insert into global.customers (name, active, date_added) values 
 
 # Performance
 
-In my company we use proprietary Ruby framework for DB migrations. I used that framework as a benchmark.
+As a benchmarks I used 2 migrations frameworks:
 
-I used performance test generator shipped with migrator (see `test/performance`).
+* proprietary Ruby framework - used in my company
+* flyway - leading market feature rich DB migration framework: https://flywaydb.org
 
-Results are following:
+There is a performance test generator shipped with migrator (`test/performance/generate-test-migrations.sh`). In order to generate flyway-compatible migrations you need to pass `-f` param (see script for details).
 
-| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| Migrator time 	| Ruby time 	| Migrator times faster 	|
-|-----------	|-----------------------	|-----------------------	|---------------	|-----------	|-----------------------	|
-|        10 	|                     0 	|                 10001 	|          177s 	|      670s 	|                  3.78 	|
-|        10 	|                 10001 	|                    20 	|            2s 	|      455s 	|                 227.5 	|
+Execution times are following:
 
-Note: The Ruby framework has a pretty undesired functionality of making a DB call to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better. The other thing to consider is the fact that migrator is written in golang which is known to be much faster than Ruby.
+| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| Migrator 	| Ruby       	| Flyway   	|
+|-----------	|-----------------------	|-----------------------	|----------	|-----------	|----------	|
+|        10 	|                     0 	|                 10001 	|     154s 	|      670s 	|    2360s 	|
+|        10 	|                 10001 	|                    20 	|       2s 	|      455s 	|     340s 	|
+
+Migrator is the undisputed winner.
+
+The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
+
+flyway results are... dramatic. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is almost 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
+
+The other thing to consider is the fact that migrator is written in go which is known to be much faster than Ruby and Java.
 
 # Installation and supported Go versions
 
