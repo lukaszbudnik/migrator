@@ -12,13 +12,10 @@ done
 
 case $CONTAINER_TYPE in
   postgresql )
-    postgresql_start
+    postgresql_start $CONTAINER_TYPE
     ;;
-  mysql )
-    mysql_start mysql
-    ;;
-  mariadb )
-    mysql_start mariadb
+  mysql|mariadb|percona )
+    mysql_start $CONTAINER_TYPE
     ;;
   * )
     >&2 echo "Unknown container type $CONTAINER_TYPE"

@@ -1,9 +1,12 @@
 #!/bin/bash
 
+remove_tenant_placeholder=0
+append=0
 
 while [[ "$#" > 0 ]]; do case $1 in
   -n|--number-of-migrations) no_of_migrations="$2"; shift;;
   -a|--append) append=1;;
+  -f|--flyway) remove_tenant_placeholder=1;;
   *) echo "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
 
@@ -11,18 +14,27 @@ if [[ -z "$no_of_migrations" ]] || [[ -z "${no_of_migrations##*[!0-9]*}" ]]; the
   no_of_migrations=100
 fi
 
-if [[ -z "$append" ]]; then
-  append=0
+tenantplaceholder=":tenant"
+tenantprefixplaceholder="$tenantplaceholder."
+if (( remove_tenant_placeholder == 1 )); then
+  tenantplaceholder=""
+  tenantprefixplaceholder=""
 fi
 
 function generate_first_table {
   year=$(date +'%Y')
-  cat > "migrations/tenants/${year}0000000000.sql" <<EOL
-create schema :tenant;
-create table :tenant.table_for_inserts (
+
+  if (( remove_tenant_placeholder == 0 )); then
+    cat > "migrations/tenants/V${year}.1__0000000000.sql" <<EOL
+create schema if not exists ${tenantplaceholder};
+EOL
+  fi
+
+  cat >> "migrations/tenants/V${year}.1__0000000000.sql" <<EOL
+create table ${tenantprefixplaceholder}table_for_inserts (
 col int
 );
-insert into :tenant.table_for_inserts values (-1);
+insert into ${tenantprefixplaceholder}table_for_inserts values (-1);
 EOL
 }
 
@@ -30,14 +42,14 @@ function generate_table {
   i=$1
   counter=$2
   timestamp=$(date +'%Y%m%d%H%M%S%N')
-  file="migrations/tenants/${timestamp}_${i}.sql"
+  file="migrations/tenants/V${timestamp}.1__${i}.sql"
   cat > $file <<EOL
-create table :tenant.table_${counter} (
+create table ${tenantprefixplaceholder}table_${counter} (
 a int,
 b float,
 c varchar(100)
 );
-insert into :tenant.table_for_inserts values ($i);
+insert into ${tenantprefixplaceholder}table_for_inserts values ($i);
 EOL
 }
 
@@ -45,19 +57,19 @@ function generate_alter_drop_inserts {
   i=$1
   counter=$2
   timestamp=$(date +'%Y%m%d%H%M%S%N')
-  file="migrations/tenants/${timestamp}_${i}.sql"
+  file="migrations/tenants/V${timestamp}.1__${i}.sql"
   # if [[ $i%2 -eq 1 ]]; then
-  #   echo "alter table :tenant.table_${counter} add column d int, add column e varchar, add column f int;" > $file
+  #   echo "alter table ${tenantprefixplaceholder}table_${counter} add column d int, add column e varchar, add column f int;" > $file
   # else
-  #   echo "alter table :tenant.table_${counter} drop column d, drop column e, drop column f;" >> $file
+  #   echo "alter table ${tenantprefixplaceholder}table_${counter} drop column d, drop column e, drop column f;" >> $file
   # fi
   # no_of_inserts=1000
   no_of_inserts=10
   while [[ $no_of_inserts -gt 0 ]]; do
-    echo "insert into :tenant.table_${counter} (a, b, c) values ($RANDOM, $RANDOM, '$RANDOM');" >> $file
+    echo "insert into ${tenantprefixplaceholder}table_${counter} (a, b, c) values ($RANDOM, $RANDOM, '$RANDOM');" >> $file
     let no_of_inserts-=1
   done
-  echo "insert into :tenant.table_for_inserts values ($i);" >> $file
+  echo "insert into ${tenantprefixplaceholder}table_for_inserts values ($i);" >> $file
 }
 
 if [[ $append -eq 0 ]]; then
@@ -69,7 +81,7 @@ if [[ $append -eq 0 ]]; then
   i=0
   counter=0
 else
-  i=$(ls -t migrations/tenants | head -1 | cut -d '_' -f 2 | cut -d '.' -f 1)
+  i=$(ls -t migrations/tenants | head -1 | cut -d '_' -f 3 | cut -d '.' -f 1)
   counter=$((i/10+1))
   i=$((i+1))
 fi
@@ -84,7 +96,7 @@ while [[ $i -lt $end ]]; do
     echo "generate_table $i $counter"
     generate_table $i $counter
   else
-    # echo "generate_alter_drop_inserts $i $counter"
+    echo "generate_alter_drop_inserts $i $counter"
     generate_alter_drop_inserts $i $counter
   fi
   let i+=1
