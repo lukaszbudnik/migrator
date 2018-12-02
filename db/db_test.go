@@ -240,9 +240,9 @@ func TestMySQLGetMigrationInsertSql(t *testing.T) {
 
 	config.Driver = "mysql"
 
-	connector := CreateConnector(config)
+	dialect := CreateDialect(config)
 
-	insertMigrationSQL := connector.GetMigrationInsertSql()
+	insertMigrationSQL := dialect.GetMigrationInsertSql()
 
 	assert.Equal(t, "insert into public.migrator_migrations (name, source_dir, file, type, db_schema) values (?, ?, ?, ?, ?)", insertMigrationSQL)
 }
@@ -253,9 +253,9 @@ func TestPostgreSQLGetMigrationInsertSql(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	connector := CreateConnector(config)
+	dialect := CreateDialect(config)
 
-	insertMigrationSQL := connector.GetMigrationInsertSql()
+	insertMigrationSQL := dialect.GetMigrationInsertSql()
 
 	assert.Equal(t, "insert into public.migrator_migrations (name, source_dir, file, type, db_schema) values ($1, $2, $3, $4, $5)", insertMigrationSQL)
 }

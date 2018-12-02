@@ -20,20 +20,21 @@ type Connector interface {
 	GetSchemaPlaceHolder() string
 	// rename to GetDBMigrations, change type to DBMigration
 	GetMigrations() []types.MigrationDB
-	GetMigrationInsertSql() string
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
 
 // BaseConnector struct is a base struct for implementing DB specific dialects
 type BaseConnector struct {
-	Config *config.Config
-	DB     *sql.DB
+	Config  *config.Config
+	Dialect Dialect
+	DB      *sql.DB
 }
 
 // CreateConnector constructs Connector instance based on the passed Config
 func CreateConnector(config *config.Config) Connector {
-	var bc = BaseConnector{config, nil}
+	dialect := CreateDialect(config)
+	bc := BaseConnector{config, dialect, nil}
 	var connector Connector
 
 	switch config.Driver {
@@ -170,22 +171,57 @@ func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 
 // ApplyMigrations applies passed migrations
 func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
-	log.Panic("ApplyMigrations() must be overwritten by specific connector")
+	if len(migrations) == 0 {
+		return
+	}
+
+	tenants := bc.GetTenants()
+
+	tx, err := bc.DB.Begin()
+	if err != nil {
+		log.Panicf("Could not start DB transaction: %v", err)
+	}
+
+	bc.applyMigrationsInTx(tx, tenants, migrations)
+
+	tx.Commit()
 }
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
 func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
-	log.Panic("AddTenantAndApplyMigrations() must be overwritten by specific conector")
-}
+	tenantInsertSql := bc.GetTenantInsertSql()
 
-func (bc *BaseConnector) GetMigrationInsertSql() string {
-	log.Panic("GetMigrationInsertSQL() must be overwritten by specific connector")
-	return ""
+	tx, err := bc.DB.Begin()
+	if err != nil {
+		log.Panicf("Could not start DB transaction: %v", err)
+	}
+
+	insert, err := bc.DB.Prepare(tenantInsertSql)
+	if err != nil {
+		log.Panicf("Could not create prepared statement: %v", err)
+	}
+
+	_, err = tx.Stmt(insert).Exec(tenant)
+	if err != nil {
+		tx.Rollback()
+		log.Panicf("Failed to add tenant entry, transaction rollback was called: %v", err)
+	}
+
+	bc.applyMigrationsInTx(tx, []string{tenant}, migrations)
+
+	tx.Commit()
 }
 
 func (bc *BaseConnector) GetTenantInsertSql() string {
-	log.Panic("GetTenantInsertSQL() must be overwritten by specific connector")
-	return ""
+	var tenantInsertSql string
+	// if set explicitly in config use it
+	// otherwise use default value provided by Dialect implementation
+	if bc.Config.TenantInsertSql != "" {
+		tenantInsertSql = bc.Config.TenantInsertSql
+	} else {
+		tenantInsertSql = bc.Dialect.GetTenantInsertSql()
+	}
+	return tenantInsertSql
 }
 
 // GetSchemaPlaceHolder returns a schema placeholder which is
@@ -200,30 +236,12 @@ func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-// virtual methods do not exist in golang
-// this method is called from ApplyMigrations
-func (bc *BaseConnector) doApplyMigrations(migrations []types.Migration, insertMigrationSQL string) {
-
-	if len(migrations) == 0 {
-		return
-	}
-
-	tenants := bc.GetTenants()
-
-	tx, err := bc.DB.Begin()
-	if err != nil {
-		log.Panicf("Could not start DB transaction: %v", err)
-	}
-
-	bc.doApplyMigrationsInTx(tx, tenants, migrations, insertMigrationSQL)
-
-	tx.Commit()
-}
-
-func (bc *BaseConnector) doApplyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration, insertMigrationSQL string) {
+func (bc *BaseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration) {
 	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
 
-	insert, err := bc.DB.Prepare(insertMigrationSQL)
+	insertMigrationSql := bc.Dialect.GetMigrationInsertSql()
+
+	insert, err := bc.DB.Prepare(insertMigrationSql)
 	if err != nil {
 		log.Panicf("Could not create prepared statement: %v", err)
 	}
@@ -255,26 +273,4 @@ func (bc *BaseConnector) doApplyMigrationsInTx(tx *sql.Tx, tenants []string, mig
 		}
 
 	}
-}
-
-func (bc *BaseConnector) doAddTenantAndApplyMigrations(tenant string, migrations []types.Migration, insertTenantSQL string, insertMigrationSQL string) {
-	tx, err := bc.DB.Begin()
-	if err != nil {
-		log.Panicf("Could not start DB transaction: %v", err)
-	}
-
-	insert, err := bc.DB.Prepare(insertTenantSQL)
-	if err != nil {
-		log.Panicf("Could not create prepared statement: %v", err)
-	}
-
-	_, err = tx.Stmt(insert).Exec(tenant)
-	if err != nil {
-		tx.Rollback()
-		log.Panicf("Failed to add tenant entry, transaction rollback was called: %v", err)
-	}
-
-	bc.doApplyMigrationsInTx(tx, []string{tenant}, migrations, insertMigrationSQL)
-
-	tx.Commit()
 }
