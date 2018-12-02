@@ -83,7 +83,7 @@ func TestServerTenantsPost(t *testing.T) {
 
 	json := []byte(`{"name": "new_tenant"}`)
 	req, _ := http.NewRequest("POST", "http://example.com/tenants", bytes.NewBuffer(json))
-  req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)

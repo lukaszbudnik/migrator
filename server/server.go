@@ -1,13 +1,13 @@
 package server
 
 import (
-	"io/ioutil"
 	"encoding/json"
 	"fmt"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/core"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -69,7 +69,7 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(migrationsApplied)
 	default:
-	    http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 	}
 
 }
@@ -78,26 +78,26 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 
 	switch r.Method {
 	case http.MethodGet:
-			tenants := core.LoadDBTenants(config, createConnector)
-	    w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(tenants)
+		tenants := core.LoadDBTenants(config, createConnector)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tenants)
 	case http.MethodPost:
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-					http.Error(w, "500 internal server error", http.StatusInternalServerError)
-					return
-			}
-			var param tenantParam
-			err = json.Unmarshal(body, &param)
-			if err != nil || param.Name == "" {
-					http.Error(w, "400 bad request", http.StatusBadRequest)
-					return
-			}
-			migrationsApplied := core.AddTenant(param.Name, config, createConnector, createLoader)
-	    w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(migrationsApplied)
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "500 internal server error", http.StatusInternalServerError)
+			return
+		}
+		var param tenantParam
+		err = json.Unmarshal(body, &param)
+		if err != nil || param.Name == "" {
+			http.Error(w, "400 bad request", http.StatusBadRequest)
+			return
+		}
+		migrationsApplied := core.AddTenant(param.Name, config, createConnector, createLoader)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(migrationsApplied)
 	default:
-	    http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 	}
 
 }
