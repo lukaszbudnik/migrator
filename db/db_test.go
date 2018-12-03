@@ -91,8 +91,11 @@ func TestDBGetTenants(t *testing.T) {
 
 	tenants := connector.GetTenants()
 
-	assert.Len(t, tenants, 3)
-	assert.Equal(t, []string{"abc", "def", "xyz"}, tenants)
+	// todo more than 3 and contains abc, def, xyz
+	assert.True(t, len(tenants) >= 3)
+	assert.Contains(t, tenants, "abc")
+	assert.Contains(t, tenants, "def")
+	assert.Contains(t, tenants, "xyz")
 }
 
 func TestDBApplyMigrations(t *testing.T) {
@@ -102,6 +105,9 @@ func TestDBApplyMigrations(t *testing.T) {
 	connector := CreateConnector(config)
 	connector.Init()
 	defer connector.Dispose()
+
+	tenants := connector.GetTenants()
+	lenTenants := len(tenants)
 
 	dbMigrationsBefore := connector.GetMigrations()
 	lenBefore := len(dbMigrationsBefore)
@@ -128,7 +134,9 @@ func TestDBApplyMigrations(t *testing.T) {
 	dbMigrationsAfter := connector.GetMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
-	assert.Equal(t, 8, lenAfter-lenBefore)
+	// 2 tenant migrations * no of tenants + 2 public
+	expected := lenTenants*2 + 2
+	assert.Equal(t, expected, lenAfter-lenBefore)
 }
 
 func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
