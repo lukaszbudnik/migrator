@@ -11,11 +11,14 @@ for SCRIPT in scripts/*.sh; do
 done
 
 case $CONTAINER_TYPE in
-  postgresql )
+  postgres )
     postgresql_start $CONTAINER_TYPE
     ;;
   mysql|mariadb|percona )
     mysql_start $CONTAINER_TYPE
+    ;;
+  mssql )
+    mssql_start $CONTAINER_TYPE
     ;;
   * )
     >&2 echo "Unknown container type $CONTAINER_TYPE"

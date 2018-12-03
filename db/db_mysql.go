@@ -6,10 +6,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type mySQLConnector struct {
-	BaseConnector
-}
-
 type mySQLDialect struct {
 	BaseDialect
 }

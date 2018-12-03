@@ -8,15 +8,15 @@ import (
 type Dialect interface {
 	GetTenantInsertSql() string
 	GetMigrationInsertSql() string
-	GetCreateTenantsTableSql() string
-	GetCreateMigrationsTableSql() string
+  GetCreateTenantsTableSql() string
+  GetCreateMigrationsTableSql() string
 }
 
 type BaseDialect struct {
 }
 
 func (bd *BaseDialect) GetCreateTenantsTableSql() string {
-	return `
+  return `
   create table if not exists %v (
     id serial primary key,
     name varchar(200) not null,
@@ -26,7 +26,7 @@ func (bd *BaseDialect) GetCreateTenantsTableSql() string {
 }
 
 func (bd *BaseDialect) GetCreateMigrationsTableSql() string {
-	return `
+  return `
   create table if not exists %v (
     id serial primary key,
     name varchar(200) not null,
@@ -47,6 +47,8 @@ func CreateDialect(config *config.Config) Dialect {
 	switch config.Driver {
 	case "mysql":
 		dialect = &mySQLDialect{}
+  case "sqlserver":
+    dialect = &msSQLDialect{}
 	case "postgres":
 		dialect = &postgreSQLDialect{}
 	default:

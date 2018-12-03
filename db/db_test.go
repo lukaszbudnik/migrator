@@ -23,20 +23,20 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	}, "Should panic because of unknown driver")
 }
 
-func TestDBCreateConnectorPostgresDriver(t *testing.T) {
+func TestDBCreateDialectPostgreSqlDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
-	connector := CreateConnector(config)
+	connector := CreateDialect(config)
 	connectorName := reflect.TypeOf(connector).String()
-	assert.Equal(t, "*db.postgreSQLConnector", connectorName)
+	assert.Equal(t, "*db.postgreSQLDialect", connectorName)
 }
 
-func TestDBCreateConnectorMysqlDriver(t *testing.T) {
+func TestDBCreateDialectMysqlDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "mysql"
-	connector := CreateConnector(config)
+	connector := CreateDialect(config)
 	connectorName := reflect.TypeOf(connector).String()
-	assert.Equal(t, "*db.mySQLConnector", connectorName)
+	assert.Equal(t, "*db.mySQLDialect", connectorName)
 }
 
 func TestDBConnectorInitPanicConnectionError(t *testing.T) {
@@ -304,4 +304,56 @@ func TestGetTenantInsertSqlOverride(t *testing.T) {
 	tenantInsertSql := connector.GetTenantInsertSql()
 
 	assert.Equal(t, "insert into XXX", tenantInsertSql)
+}
+
+func TestMSSQLDialectGetCreateTenantsTableSql(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "mssql"
+
+	dialect := CreateDialect(config)
+
+	createTenantsTableSql := dialect.GetCreateTenantsTableSql()
+
+	expected := `
+IF NOT EXISTS (select * from information_schema.tables where table_schema = 'public' and table_name = 'migrator_tenants')
+BEGIN
+  create table [public].%v (
+    id int identity (1,1) primary key,
+    name varchar(200) not null,
+    created datetime default CURRENT_TIMESTAMP
+  );
+END
+`
+
+	assert.Equal(t, expected, createTenantsTableSql)
+}
+
+func TestMSSQLDialectGetCreateMigrationsTableSql(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "mssql"
+
+	dialect := CreateDialect(config)
+
+	createMigrationsTableSql := dialect.GetCreateMigrationsTableSql()
+
+	expected := `
+IF NOT EXISTS (select * from information_schema.tables where table_schema = 'public' and table_name = 'migrator_migrations')
+BEGIN
+  create table [public].%v (
+    id int identity (1,1) primary key,
+    name varchar(200) not null,
+    source_dir varchar(200) not null,
+    file varchar(200) not null,
+    type int not null,
+    db_schema varchar(200) not null,
+    created datetime default CURRENT_TIMESTAMP
+  );
+END
+`
+
+	assert.Equal(t, expected, createMigrationsTableSql)
 }

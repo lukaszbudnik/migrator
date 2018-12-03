@@ -6,10 +6,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type postgreSQLConnector struct {
-	BaseConnector
-}
-
 type postgreSQLDialect struct {
 	BaseDialect
 }

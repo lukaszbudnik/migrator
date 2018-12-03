@@ -112,9 +112,9 @@ To find out more about migrator docker please visit: https://github.com/lukaszbu
 PostgreSQL, MySQL, MariaDB, and Percona:
 
 ```
-$ docker/create-and-setup-container.sh [postgresql|mysql|mariadb|percona]
+$ docker/create-and-setup-container.sh [postgres|mysql|mariadb|percona]
 $ ./coverage.sh
-$ docker/destroy-container.sh [postgresql|mysql|mariadb|percona]
+$ docker/destroy-container.sh [postgres|mysql|mariadb|percona]
 ```
 
 Or see `.travis.yml` to see how it's done on Travis.

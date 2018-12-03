@@ -34,22 +34,16 @@ type BaseConnector struct {
 // CreateConnector constructs Connector instance based on the passed Config
 func CreateConnector(config *config.Config) Connector {
 	dialect := CreateDialect(config)
-	bc := BaseConnector{config, dialect, nil}
-	var connector Connector
-
-	switch config.Driver {
-	case "mysql":
-		connector = &mySQLConnector{bc}
-	case "postgres":
-		connector = &postgreSQLConnector{bc}
-	default:
-		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
-	}
-
+	connector := &BaseConnector{config, dialect, nil}
 	return connector
 }
 
 const (
+	migratorSchema          = "public"
+	migratorTenantsTable    = "migrator_tenants"
+	migratorMigrationsTable = "migrator_migrations"
+
+	// deprecated
 	migrationsTableName      = "public.migrator_migrations"
 	defaultTenantsTableName  = "public.migrator_tenants"
 	selectMigrations         = "select name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
