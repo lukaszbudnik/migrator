@@ -50,28 +50,10 @@ func CreateConnector(config *config.Config) Connector {
 }
 
 const (
-	migrationsTableName     = "public.migrator_migrations"
-	defaultTenantsTableName = "public.migrator_tenants"
-	createMigrationsTable   = `
-  create table if not exists %v (
-    id serial primary key,
-    name varchar(200) not null,
-		source_dir varchar(200) not null,
-    file varchar(200) not null,
-		type int not null,
-    db_schema varchar(200) not null,
-    created timestamp default now()
-	)
-  `
-	createDefaultTenantsTable = `
-	create table if not exists %v (
-		id serial primary key,
-		name varchar(200) not null,
-		created timestamp default now()
-	)
-	`
+	migrationsTableName      = "public.migrator_migrations"
+	defaultTenantsTableName  = "public.migrator_tenants"
 	selectMigrations         = "select name, source_dir, file, type, db_schema, created from %v order by name, source_dir"
-	defaulttenantsSqlPattern = "select name from %v"
+	defaultTenantsSqlPattern = "select name from %v"
 	defaultSchemaPlaceHolder = "{schema}"
 )
 
@@ -86,15 +68,15 @@ func (bc *BaseConnector) Init() {
 	}
 	bc.DB = db
 
-	defaulttenantsSql := fmt.Sprintf(defaulttenantsSqlPattern, defaultTenantsTableName)
-	if bc.Config.TenantSelectSql != "" && bc.Config.TenantSelectSql != defaulttenantsSql {
+	defaultTenantsSql := fmt.Sprintf(defaultTenantsSqlPattern, defaultTenantsTableName)
+	if bc.Config.TenantSelectSql != "" && bc.Config.TenantSelectSql != defaultTenantsSql {
+		createDefaultTenantsTable := bc.Dialect.GetCreateTenantsTableSql()
 		createTableQuery := fmt.Sprintf(createDefaultTenantsTable, defaultTenantsTableName)
 
 		if _, err := bc.DB.Query(createTableQuery); err != nil {
 			log.Panicf("Could not create default tenants table: %v", err)
 		}
 	}
-
 }
 
 // Dispose closes all resources allocated by connector
@@ -110,7 +92,7 @@ func (bc *BaseConnector) GetTenantSelectSql() string {
 	if bc.Config.TenantSelectSql != "" {
 		tenantSelectSql = bc.Config.TenantSelectSql
 	} else {
-		tenantSelectSql = fmt.Sprintf(defaulttenantsSqlPattern, defaultTenantsTableName)
+		tenantSelectSql = fmt.Sprintf(defaultTenantsSqlPattern, defaultTenantsTableName)
 	}
 	return tenantSelectSql
 }
@@ -137,7 +119,9 @@ func (bc *BaseConnector) GetTenants() []string {
 
 // GetMigrations returns a list of all applied DB migrations
 func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
-	createTableQuery := fmt.Sprintf(createMigrationsTable, migrationsTableName)
+	createMigrationsTableSql := bc.Dialect.GetCreateMigrationsTableSql()
+
+	createTableQuery := fmt.Sprintf(createMigrationsTableSql, migrationsTableName)
 	if _, err := bc.DB.Query(createTableQuery); err != nil {
 		log.Panicf("Could not create migrations table: %v", err)
 	}
