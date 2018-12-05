@@ -10,7 +10,7 @@ import (
 type mockedDiskLoader struct {
 }
 
-func (m *mockedDiskLoader) GetMigrations() []types.Migration {
+func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
 	// returns empty array
 	return []types.Migration{}
 }
@@ -32,15 +32,15 @@ func (m *mockedConnector) GetSchemaPlaceHolder() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantSelectSql() string {
+func (m *mockedConnector) GetTenantSelectSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetMigrationInsertSql() string {
+func (m *mockedConnector) GetMigrationInsertSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantInsertSql() string {
+func (m *mockedConnector) GetTenantInsertSQL() string {
 	return ""
 }
 
@@ -52,7 +52,7 @@ func (m *mockedConnector) GetTenants() []string {
 func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
 }
 
-func (m *mockedConnector) GetMigrations() []types.MigrationDB {
+func (m *mockedConnector) GetDBMigrations() []types.MigrationDB {
 	// returns empty array
 	return []types.MigrationDB{}
 }

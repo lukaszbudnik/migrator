@@ -30,9 +30,9 @@ driver: postgres
 # dataSource format is specific to DB go driver implementation - see below 'Supported databases'
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # override only if you have a specific way of determining tenants, default is:
-tenantSelectSql: "select name from migrator.migrator_tenants"
+tenantSelectSQL: "select name from migrator.migrator_tenants"
 # override only if you have a specific way of creating tenants, default is:
-tenantInsertSql: "insert into migrator.migrator_tenants (name) values ($1)"
+tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
 singleSchemas:
@@ -47,7 +47,7 @@ port: 8080
 slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
 ```
 
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSql`.
+Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
 
 SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
@@ -135,14 +135,14 @@ Or see `.travis.yml` to see how it's done on Travis. Note: MSSQL is not supporte
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
 In the config file you need to provide 2 parameters:
 
-* `tenantSelectSql` - a select statement which returns names of the tenants
-* `tenantInsertSql` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
+* `tenantSelectSQL` - a select statement which returns names of the tenants
+* `tenantInsertSQL` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
 
 Here is an example:
 
 ```
-tenantSelectSql: select name from global.customers
-tenantInsertSql: insert into global.customers (name, active, date_added) values (?, true, NOW())
+tenantSelectSQL: select name from global.customers
+tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
 ```
 
 # Performance
@@ -179,12 +179,14 @@ Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all 
 
 # Code Style
 
-If you would like to send me a pull request please always add unit/integration tests. Code should be formatted & checked using the following commands:
+If you would like to send me a pull request please always add unit/integration tests. Code should be formatted, checked, and tested using the following commands:
 
 ```
-$ gofmt -s -w .
-$ golint ./...
-$ go tool vet -v .
+go clean -testcache
+gofmt -s -w .
+golint ./...
+./vet.sh
+./coverage.sh
 ```
 
 # License

@@ -16,8 +16,8 @@ type DiskLoader struct {
 	Config *config.Config
 }
 
-// GetMigrations loads all migrations from disk
-func (dl *DiskLoader) GetMigrations() []types.Migration {
+// GetDiskMigrations returns all migrations from disk
+func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
 	dirs, err := ioutil.ReadDir(dl.Config.BaseDir)
 	if err != nil {
 		log.Panicf("Could not read migration base dir: %v", err)
@@ -69,12 +69,12 @@ func (dl *DiskLoader) readMigrationsFromSchemaDirs(migrations map[string][]types
 		}
 		for _, file := range files {
 			if !file.IsDir() {
-				mdef := types.MigrationDefinition{file.Name(), sourceDir, filepath.Join(sourceDir, file.Name()), migrationType}
+				mdef := types.MigrationDefinition{Name: file.Name(), SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType}
 				contents, err := ioutil.ReadFile(filepath.Join(dl.Config.BaseDir, mdef.File))
 				if err != nil {
 					log.Panicf("Could not read migration contents: %v", err)
 				}
-				m := types.Migration{mdef, string(contents)}
+				m := types.Migration{MigrationDefinition: mdef, Contents: string(contents)}
 				e, ok := migrations[m.Name]
 				if ok {
 					e = append(e, m)

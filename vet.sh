@@ -7,13 +7,10 @@ else
   packages="$1"
 fi
 
-echo "mode: set" > coverage-all.txt
-
 for package in $packages
 do
   if [[ "main" == "$package" ]]; then
     continue
   fi
-  go test -cover -coverprofile=coverage-$package.txt ./$package
-  cat coverage-$package.txt | sed '/^mode/d' >> coverage-all.txt
+  go vet ./$package
 done

@@ -22,7 +22,7 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	}, "Should panic because of unknown driver")
 }
 
-func TestDBCreateDialectPostgreSqlDriver(t *testing.T) {
+func TestDBCreateDialectPostgreSQLDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := CreateDialect(config)
@@ -59,7 +59,7 @@ func TestDBGetTenantsPanicSQLSyntaxError(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	config.TenantSelectSql = "sadfdsfdsf"
+	config.TenantSelectSQL = "sadfdsfdsf"
 	connector := CreateConnector(config)
 	connector.Init()
 	assert.Panics(t, func() {
@@ -76,8 +76,8 @@ func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
 	connector := CreateConnector(config)
 	connector.Init()
 	defer connector.Dispose()
-	m := types.MigrationDefinition{"201602220002.sql", "error", "error/201602220002.sql", types.MigrationTypeTenantSchema}
-	ms := []types.Migration{{m, "createtablexyx ( idint primary key (id) )"}}
+	m := types.MigrationDefinition{Name: "201602220002.sql", SourceDir: "error", File: "error/201602220002.sql", MigrationType: types.MigrationTypeTenantSchema}
+	ms := []types.Migration{{MigrationDefinition: m, Contents: "createtablexyx ( idint primary key (id) )"}}
 
 	assert.Panics(t, func() {
 		connector.ApplyMigrations(ms)
@@ -113,7 +113,7 @@ func TestDBApplyMigrations(t *testing.T) {
 	tenants := connector.GetTenants()
 	lenTenants := len(tenants)
 
-	dbMigrationsBefore := connector.GetMigrations()
+	dbMigrationsBefore := connector.GetDBMigrations()
 	lenBefore := len(dbMigrationsBefore)
 
 	p1 := time.Now().UnixNano()
@@ -123,25 +123,25 @@ func TestDBApplyMigrations(t *testing.T) {
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
 
-	publicdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p1), "public", fmt.Sprintf("public/%v.sql", p1), types.MigrationTypeSingleSchema}
-	publicdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p2), "public", fmt.Sprintf("public/%v.sql", p2), types.MigrationTypeSingleSchema}
-	publicdef3 := types.MigrationDefinition{fmt.Sprintf("%v.sql", p3), "public", fmt.Sprintf("public/%v.sql", p3), types.MigrationTypeSingleSchema}
-	public1 := types.Migration{publicdef1, "drop table if exists modules"}
-	public2 := types.Migration{publicdef2, "create table modules ( k int, v text )"}
-	public3 := types.Migration{publicdef3, "insert into modules values ( 123, '123' )"}
+	publicdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p1), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p1), MigrationType: types.MigrationTypeSingleSchema}
+	publicdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p2), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p2), MigrationType: types.MigrationTypeSingleSchema}
+	publicdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p3), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p3), MigrationType: types.MigrationTypeSingleSchema}
+	public1 := types.Migration{MigrationDefinition: publicdef1, Contents: "drop table if exists modules"}
+	public2 := types.Migration{MigrationDefinition: publicdef2, Contents: "create table modules ( k int, v text )"}
+	public3 := types.Migration{MigrationDefinition: publicdef3, Contents: "insert into modules values ( 123, '123' )"}
 
-	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.MigrationTypeTenantSchema}
-	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
-	tenantdef3 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t3), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
-	tenant1 := types.Migration{tenantdef1, "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{tenantdef2, "create table {schema}.settings (k int, v text)"}
-	tenant3 := types.Migration{tenantdef3, "insert into {schema}.settings values (456, '456') "}
+	tenantdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema}
+	tenantdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
+	tenantdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
+	tenant1 := types.Migration{MigrationDefinition: tenantdef1, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{MigrationDefinition: tenantdef2, Contents: "create table {schema}.settings (k int, v text)"}
+	tenant3 := types.Migration{MigrationDefinition: tenantdef3, Contents: "insert into {schema}.settings values (456, '456') "}
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3}
 
 	connector.ApplyMigrations(migrationsToApply)
 
-	dbMigrationsAfter := connector.GetMigrations()
+	dbMigrationsAfter := connector.GetDBMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
 	// 3 tenant migrations * no of tenants + 3 public
@@ -157,41 +157,41 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 	connector.Init()
 	defer connector.Dispose()
 
-	dbMigrationsBefore := connector.GetMigrations()
+	dbMigrationsBefore := connector.GetDBMigrations()
 	lenBefore := len(dbMigrationsBefore)
 
 	migrationsToApply := []types.Migration{}
 
 	connector.ApplyMigrations(migrationsToApply)
 
-	dbMigrationsAfter := connector.GetMigrations()
+	dbMigrationsAfter := connector.GetDBMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
 	assert.Equal(t, lenAfter, lenBefore)
 }
 
-func TestGetTenantsSqlDefault(t *testing.T) {
+func TestGetTenantsSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantSelectSql := connector.GetTenantSelectSql()
+	tenantSelectSQL := connector.GetTenantSelectSQL()
 
-	assert.Equal(t, "select name from migrator.migrator_tenants", tenantSelectSql)
+	assert.Equal(t, "select name from migrator.migrator_tenants", tenantSelectSQL)
 }
 
-func TestGetTenantsSqlOverride(t *testing.T) {
+func TestGetTenantsSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantSelectSql := connector.GetTenantSelectSql()
+	tenantSelectSQL := connector.GetTenantSelectSQL()
 
-	assert.Equal(t, "select somename from someschema.sometable", tenantSelectSql)
+	assert.Equal(t, "select somename from someschema.sometable", tenantSelectSQL)
 }
 
 func TestGetSchemaPlaceHolderDefault(t *testing.T) {
@@ -226,33 +226,33 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	connector.Init()
 	defer connector.Dispose()
 
-	dbMigrationsBefore := connector.GetMigrations()
+	dbMigrationsBefore := connector.GetDBMigrations()
 	lenBefore := len(dbMigrationsBefore)
 
 	t1 := time.Now().UnixNano()
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
 
-	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.MigrationTypeTenantSchema}
-	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
-	tenantdef3 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t3), "tenants", fmt.Sprintf("tenants/%v.sql", t3), types.MigrationTypeTenantSchema}
-	tenant1 := types.Migration{tenantdef1, "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{tenantdef2, "create table {schema}.settings (k int, v text) "}
-	tenant3 := types.Migration{tenantdef3, "insert into {schema}.settings values (456, '456') "}
+	tenantdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema}
+	tenantdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
+	tenantdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantSchema}
+	tenant1 := types.Migration{MigrationDefinition: tenantdef1, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{MigrationDefinition: tenantdef2, Contents: "create table {schema}.settings (k int, v text) "}
+	tenant3 := types.Migration{MigrationDefinition: tenantdef3, Contents: "insert into {schema}.settings values (456, '456') "}
 
 	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3}
 
-	unique_tenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
+	uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-	connector.AddTenantAndApplyMigrations(unique_tenant, migrationsToApply)
+	connector.AddTenantAndApplyMigrations(uniqueTenant, migrationsToApply)
 
-	dbMigrationsAfter := connector.GetMigrations()
+	dbMigrationsAfter := connector.GetDBMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
 	assert.Equal(t, 3, lenAfter-lenBefore)
 }
 
-func TestMySQLGetMigrationInsertSql(t *testing.T) {
+func TestMySQLGetMigrationInsertSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -260,12 +260,12 @@ func TestMySQLGetMigrationInsertSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	insertMigrationSQL := dialect.GetMigrationInsertSql()
+	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values (?, ?, ?, ?, ?)", insertMigrationSQL)
 }
 
-func TestPostgreSQLGetMigrationInsertSql(t *testing.T) {
+func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -273,12 +273,12 @@ func TestPostgreSQLGetMigrationInsertSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	insertMigrationSQL := dialect.GetMigrationInsertSql()
+	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values ($1, $2, $3, $4, $5)", insertMigrationSQL)
 }
 
-func TestMSSQLGetMigrationInsertSql(t *testing.T) {
+func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -286,12 +286,12 @@ func TestMSSQLGetMigrationInsertSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	insertMigrationSQL := dialect.GetMigrationInsertSql()
+	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values (@p1, @p2, @p3, @p4, @p5)", insertMigrationSQL)
 }
 
-func TestMySQLGetTenantInsertSqlDefault(t *testing.T) {
+func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -299,12 +299,12 @@ func TestMySQLGetTenantInsertSqlDefault(t *testing.T) {
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantInsertSql := connector.GetTenantInsertSql()
+	tenantInsertSQL := connector.GetTenantInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (?)", tenantInsertSql)
+	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (?)", tenantInsertSQL)
 }
 
-func TestPostgreSQLGetTenantInsertSqlDefault(t *testing.T) {
+func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -312,12 +312,12 @@ func TestPostgreSQLGetTenantInsertSqlDefault(t *testing.T) {
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantInsertSql := connector.GetTenantInsertSql()
+	tenantInsertSQL := connector.GetTenantInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_tenants (name) values ($1)", tenantInsertSql)
+	assert.Equal(t, "insert into migrator.migrator_tenants (name) values ($1)", tenantInsertSQL)
 }
 
-func TestMSSQLGetTenantInsertSqlDefault(t *testing.T) {
+func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -325,24 +325,24 @@ func TestMSSQLGetTenantInsertSqlDefault(t *testing.T) {
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantInsertSql := connector.GetTenantInsertSql()
+	tenantInsertSQL := connector.GetTenantInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (@p1)", tenantInsertSql)
+	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (@p1)", tenantInsertSQL)
 }
 
-func TestGetTenantInsertSqlOverride(t *testing.T) {
+func TestGetTenantInsertSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
 	connector := CreateConnector(config)
 	defer connector.Dispose()
 
-	tenantInsertSql := connector.GetTenantInsertSql()
+	tenantInsertSQL := connector.GetTenantInsertSQL()
 
-	assert.Equal(t, "insert into XXX", tenantInsertSql)
+	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
 }
 
-func TestMSSQLDialectGetCreateTenantsTableSql(t *testing.T) {
+func TestMSSQLDialectGetCreateTenantsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -350,7 +350,7 @@ func TestMSSQLDialectGetCreateTenantsTableSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createTenantsTableSql := dialect.GetCreateTenantsTableSql()
+	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
 	expected := `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = 'migrator' and table_name = 'migrator_tenants')
@@ -363,10 +363,10 @@ BEGIN
 END
 `
 
-	assert.Equal(t, expected, createTenantsTableSql)
+	assert.Equal(t, expected, createTenantsTableSQL)
 }
 
-func TestMSSQLDialectGetCreateMigrationsTableSql(t *testing.T) {
+func TestMSSQLDialectGetCreateMigrationsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -374,7 +374,7 @@ func TestMSSQLDialectGetCreateMigrationsTableSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createMigrationsTableSql := dialect.GetCreateMigrationsTableSql()
+	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
 	expected := `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = 'migrator' and table_name = 'migrator_migrations')
@@ -391,10 +391,10 @@ BEGIN
 END
 `
 
-	assert.Equal(t, expected, createMigrationsTableSql)
+	assert.Equal(t, expected, createMigrationsTableSQL)
 }
 
-func TestBaseDialectGetCreateTenantsTableSql(t *testing.T) {
+func TestBaseDialectGetCreateTenantsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -402,7 +402,7 @@ func TestBaseDialectGetCreateTenantsTableSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createTenantsTableSql := dialect.GetCreateTenantsTableSql()
+	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
 	expected := `
 create table if not exists migrator.migrator_tenants (
@@ -412,10 +412,10 @@ create table if not exists migrator.migrator_tenants (
 )
 `
 
-	assert.Equal(t, expected, createTenantsTableSql)
+	assert.Equal(t, expected, createTenantsTableSQL)
 }
 
-func TestBaseDialectGetCreateMigrationsTableSql(t *testing.T) {
+func TestBaseDialectGetCreateMigrationsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -423,7 +423,7 @@ func TestBaseDialectGetCreateMigrationsTableSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createMigrationsTableSql := dialect.GetCreateMigrationsTableSql()
+	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
 	expected := `
 create table if not exists migrator.migrator_migrations (
@@ -437,10 +437,10 @@ create table if not exists migrator.migrator_migrations (
 )
 `
 
-	assert.Equal(t, expected, createMigrationsTableSql)
+	assert.Equal(t, expected, createMigrationsTableSQL)
 }
 
-func TestBaseDialectGetCreateSchemaSql(t *testing.T) {
+func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -448,14 +448,14 @@ func TestBaseDialectGetCreateSchemaSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createSchemaSql := dialect.GetCreateSchemaSql("abc")
+	createSchemaSQL := dialect.GetCreateSchemaSQL("abc")
 
 	expected := "create schema if not exists abc"
 
-	assert.Equal(t, expected, createSchemaSql)
+	assert.Equal(t, expected, createSchemaSQL)
 }
 
-func TestMSSQLDialectGetCreateSchemaSql(t *testing.T) {
+func TestMSSQLDialectGetCreateSchemaSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -463,14 +463,14 @@ func TestMSSQLDialectGetCreateSchemaSql(t *testing.T) {
 
 	dialect := CreateDialect(config)
 
-	createSchemaSql := dialect.GetCreateSchemaSql("def")
+	createSchemaSQL := dialect.GetCreateSchemaSQL("def")
 
 	expected := `
 IF NOT EXISTS (select * from information_schema.schemata where schema_name = 'def')
 BEGIN
-	EXEC sp_executesql N'create schema def';
+  EXEC sp_executesql N'create schema def';
 END
 `
 
-	assert.Equal(t, expected, createSchemaSql)
+	assert.Equal(t, expected, createSchemaSQL)
 }

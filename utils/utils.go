@@ -30,7 +30,7 @@ func MigrationDBToString(m *types.MigrationDB) string {
 	return fmt.Sprintf("| %-10s | %-20s | %-30s | %-10s | %-20s | %4d |", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType)
 }
 
-// MigrationArrayString creates a string representation of Migration array
+// MigrationArrayToString creates a string representation of Migration array
 func MigrationArrayToString(migrations []types.Migration) string {
 	var buffer bytes.Buffer
 
@@ -55,7 +55,7 @@ func MigrationArrayToString(migrations []types.Migration) string {
 	return buffer.String()
 }
 
-// MigrationDBArrayString creates a string representation of MigrationDB array
+// MigrationDBArrayToString creates a string representation of MigrationDB array
 func MigrationDBArrayToString(migrations []types.MigrationDB) string {
 	var buffer bytes.Buffer
 
@@ -80,7 +80,7 @@ func MigrationDBArrayToString(migrations []types.MigrationDB) string {
 	return buffer.String()
 }
 
-// TenantArrayString creates a string representation of Tenant array
+// TenantArrayToString creates a string representation of Tenant array
 func TenantArrayToString(dbTenants []string) string {
 	var buffer bytes.Buffer
 

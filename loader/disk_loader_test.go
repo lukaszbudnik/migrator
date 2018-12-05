@@ -14,7 +14,7 @@ func TestDiskPanicReadDiskMigrationsNonExistingBaseDir(t *testing.T) {
 	loader := CreateLoader(&config)
 
 	assert.Panics(t, func() {
-		loader.GetMigrations()
+		loader.GetDiskMigrations()
 	}, "Should panic because of non-existing base dir")
 
 }
@@ -27,7 +27,7 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	config.TenantSchemas = []string{"tenants"}
 
 	loader := CreateLoader(&config)
-	migrations := loader.GetMigrations()
+	migrations := loader.GetDiskMigrations()
 
 	assert.Len(t, migrations, 6)
 

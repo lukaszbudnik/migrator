@@ -52,7 +52,7 @@ func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *confi
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	diskMigrations := core.LoadDiskMigrations(config, createLoader)
+	diskMigrations := core.GetDiskMigrations(config, createLoader)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(diskMigrations)
 }
@@ -61,7 +61,7 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 
 	switch r.Method {
 	case http.MethodGet:
-		dbMigrations := core.LoadDBMigrations(config, createConnector)
+		dbMigrations := core.GetDBMigrations(config, createConnector)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(dbMigrations)
 	case http.MethodPost:
@@ -78,7 +78,7 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 
 	switch r.Method {
 	case http.MethodGet:
-		tenants := core.LoadDBTenants(config, createConnector)
+		tenants := core.GetDBTenants(config, createConnector)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tenants)
 	case http.MethodPost:

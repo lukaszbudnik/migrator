@@ -11,20 +11,9 @@ type msSQLDialect struct {
 }
 
 const (
-	insertMigrationMSSQLDialectSql = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (@p1, @p2, @p3, @p4, @p5)"
-	insertTenantMSSQLDialectSql    = "insert into %v.%v (name) values (@p1)"
-)
-
-func (md *msSQLDialect) GetMigrationInsertSql() string {
-	return fmt.Sprintf(insertMigrationMSSQLDialectSql, migratorSchema, migratorMigrationsTable)
-}
-
-func (md *msSQLDialect) GetTenantInsertSql() string {
-	return fmt.Sprintf(insertTenantMSSQLDialectSql, migratorSchema, migratorTenantsTable)
-}
-
-func (md *msSQLDialect) GetCreateTenantsTableSql() string {
-	createTenantsTableSql := `
+	insertMigrationMSSQLDialectSQL    = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (@p1, @p2, @p3, @p4, @p5)"
+	insertTenantMSSQLDialectSQL       = "insert into %v.%v (name) values (@p1)"
+	createTenantsTableMSSQLDialectSQL = `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = '%v' and table_name = '%v')
 BEGIN
   create table [%v].%v (
@@ -34,11 +23,7 @@ BEGIN
   );
 END
 `
-	return fmt.Sprintf(createTenantsTableSql, migratorSchema, migratorTenantsTable, migratorSchema, migratorTenantsTable)
-}
-
-func (md *msSQLDialect) GetCreateMigrationsTableSql() string {
-	createMigrationsTableSql := `
+	createMigrationsTableMSSQLDialectSQL = `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = '%v' and table_name = '%v')
 BEGIN
   create table [%v].%v (
@@ -52,15 +37,38 @@ BEGIN
   );
 END
 `
-	return fmt.Sprintf(createMigrationsTableSql, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
-}
-
-func (md *msSQLDialect) GetCreateSchemaSql(schema string) string {
-	createSchemaSql := `
+	createSchemaMSSQLDialectSQL = `
 IF NOT EXISTS (select * from information_schema.schemata where schema_name = '%v')
 BEGIN
-	EXEC sp_executesql N'create schema %v';
+  EXEC sp_executesql N'create schema %v';
 END
 `
-	return fmt.Sprintf(createSchemaSql, schema, schema)
+)
+
+// GetMigrationInsertSQL returns MS SQL-specific migration insert SQL statement
+func (md *msSQLDialect) GetMigrationInsertSQL() string {
+	return fmt.Sprintf(insertMigrationMSSQLDialectSQL, migratorSchema, migratorMigrationsTable)
+}
+
+// GetTenantInsertSQL returns MS SQL-specific migrator's default tenant insert SQL statement
+func (md *msSQLDialect) GetTenantInsertSQL() string {
+	return fmt.Sprintf(insertTenantMSSQLDialectSQL, migratorSchema, migratorTenantsTable)
+}
+
+// GetCreateTenantsTableSQL returns migrator's default create tenants table SQL statement.
+// This SQL is used by MS SQL.
+func (md *msSQLDialect) GetCreateTenantsTableSQL() string {
+	return fmt.Sprintf(createTenantsTableMSSQLDialectSQL, migratorSchema, migratorTenantsTable, migratorSchema, migratorTenantsTable)
+}
+
+// GetCreateMigrationsTableSQL returns migrator's create migrations table SQL statement.
+// This SQL is used by both MS SQL.
+func (md *msSQLDialect) GetCreateMigrationsTableSQL() string {
+	return fmt.Sprintf(createMigrationsTableMSSQLDialectSQL, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
+}
+
+// GetCreateSchemaSQL returns create schema SQL statement.
+// This SQL is used by both MySQL and PostgreSQL.
+func (md *msSQLDialect) GetCreateSchemaSQL(schema string) string {
+	return fmt.Sprintf(createSchemaMSSQLDialectSQL, schema, schema)
 }
