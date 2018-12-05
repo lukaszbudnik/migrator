@@ -1,6 +1,6 @@
 # Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator)
 
-Fast and lightweight DB migration & evolution tool written in go.
+Super fast and lightweight DB migration & evolution tool written in go.
 
 migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
 
@@ -27,11 +27,12 @@ Migrator requires a simple `migrator.yaml` file:
 ```
 baseDir: test/migrations
 driver: postgres
+# dataSource format is specific to DB go driver implementation - see below 'Supported databases'
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # override only if you have a specific way of determining tenants, default is:
-tenantSelectSql: "select name from public.migrator_tenants"
+tenantSelectSql: "select name from migrator.migrator_tenants"
 # override only if you have a specific way of creating tenants, default is:
-tenantInsertSql: "insert into public.migrator_tenants (name) values ($1)"
+tenantInsertSql: "insert into migrator.migrator_tenants (name) values ($1)"
 # override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
 singleSchemas:
@@ -55,6 +56,14 @@ create schema if not exists {schema};
 create table if not exists {schema}.modules ( k int, v text );
 insert into {schema}.modules values ( 123, '123' );
 ```
+
+# DB Schemas
+
+When using migrator please remember about these:
+
+* migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
+* when adding a new tenant migrator creates a new schema automatically
+* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL command (see example above)
 
 # Server mode
 
@@ -84,7 +93,7 @@ Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HT
 
 # Supported databases
 
-Currently migrator supports the following databases:
+Currently migrator supports the following databases and their flavours:
 
 * PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
   * PostgreSQL - original PostgreSQL server
@@ -98,6 +107,8 @@ Currently migrator supports the following databases:
   * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
   * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
   * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
+* Microsoft SQL Server - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+  * Microsoft SQL Server - original Microsoft SQL Server
 
 # Do you speak docker?
 
@@ -109,15 +120,15 @@ To find out more about migrator docker please visit: https://github.com/lukaszbu
 
 # Running unit & integration tests
 
-PostgreSQL, MySQL, MariaDB, and Percona:
+PostgreSQL, MySQL, MariaDB, Percona, and MSSQL:
 
 ```
-$ docker/create-and-setup-container.sh [postgresql|mysql|mariadb|percona]
+$ docker/create-and-setup-container.sh [postgres|mysql|mariadb|percona|mssql]
 $ ./coverage.sh
-$ docker/destroy-container.sh [postgresql|mysql|mariadb|percona]
+$ docker/destroy-container.sh [postgres|mysql|mariadb|percona|mssql]
 ```
 
-Or see `.travis.yml` to see how it's done on Travis.
+Or see `.travis.yml` to see how it's done on Travis. Note: MSSQL is not supported on Travis.
 
 # Customisation
 
@@ -138,7 +149,7 @@ tenantInsertSql: insert into global.customers (name, active, date_added) values 
 
 As a benchmarks I used 2 migrations frameworks:
 
-* proprietary Ruby framework - used in my company
+* proprietary Ruby framework - used at my company
 * flyway - leading market feature rich DB migration framework: https://flywaydb.org
 
 There is a performance test generator shipped with migrator (`test/performance/generate-test-migrations.sh`). In order to generate flyway-compatible migrations you need to pass `-f` param (see script for details).
@@ -154,7 +165,7 @@ Migrator is the undisputed winner.
 
 The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
 
-flyway results are... dramatic. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is almost 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
+flyway results are... very surprising. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
 
 The other thing to consider is the fact that migrator is written in go which is known to be much faster than Ruby and Java.
 
@@ -164,7 +175,7 @@ To install migrator use:
 
 `go get github.com/lukaszbudnik/migrator`
 
-Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11 (all built on Travis).
+Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all built on Travis).
 
 # Code Style
 
@@ -178,7 +189,7 @@ $ go tool vet -v .
 
 # License
 
-Copyright 2016 Łukasz Budnik
+Copyright 2016-2018 Łukasz Budnik
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
