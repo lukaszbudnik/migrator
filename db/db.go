@@ -60,6 +60,12 @@ func (bc *BaseConnector) Init() {
 		log.Panicf("Could not start DB transaction: %v", err)
 	}
 
+	// make sure migrator schema exists
+	createSchema := bc.Dialect.GetCreateSchemaSql(migratorSchema)
+	if _, err := bc.DB.Query(createSchema); err != nil {
+		log.Panicf("Could not create migrator schema: %v", err)
+	}
+
 	// make sure migrations table exists
 	createMigrationsTable := bc.Dialect.GetCreateMigrationsTableSql()
 	if _, err := bc.DB.Query(createMigrationsTable); err != nil {
@@ -169,6 +175,12 @@ func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		log.Panicf("Could not start DB transaction: %v", err)
+	}
+
+	createSchema := bc.Dialect.GetCreateSchemaSql(tenant)
+	if _, err = tx.Exec(createSchema); err != nil {
+		tx.Rollback()
+		log.Panicf("Create schema failed, transaction rollback was called: %v", err)
 	}
 
 	insert, err := bc.DB.Prepare(tenantInsertSql)

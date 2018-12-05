@@ -232,18 +232,15 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	t1 := time.Now().UnixNano()
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
-	t4 := time.Now().UnixNano()
 
 	tenantdef1 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t1), "tenants", fmt.Sprintf("tenants/%v.sql", t1), types.MigrationTypeTenantSchema}
 	tenantdef2 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t2), "tenants", fmt.Sprintf("tenants/%v.sql", t2), types.MigrationTypeTenantSchema}
 	tenantdef3 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t3), "tenants", fmt.Sprintf("tenants/%v.sql", t3), types.MigrationTypeTenantSchema}
-	tenantdef4 := types.MigrationDefinition{fmt.Sprintf("%v.sql", t4), "tenants", fmt.Sprintf("tenants/%v.sql", t4), types.MigrationTypeTenantSchema}
-	tenant1 := types.Migration{tenantdef1, "create schema {schema}"}
-	tenant2 := types.Migration{tenantdef2, "drop table if exists {schema}.settings"}
-	tenant3 := types.Migration{tenantdef3, "create table {schema}.settings (k int, v text) "}
-	tenant4 := types.Migration{tenantdef4, "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{tenantdef1, "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{tenantdef2, "create table {schema}.settings (k int, v text) "}
+	tenant3 := types.Migration{tenantdef3, "insert into {schema}.settings values (456, '456') "}
 
-	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3, tenant4}
+	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3}
 
 	unique_tenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
@@ -252,7 +249,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	dbMigrationsAfter := connector.GetMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
-	assert.Equal(t, 4, lenAfter-lenBefore)
+	assert.Equal(t, 3, lenAfter-lenBefore)
 }
 
 func TestMySQLGetMigrationInsertSql(t *testing.T) {
@@ -441,4 +438,39 @@ create table if not exists migrator.migrator_migrations (
 `
 
 	assert.Equal(t, expected, createMigrationsTableSql)
+}
+
+func TestBaseDialectGetCreateSchemaSql(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "postgres"
+
+	dialect := CreateDialect(config)
+
+	createSchemaSql := dialect.GetCreateSchemaSql("abc")
+
+	expected := "create schema if not exists abc"
+
+	assert.Equal(t, expected, createSchemaSql)
+}
+
+func TestMSSQLDialectGetCreateSchemaSql(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "sqlserver"
+
+	dialect := CreateDialect(config)
+
+	createSchemaSql := dialect.GetCreateSchemaSql("def")
+
+	expected := `
+IF NOT EXISTS (select * from information_schema.schemata where schema_name = 'def')
+BEGIN
+	EXEC sp_executesql N'create schema def';
+END
+`
+
+	assert.Equal(t, expected, createSchemaSql)
 }

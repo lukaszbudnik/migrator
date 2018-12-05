@@ -13,6 +13,7 @@ type Dialect interface {
 	GetMigrationSelectSql() string
 	GetCreateTenantsTableSql() string
 	GetCreateMigrationsTableSql() string
+	GetCreateSchemaSql(string) string
 }
 
 type BaseDialect struct {
@@ -55,6 +56,10 @@ func (bd *BaseDialect) GetTenantSelectSql() string {
 
 func (bd *BaseDialect) GetMigrationSelectSql() string {
 	return fmt.Sprintf(selectMigrations, migratorSchema, migratorMigrationsTable)
+}
+
+func (bd *BaseDialect) GetCreateSchemaSql(schema string) string {
+	return fmt.Sprintf("create schema if not exists %v", schema)
 }
 
 // CreateDialect constructs Dialect instance based on the passed Config

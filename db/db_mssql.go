@@ -54,3 +54,13 @@ END
 `
 	return fmt.Sprintf(createMigrationsTableSql, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
 }
+
+func (md *msSQLDialect) GetCreateSchemaSql(schema string) string {
+	createSchemaSql := `
+IF NOT EXISTS (select * from information_schema.schemata where schema_name = '%v')
+BEGIN
+	EXEC sp_executesql N'create schema %v';
+END
+`
+	return fmt.Sprintf(createSchemaSql, schema, schema)
+}
