@@ -26,4 +26,5 @@ before_script:
   - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
 
 script:
+  - ./coverage.sh
   - $GOPATH/bin/goveralls -service=travis-ci
