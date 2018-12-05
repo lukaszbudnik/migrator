@@ -1,4 +1,4 @@
-# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator)
+# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Coverage Status](https://coveralls.io/repos/github/lukaszbudnik/migrator/badge.svg?branch=master)](https://coveralls.io/github/lukaszbudnik/migrator?branch=master)
 
 Super fast and lightweight DB migration & evolution tool written in go.
 
