@@ -63,7 +63,7 @@ When using migrator please remember about these:
 
 * migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
 * when adding a new tenant migrator creates a new schema automatically
-* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL command (see example above)
+* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL statement (see example above)
 
 # Server mode
 
@@ -114,21 +114,9 @@ Currently migrator supports the following databases and their flavours:
 
 Yes, there is an official docker image available on docker hub.
 
-migrator docker image is ultra lightweight and has a size of only 13.4MB. Ideal for micro-services deployments!
+migrator docker image is ultra lightweight and has a size of approx. 15MB. Ideal for micro-services deployments!
 
-To find out more about migrator docker please visit: https://github.com/lukaszbudnik/migrator-docker.
-
-# Running unit & integration tests
-
-PostgreSQL, MySQL, MariaDB, Percona, and MSSQL:
-
-```
-$ docker/create-and-setup-container.sh [postgres|mysql|mariadb|percona|mssql]
-$ ./coverage.sh
-$ docker/destroy-container.sh [postgres|mysql|mariadb|percona|mssql]
-```
-
-Or see `.travis.yml` to see how it's done on Travis. Note: MSSQL is not supported on Travis.
+To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
 
 # Customisation
 
@@ -173,21 +161,28 @@ The other thing to consider is the fact that migrator is written in go which is 
 
 To install migrator use:
 
-`go get github.com/lukaszbudnik/migrator`
+```
+go get github.com/lukaszbudnik/migrator
+cd migrator
+./setup.sh
+```
 
 Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all built on Travis).
 
-# Code Style
+# Contributing, code style, running unit & integration tests
 
-If you would like to send me a pull request please always add unit/integration tests. Code should be formatted, checked, and tested using the following commands:
+Contributions are most welcomed.
+
+If you would like to help me and implement a new feature, enhance existing one, or spotted and fixed bug please send me a pull request.
+
+Code should be formatted, checked, and tested using the following commands:
 
 ```
-go clean -testcache
-gofmt -s -w .
-golint ./...
-./vet.sh
-./coverage.sh
+./fmt-lint-vet.sh
+./ultimate-coverage.sh
 ```
+
+The `ultimate-coverage.sh` script loops through 5 different containers (3 MySQL flavours, PostgreSQL, and MSSQL) creates db docker container, executes `coverage.sh` script, and finally tears down given db docker container.
 
 # License
 

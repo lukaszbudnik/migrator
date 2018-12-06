@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-set -x
+if [[ ! -z "$DEBUG" ]]; then
+  set -x
+fi
 
 cd `dirname $0`
 
