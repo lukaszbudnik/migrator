@@ -11,10 +11,10 @@ import (
 type mockedDiskLoader struct {
 }
 
-func (m *mockedDiskLoader) GetMigrations() []types.Migration {
-	m1 := types.MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", types.MigrationTypeSingleSchema}
-	m2 := types.MigrationDefinition{"201602220001.sql", "source", "source/201602220001.sql", types.MigrationTypeSingleSchema}
-	return []types.Migration{{m1, "select abc"}, {m2, "select def"}}
+func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
+	m1 := types.MigrationDefinition{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema}
+	m2 := types.MigrationDefinition{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeSingleSchema}
+	return []types.Migration{{MigrationDefinition: m1, Contents: "select abc"}, {MigrationDefinition: m2, Contents: "select def"}}
 }
 
 func createMockedDiskLoader(config *config.Config) loader.Loader {
@@ -34,15 +34,15 @@ func (m *mockedConnector) GetSchemaPlaceHolder() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantSelectSql() string {
+func (m *mockedConnector) GetTenantSelectSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetMigrationInsertSql() string {
+func (m *mockedConnector) GetMigrationInsertSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenantInsertSql() string {
+func (m *mockedConnector) GetTenantInsertSQL() string {
 	return ""
 }
 
@@ -53,10 +53,10 @@ func (m *mockedConnector) GetTenants() []string {
 	return []string{"a", "b", "c"}
 }
 
-func (m *mockedConnector) GetMigrations() []types.MigrationDB {
-	m1 := types.MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", types.MigrationTypeSingleSchema}
+func (m *mockedConnector) GetDBMigrations() []types.MigrationDB {
+	m1 := types.MigrationDefinition{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	ms := []types.MigrationDB{{m1, "source", d1}}
+	ms := []types.MigrationDB{{MigrationDefinition: m1, Schema: "source", Created: d1}}
 
 	return ms
 }

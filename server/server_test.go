@@ -24,13 +24,13 @@ var (
 func TestGetDefaultPort(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	assert.Equal(t, "8080", getDefaultPort(config))
+	assert.Equal(t, "8080", getPort(config))
 }
 
 func TestGetDefaultPortOverrides(t *testing.T) {
 	config, err := config.FromFile(configFileOverrides)
 	assert.Nil(t, err)
-	assert.Equal(t, "8811", getDefaultPort(config))
+	assert.Equal(t, "8811", getPort(config))
 }
 
 func TestRegisterHandlers(t *testing.T) {
@@ -40,7 +40,7 @@ func TestRegisterHandlers(t *testing.T) {
 }
 
 func TestServerDefaultHandler(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://example.com/qwq", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/qwq", nil)
 
 	w := httptest.NewRecorder()
 	defaultHandler(w, req)
@@ -52,7 +52,7 @@ func TestServerConfig(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(configHandler, config, nil, nil)
@@ -66,7 +66,7 @@ func TestServerTenantsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/tenants", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/tenants", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, createMockedConnector, nil)
@@ -82,8 +82,8 @@ func TestServerTenantsPost(t *testing.T) {
 	assert.Nil(t, err)
 
 	json := []byte(`{"name": "new_tenant"}`)
-	req, _ := http.NewRequest("POST", "http://example.com/tenants", bytes.NewBuffer(json))
-  req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
@@ -94,11 +94,26 @@ func TestServerTenantsPost(t *testing.T) {
 	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc"},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
 }
 
+func TestServerTenantsPostBadRequest(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	// empty JSON payload
+	json := []byte("")
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func TestServerDiskMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/diskMigrations", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/diskMigrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(diskMigrationsHandler, config, nil, createMockedDiskLoader)
@@ -113,7 +128,7 @@ func TestServerMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("GET", "http://example.com/migrations", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(migrationsHandler, config, createMockedConnector, nil)
@@ -128,7 +143,7 @@ func TestServerMigrationsPost(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest("POST", "http://example.com/migrations", nil)
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(migrationsHandler, config, createMockedConnector, createMockedDiskLoader)
@@ -137,4 +152,78 @@ func TestServerMigrationsPost(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
 	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestServerMigrationsMethodNotAllowed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
+
+	for _, httpMethod := range httpMethods {
+		req, _ := http.NewRequest(httpMethod, "http://example.com/migrations", nil)
+
+		w := httptest.NewRecorder()
+		handler := makeHandler(migrationsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	}
+
+}
+
+func TestServerTenantMethodNotAllowed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
+
+	for _, httpMethod := range httpMethods {
+		req, _ := http.NewRequest(httpMethod, "http://example.com/tenants", nil)
+
+		w := httptest.NewRecorder()
+		handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	}
+
+}
+
+func TestServerDiskMigrationsMethodNotAllowed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	httpMethods := []string{http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
+
+	for _, httpMethod := range httpMethods {
+
+		req, _ := http.NewRequest(httpMethod, "http://example.com/diskMigrations", nil)
+
+		w := httptest.NewRecorder()
+		handler := makeHandler(diskMigrationsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	}
+
+}
+
+func TestServerConfigMethodNotAllowed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	httpMethods := []string{http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
+
+	for _, httpMethod := range httpMethods {
+
+		req, _ := http.NewRequest(httpMethod, "http://example.com/", nil)
+
+		w := httptest.NewRecorder()
+		handler := makeHandler(configHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	}
+
 }

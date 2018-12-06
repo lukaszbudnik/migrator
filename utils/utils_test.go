@@ -46,10 +46,10 @@ func TestTenantArrayToString(t *testing.T) {
 
 func TestMigrationArrayToString(t *testing.T) {
 
-	m1 := types.MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", types.MigrationTypeSingleSchema}
-	m2 := types.MigrationDefinition{"201602220001.sql", "tenants", "tenants/201602220001.sql", types.MigrationTypeTenantSchema}
-	m3 := types.MigrationDefinition{"201602220002.sql", "tenants", "tenants/201602220002.sql", types.MigrationTypeTenantSchema}
-	var ms = []types.Migration{{m1, ""}, {m2, ""}, {m3, ""}}
+	m1 := types.MigrationDefinition{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema}
+	m2 := types.MigrationDefinition{Name: "201602220001.sql", SourceDir: "tenants", File: "tenants/201602220001.sql", MigrationType: types.MigrationTypeTenantSchema}
+	m3 := types.MigrationDefinition{Name: "201602220002.sql", SourceDir: "tenants", File: "tenants/201602220002.sql", MigrationType: types.MigrationTypeTenantSchema}
+	var ms = []types.Migration{{MigrationDefinition: m1, Contents: ""}, {MigrationDefinition: m2, Contents: ""}, {MigrationDefinition: m3, Contents: ""}}
 
 	expected := `+---------------------------------------------------------------------------+
 | SourceDir  | Name                 | File                           | Type |
@@ -77,11 +77,11 @@ func TestMigrationArrayToStringEmpty(t *testing.T) {
 }
 
 func TestMigrationDBArrayToString(t *testing.T) {
-	m1 := types.MigrationDefinition{"201602220000.sql", "source", "source/201602220000.sql", types.MigrationTypeSingleSchema}
-	m2 := types.MigrationDefinition{"201602220001.sql", "tenants", "tenants/201602220001.sql", types.MigrationTypeTenantSchema}
+	m1 := types.MigrationDefinition{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema}
+	m2 := types.MigrationDefinition{Name: "201602220001.sql", SourceDir: "tenants", File: "tenants/201602220001.sql", MigrationType: types.MigrationTypeTenantSchema}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	d2 := time.Date(2016, 02, 22, 16, 41, 2, 456, time.UTC)
-	var ms = []types.MigrationDB{{m1, "source", d1}, {m2, "abc", d2}, {m2, "def", d2}}
+	var ms = []types.MigrationDB{{MigrationDefinition: m1, Schema: "source", Created: d1}, {MigrationDefinition: m2, Schema: "abc", Created: d2}, {MigrationDefinition: m2, Schema: "def", Created: d2}}
 
 	expected := `+---------------------------------------------------------------------------------------------------------------+
 | SourceDir  | Name                 | File                           | Schema     | Created              | Type |
