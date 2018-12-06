@@ -45,6 +45,7 @@ func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []t
 	return out
 }
 
+// FilterTenantMigrations returns only migrations which are of type MigrationTypeTenantSchema
 func FilterTenantMigrations(diskMigrations []types.Migration) []types.Migration {
 	filteredTenantMigrations := []types.Migration{}
 	for _, m := range diskMigrations {

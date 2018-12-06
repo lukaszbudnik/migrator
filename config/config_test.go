@@ -20,7 +20,7 @@ func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, "test/migrations", config.BaseDir)
-	assert.Equal(t, "select name from public.migrator_tenants", config.TenantSelectSql)
+	assert.Equal(t, "select name from migrator.migrator_tenants", config.TenantSelectSQL)
 	assert.Equal(t, "postgres", config.Driver)
 	assert.Equal(t, "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
@@ -33,8 +33,8 @@ func TestWithEnvFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test-envs.yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("HOME"), config.BaseDir)
-	assert.Equal(t, os.Getenv("PATH"), config.TenantSelectSql)
-	assert.Equal(t, os.Getenv("GOPATH"), config.TenantInsertSql)
+	assert.Equal(t, os.Getenv("PATH"), config.TenantSelectSQL)
+	assert.Equal(t, os.Getenv("GOPATH"), config.TenantInsertSQL)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
 	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
 	assert.Equal(t, os.Getenv("_"), config.Port)
@@ -50,8 +50,8 @@ func TestConfigString(t *testing.T) {
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
-tenantSelectSql: select abc
-tenantInsertSql: insert into table
+tenantSelectSQL: select abc
+tenantInsertSQL: insert into table
 schemaPlaceHolder: :tenant
 singleSchemas:
 - ref

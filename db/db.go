@@ -12,13 +12,12 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init()
-	GetTenantSelectSql() string
-	GetTenantInsertSql() string
+	GetTenantSelectSQL() string
+	GetTenantInsertSQL() string
 	AddTenantAndApplyMigrations(string, []types.Migration)
 	GetTenants() []string
 	GetSchemaPlaceHolder() string
-	// rename to GetDBMigrations, change type to DBMigration
-	GetMigrations() []types.MigrationDB
+	GetDBMigrations() []types.MigrationDB
 	ApplyMigrations(migrations []types.Migration)
 	Dispose()
 }
@@ -61,20 +60,20 @@ func (bc *BaseConnector) Init() {
 	}
 
 	// make sure migrator schema exists
-	createSchema := bc.Dialect.GetCreateSchemaSql(migratorSchema)
+	createSchema := bc.Dialect.GetCreateSchemaSQL(migratorSchema)
 	if _, err := bc.DB.Query(createSchema); err != nil {
 		log.Panicf("Could not create migrator schema: %v", err)
 	}
 
 	// make sure migrations table exists
-	createMigrationsTable := bc.Dialect.GetCreateMigrationsTableSql()
+	createMigrationsTable := bc.Dialect.GetCreateMigrationsTableSQL()
 	if _, err := bc.DB.Query(createMigrationsTable); err != nil {
 		log.Panicf("Could not create migrations table: %v", err)
 	}
 
 	// if using default migrator tenants table make sure it exists
-	if bc.Config.TenantSelectSql == "" {
-		createTenantsTable := bc.Dialect.GetCreateTenantsTableSql()
+	if bc.Config.TenantSelectSQL == "" {
+		createTenantsTable := bc.Dialect.GetCreateTenantsTableSQL()
 		if _, err := bc.DB.Query(createTenantsTable); err != nil {
 			log.Panicf("Could not create default tenants table: %v", err)
 		}
@@ -90,23 +89,22 @@ func (bc *BaseConnector) Dispose() {
 	}
 }
 
-// GettenantsSql returns SQL to be executed to list all DB tenants
-func (bc *BaseConnector) GetTenantSelectSql() string {
-	var tenantSelectSql string
-	if bc.Config.TenantSelectSql != "" {
-		tenantSelectSql = bc.Config.TenantSelectSql
+// GetTenantSelectSQL returns SQL to be executed to list all DB tenants
+func (bc *BaseConnector) GetTenantSelectSQL() string {
+	var tenantSelectSQL string
+	if bc.Config.TenantSelectSQL != "" {
+		tenantSelectSQL = bc.Config.TenantSelectSQL
 	} else {
-		tenantSelectSql = bc.Dialect.GetTenantSelectSql()
+		tenantSelectSQL = bc.Dialect.GetTenantSelectSQL()
 	}
-	return tenantSelectSql
+	return tenantSelectSQL
 }
 
-// GetTenants returns a list of all DB tenants as specified by
-// defaultSelectTenants or the value specified in config
+// GetTenants returns a list of all DB tenants
 func (bc *BaseConnector) GetTenants() []string {
-	tenantSelectSql := bc.GetTenantSelectSql()
+	tenantSelectSQL := bc.GetTenantSelectSQL()
 
-	rows, err := bc.DB.Query(tenantSelectSql)
+	rows, err := bc.DB.Query(tenantSelectSQL)
 	if err != nil {
 		log.Panicf("Could not query tenants: %v", err)
 	}
@@ -121,9 +119,9 @@ func (bc *BaseConnector) GetTenants() []string {
 	return tenants
 }
 
-// GetMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
-	query := bc.Dialect.GetMigrationSelectSql()
+// GetDBMigrations returns a list of all applied DB migrations
+func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
+	query := bc.Dialect.GetMigrationSelectSQL()
 
 	rows, err := bc.DB.Query(query)
 	if err != nil {
@@ -143,8 +141,8 @@ func (bc *BaseConnector) GetMigrations() []types.MigrationDB {
 		if err := rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created); err != nil {
 			log.Panicf("Could not read DB migration: %v", err)
 		}
-		mdef := types.MigrationDefinition{name, sourceDir, filename, migrationType}
-		dbMigrations = append(dbMigrations, types.MigrationDB{mdef, schema, created})
+		mdef := types.MigrationDefinition{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType}
+		dbMigrations = append(dbMigrations, types.MigrationDB{MigrationDefinition: mdef, Schema: schema, Created: created})
 	}
 
 	return dbMigrations
@@ -170,20 +168,20 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
 func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
-	tenantInsertSql := bc.GetTenantInsertSql()
+	tenantInsertSQL := bc.GetTenantInsertSQL()
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
 		log.Panicf("Could not start DB transaction: %v", err)
 	}
 
-	createSchema := bc.Dialect.GetCreateSchemaSql(tenant)
+	createSchema := bc.Dialect.GetCreateSchemaSQL(tenant)
 	if _, err = tx.Exec(createSchema); err != nil {
 		tx.Rollback()
 		log.Panicf("Create schema failed, transaction rollback was called: %v", err)
 	}
 
-	insert, err := bc.DB.Prepare(tenantInsertSql)
+	insert, err := bc.DB.Prepare(tenantInsertSQL)
 	if err != nil {
 		log.Panicf("Could not create prepared statement: %v", err)
 	}
@@ -199,16 +197,18 @@ func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 	tx.Commit()
 }
 
-func (bc *BaseConnector) GetTenantInsertSql() string {
-	var tenantInsertSql string
+// GetTenantInsertSQL returns tenant insert SQL statement from configuration file
+// or, if absent, returns default Dialect-specific migrator tenant insert SQL
+func (bc *BaseConnector) GetTenantInsertSQL() string {
+	var tenantInsertSQL string
 	// if set explicitly in config use it
 	// otherwise use default value provided by Dialect implementation
-	if bc.Config.TenantInsertSql != "" {
-		tenantInsertSql = bc.Config.TenantInsertSql
+	if bc.Config.TenantInsertSQL != "" {
+		tenantInsertSQL = bc.Config.TenantInsertSQL
 	} else {
-		tenantInsertSql = bc.Dialect.GetTenantInsertSql()
+		tenantInsertSQL = bc.Dialect.GetTenantInsertSQL()
 	}
-	return tenantInsertSql
+	return tenantInsertSQL
 }
 
 // GetSchemaPlaceHolder returns a schema placeholder which is
@@ -226,9 +226,8 @@ func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 func (bc *BaseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration) {
 	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
 
-	insertMigrationSql := bc.Dialect.GetMigrationInsertSql()
-
-	insert, err := bc.DB.Prepare(insertMigrationSql)
+	insertMigrationSQL := bc.Dialect.GetMigrationInsertSQL()
+	insert, err := bc.DB.Prepare(insertMigrationSQL)
 	if err != nil {
 		log.Panicf("Could not create prepared statement: %v", err)
 	}

@@ -11,14 +11,16 @@ type postgreSQLDialect struct {
 }
 
 const (
-	insertMigrationPostgreSQLDialectSql = "insert into %v.%v (name, source_dir, filename, type, db_schema) values ($1, $2, $3, $4, $5)"
-	insertTenantPostgreSQLDialectSql    = "insert into %v.%v (name) values ($1)"
+	insertMigrationPostgreSQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema) values ($1, $2, $3, $4, $5)"
+	insertTenantPostgreSQLDialectSQL    = "insert into %v.%v (name) values ($1)"
 )
 
-func (pd *postgreSQLDialect) GetMigrationInsertSql() string {
-	return fmt.Sprintf(insertMigrationPostgreSQLDialectSql, migratorSchema, migratorMigrationsTable)
+// GetMigrationInsertSQL returns PostgreSQL-specific migration insert SQL statement
+func (pd *postgreSQLDialect) GetMigrationInsertSQL() string {
+	return fmt.Sprintf(insertMigrationPostgreSQLDialectSQL, migratorSchema, migratorMigrationsTable)
 }
 
-func (pd *postgreSQLDialect) GetTenantInsertSql() string {
-	return fmt.Sprintf(insertTenantPostgreSQLDialectSql, migratorSchema, migratorTenantsTable)
+// GetTenantInsertSQL returns PostgreSQL-specific migrator's default tenant insert SQL statement
+func (pd *postgreSQLDialect) GetTenantInsertSQL() string {
+	return fmt.Sprintf(insertTenantPostgreSQLDialectSQL, migratorSchema, migratorTenantsTable)
 }

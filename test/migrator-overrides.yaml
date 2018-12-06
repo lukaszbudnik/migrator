@@ -1,8 +1,8 @@
 baseDir: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=A host=B port=C sslmode=disable"
-tenantSelectSql: select somename from someschema.sometable
-tenantInsertSql: insert into XXX
+tenantSelectSQL: select somename from someschema.sometable
+tenantInsertSQL: insert into someschema.sometable (somename) values ($1)
 schemaPlaceHolder: "[schema]"
 singleSchemas:
   - public

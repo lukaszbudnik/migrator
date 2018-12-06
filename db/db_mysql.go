@@ -11,14 +11,16 @@ type mySQLDialect struct {
 }
 
 const (
-	insertMigrationMySQLDialectSql = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (?, ?, ?, ?, ?)"
-	insertTenantMySQLDialectSql    = "insert into %v.%v (name) values (?)"
+	insertMigrationMySQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (?, ?, ?, ?, ?)"
+	insertTenantMySQLDialectSQL    = "insert into %v.%v (name) values (?)"
 )
 
-func (md *mySQLDialect) GetMigrationInsertSql() string {
-	return fmt.Sprintf(insertMigrationMySQLDialectSql, migratorSchema, migratorMigrationsTable)
+// GetMigrationInsertSQL returns MySQL-specific migration insert SQL statement
+func (md *mySQLDialect) GetMigrationInsertSQL() string {
+	return fmt.Sprintf(insertMigrationMySQLDialectSQL, migratorSchema, migratorMigrationsTable)
 }
 
-func (md *mySQLDialect) GetTenantInsertSql() string {
-	return fmt.Sprintf(insertTenantMySQLDialectSql, migratorSchema, migratorTenantsTable)
+// GetTenantInsertSQL returns MySQL-specific migrator's default tenant insert SQL statement
+func (md *mySQLDialect) GetTenantInsertSQL() string {
+	return fmt.Sprintf(insertTenantMySQLDialectSQL, migratorSchema, migratorTenantsTable)
 }

@@ -21,7 +21,7 @@ type tenantParam struct {
 	Name string `json:"name"`
 }
 
-func getDefaultPort(config *config.Config) string {
+func getPort(config *config.Config) string {
 	if len(strings.TrimSpace(config.Port)) == 0 {
 		return defaultPort
 	}
@@ -39,7 +39,7 @@ func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *co
 }
 
 func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -48,11 +48,11 @@ func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config
 }
 
 func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	diskMigrations := core.LoadDiskMigrations(config, createLoader)
+	diskMigrations := core.GetDiskMigrations(config, createLoader)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(diskMigrations)
 }
@@ -61,7 +61,7 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 
 	switch r.Method {
 	case http.MethodGet:
-		dbMigrations := core.LoadDBMigrations(config, createConnector)
+		dbMigrations := core.GetDBMigrations(config, createConnector)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(dbMigrations)
 	case http.MethodPost:
@@ -78,7 +78,7 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 
 	switch r.Method {
 	case http.MethodGet:
-		tenants := core.LoadDBTenants(config, createConnector)
+		tenants := core.GetDBTenants(config, createConnector)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tenants)
 	case http.MethodPost:
@@ -113,7 +113,7 @@ func registerHandlers(config *config.Config, createConnector func(*config.Config
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) {
 	registerHandlers(config, db.CreateConnector, loader.CreateLoader)
-	port := getDefaultPort(config)
+	port := getPort(config)
 	log.Printf("Migrator web server starting on port %s", port)
 	http.ListenAndServe(":"+port, nil)
 }

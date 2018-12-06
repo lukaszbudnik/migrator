@@ -1,4 +1,4 @@
-# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator)
+# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Coverage Status](https://coveralls.io/repos/github/lukaszbudnik/migrator/badge.svg?branch=master)](https://coveralls.io/github/lukaszbudnik/migrator?branch=master)
 
 Super fast and lightweight DB migration & evolution tool written in go.
 
@@ -30,9 +30,9 @@ driver: postgres
 # dataSource format is specific to DB go driver implementation - see below 'Supported databases'
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # override only if you have a specific way of determining tenants, default is:
-tenantSelectSql: "select name from migrator.migrator_tenants"
+tenantSelectSQL: "select name from migrator.migrator_tenants"
 # override only if you have a specific way of creating tenants, default is:
-tenantInsertSql: "insert into migrator.migrator_tenants (name) values ($1)"
+tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
 singleSchemas:
@@ -47,7 +47,7 @@ port: 8080
 slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
 ```
 
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSql`.
+Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
 
 SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
@@ -95,19 +95,19 @@ Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HT
 
 Currently migrator supports the following databases and their flavours:
 
-* PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
   * PostgreSQL - original PostgreSQL server
   * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
   * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
   * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-* MySQL - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
+* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
   * MySQL - original MySQL server
   * MariaDB - enhanced near linearly scalable multi-master MySQL
   * Percona - an enhanced drop-in replacement for MySQL
   * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
   * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
   * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-* Microsoft SQL Server - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
   * Microsoft SQL Server - original Microsoft SQL Server
 
 # Do you speak docker?
@@ -135,14 +135,14 @@ Or see `.travis.yml` to see how it's done on Travis. Note: MSSQL is not supporte
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
 In the config file you need to provide 2 parameters:
 
-* `tenantSelectSql` - a select statement which returns names of the tenants
-* `tenantInsertSql` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
+* `tenantSelectSQL` - a select statement which returns names of the tenants
+* `tenantInsertSQL` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
 
 Here is an example:
 
 ```
-tenantSelectSql: select name from global.customers
-tenantInsertSql: insert into global.customers (name, active, date_added) values (?, true, NOW())
+tenantSelectSQL: select name from global.customers
+tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
 ```
 
 # Performance
@@ -179,12 +179,14 @@ Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all 
 
 # Code Style
 
-If you would like to send me a pull request please always add unit/integration tests. Code should be formatted & checked using the following commands:
+If you would like to send me a pull request please always add unit/integration tests. Code should be formatted, checked, and tested using the following commands:
 
 ```
-$ gofmt -s -w .
-$ golint ./...
-$ go tool vet -v .
+go clean -testcache
+gofmt -s -w .
+golint ./...
+./vet.sh
+./coverage.sh
 ```
 
 # License

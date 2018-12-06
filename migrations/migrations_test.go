@@ -8,17 +8,16 @@ import (
 )
 
 func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
+	m1 := types.MigrationDefinition{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleSchema}
+	db1 := types.MigrationDB{MigrationDefinition: m1, Schema: "public", Created: time.Now()}
 
-	m1 := types.MigrationDefinition{"001.sql", "public", "public/001.sql", types.MigrationTypeSingleSchema}
-	db1 := types.MigrationDB{m1, "public", time.Now()}
+	m2 := types.MigrationDefinition{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantSchema}
+	db2 := types.MigrationDB{MigrationDefinition: m2, Schema: "abc", Created: time.Now()}
 
-	m2 := types.MigrationDefinition{"002.sql", "tenants", "tenants/002.sql", types.MigrationTypeTenantSchema}
-	db2 := types.MigrationDB{m2, "abc", time.Now()}
+	db3 := types.MigrationDB{MigrationDefinition: m2, Schema: "def", Created: time.Now()}
 
-	db3 := types.MigrationDB{m2, "def", time.Now()}
-
-	m4 := types.MigrationDefinition{"003.sql", "ref", "ref/003.sql", types.MigrationTypeSingleSchema}
-	db4 := types.MigrationDB{m4, "ref", time.Now()}
+	m4 := types.MigrationDefinition{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleSchema}
+	db4 := types.MigrationDB{MigrationDefinition: m4, Schema: "ref", Created: time.Now()}
 
 	dbs := []types.MigrationDB{db1, db2, db3, db4}
 
@@ -30,13 +29,13 @@ func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 
-	m2 := types.MigrationDefinition{"002.sql", "tenants", "tenants/002.sql", types.MigrationTypeTenantSchema}
-	db2 := types.MigrationDB{m2, "abc", time.Now()}
+	m2 := types.MigrationDefinition{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantSchema}
+	db2 := types.MigrationDB{MigrationDefinition: m2, Schema: "abc", Created: time.Now()}
 
-	db3 := types.MigrationDB{m2, "def", time.Now()}
+	db3 := types.MigrationDB{MigrationDefinition: m2, Schema: "def", Created: time.Now()}
 
-	m4 := types.MigrationDefinition{"003.sql", "ref", "ref/003.sql", types.MigrationTypeSingleSchema}
-	db4 := types.MigrationDB{m4, "ref", time.Now()}
+	m4 := types.MigrationDefinition{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleSchema}
+	db4 := types.MigrationDB{MigrationDefinition: m4, Schema: "ref", Created: time.Now()}
 
 	dbs := []types.MigrationDB{db2, db3, db4}
 
@@ -47,13 +46,13 @@ func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 }
 
 func TestComputeMigrationsToApply(t *testing.T) {
-	mdef1 := types.MigrationDefinition{"a", "a", "a", types.MigrationTypeSingleSchema}
-	mdef2 := types.MigrationDefinition{"b", "b", "b", types.MigrationTypeTenantSchema}
-	mdef3 := types.MigrationDefinition{"c", "c", "c", types.MigrationTypeTenantSchema}
-	mdef4 := types.MigrationDefinition{"d", "d", "d", types.MigrationTypeSingleSchema}
+	mdef1 := types.MigrationDefinition{Name: "a", SourceDir: "a", File: "a", MigrationType: types.MigrationTypeSingleSchema}
+	mdef2 := types.MigrationDefinition{Name: "b", SourceDir: "b", File: "b", MigrationType: types.MigrationTypeTenantSchema}
+	mdef3 := types.MigrationDefinition{Name: "c", SourceDir: "c", File: "c", MigrationType: types.MigrationTypeTenantSchema}
+	mdef4 := types.MigrationDefinition{Name: "d", SourceDir: "d", File: "d", MigrationType: types.MigrationTypeSingleSchema}
 
-	diskMigrations := []types.Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {mdef4, ""}}
-	dbMigrations := []types.MigrationDB{{mdef1, "a", time.Now()}, {mdef2, "abc", time.Now()}, {mdef2, "def", time.Now()}}
+	diskMigrations := []types.Migration{{MigrationDefinition: mdef1, Contents: ""}, {MigrationDefinition: mdef2, Contents: ""}, {MigrationDefinition: mdef3, Contents: ""}, {MigrationDefinition: mdef4, Contents: ""}}
+	dbMigrations := []types.MigrationDB{{MigrationDefinition: mdef1, Schema: "a", Created: time.Now()}, {MigrationDefinition: mdef2, Schema: "abc", Created: time.Now()}, {MigrationDefinition: mdef2, Schema: "def", Created: time.Now()}}
 	migrations := ComputeMigrationsToApply(diskMigrations, dbMigrations)
 
 	assert.Len(t, migrations, 2)
@@ -63,18 +62,18 @@ func TestComputeMigrationsToApply(t *testing.T) {
 }
 
 func TestFilterTenantMigrations(t *testing.T) {
-	mdef1 := types.MigrationDefinition{"20181111", "tenants", "tenants/20181111", types.MigrationTypeTenantSchema}
-	mdef2 := types.MigrationDefinition{"20181111", "public", "public/20181111", types.MigrationTypeSingleSchema}
-	mdef3 := types.MigrationDefinition{"20181112", "public", "public/20181112", types.MigrationTypeSingleSchema}
+	mdef1 := types.MigrationDefinition{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeTenantSchema}
+	mdef2 := types.MigrationDefinition{Name: "20181111", SourceDir: "public", File: "public/20181111", MigrationType: types.MigrationTypeSingleSchema}
+	mdef3 := types.MigrationDefinition{Name: "20181112", SourceDir: "public", File: "public/20181112", MigrationType: types.MigrationTypeSingleSchema}
 
-	dev1 := types.MigrationDefinition{"20181119", "tenants", "tenants/20181119", types.MigrationTypeTenantSchema}
-	dev1p1 := types.MigrationDefinition{"201811190", "public", "public/201811190", types.MigrationTypeSingleSchema}
-	dev1p2 := types.MigrationDefinition{"20181191", "public", "public/201811191", types.MigrationTypeSingleSchema}
+	dev1 := types.MigrationDefinition{Name: "20181119", SourceDir: "tenants", File: "tenants/20181119", MigrationType: types.MigrationTypeTenantSchema}
+	dev1p1 := types.MigrationDefinition{Name: "201811190", SourceDir: "public", File: "public/201811190", MigrationType: types.MigrationTypeSingleSchema}
+	dev1p2 := types.MigrationDefinition{Name: "20181191", SourceDir: "public", File: "public/201811191", MigrationType: types.MigrationTypeSingleSchema}
 
-	dev2 := types.MigrationDefinition{"20181120", "tenants", "tenants/20181120", types.MigrationTypeTenantSchema}
-	dev2p := types.MigrationDefinition{"20181120", "public", "public/20181120", types.MigrationTypeSingleSchema}
+	dev2 := types.MigrationDefinition{Name: "20181120", SourceDir: "tenants", File: "tenants/20181120", MigrationType: types.MigrationTypeTenantSchema}
+	dev2p := types.MigrationDefinition{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleSchema}
 
-	diskMigrations := []types.Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {dev1, ""}, {dev1p1, ""}, {dev1p2, ""}, {dev2, ""}, {dev2p, ""}}
+	diskMigrations := []types.Migration{{MigrationDefinition: mdef1, Contents: ""}, {MigrationDefinition: mdef2, Contents: ""}, {MigrationDefinition: mdef3, Contents: ""}, {MigrationDefinition: dev1, Contents: ""}, {MigrationDefinition: dev1p1, Contents: ""}, {MigrationDefinition: dev1p2, Contents: ""}, {MigrationDefinition: dev2, Contents: ""}, {MigrationDefinition: dev2p, Contents: ""}}
 	migrations := FilterTenantMigrations(diskMigrations)
 
 	assert.Len(t, migrations, 3)
@@ -97,19 +96,19 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	// migrator should detect dev1 migrations
 	// previous implementation relied only on counts and such migration was not applied
 
-	mdef1 := types.MigrationDefinition{"20181111", "tenants", "tenants/20181111", types.MigrationTypeTenantSchema}
-	mdef2 := types.MigrationDefinition{"20181111", "public", "public/20181111", types.MigrationTypeSingleSchema}
-	mdef3 := types.MigrationDefinition{"20181112", "public", "public/20181112", types.MigrationTypeSingleSchema}
+	mdef1 := types.MigrationDefinition{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeTenantSchema}
+	mdef2 := types.MigrationDefinition{Name: "20181111", SourceDir: "public", File: "public/20181111", MigrationType: types.MigrationTypeSingleSchema}
+	mdef3 := types.MigrationDefinition{Name: "20181112", SourceDir: "public", File: "public/20181112", MigrationType: types.MigrationTypeSingleSchema}
 
-	dev1 := types.MigrationDefinition{"20181119", "tenants", "tenants/20181119", types.MigrationTypeTenantSchema}
-	dev1p1 := types.MigrationDefinition{"201811190", "public", "public/201811190", types.MigrationTypeSingleSchema}
-	dev1p2 := types.MigrationDefinition{"20181191", "public", "public/201811191", types.MigrationTypeSingleSchema}
+	dev1 := types.MigrationDefinition{Name: "20181119", SourceDir: "tenants", File: "tenants/20181119", MigrationType: types.MigrationTypeTenantSchema}
+	dev1p1 := types.MigrationDefinition{Name: "201811190", SourceDir: "public", File: "public/201811190", MigrationType: types.MigrationTypeSingleSchema}
+	dev1p2 := types.MigrationDefinition{Name: "20181191", SourceDir: "public", File: "public/201811191", MigrationType: types.MigrationTypeSingleSchema}
 
-	dev2 := types.MigrationDefinition{"20181120", "tenants", "tenants/20181120", types.MigrationTypeTenantSchema}
-	dev2p := types.MigrationDefinition{"20181120", "public", "public/20181120", types.MigrationTypeSingleSchema}
+	dev2 := types.MigrationDefinition{Name: "20181120", SourceDir: "tenants", File: "tenants/20181120", MigrationType: types.MigrationTypeTenantSchema}
+	dev2p := types.MigrationDefinition{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleSchema}
 
-	diskMigrations := []types.Migration{{mdef1, ""}, {mdef2, ""}, {mdef3, ""}, {dev1, ""}, {dev1p1, ""}, {dev1p2, ""}, {dev2, ""}, {dev2p, ""}}
-	dbMigrations := []types.MigrationDB{{mdef1, "abc", time.Now()}, {mdef1, "def", time.Now()}, {mdef2, "public", time.Now()}, {mdef3, "public", time.Now()}, {dev2, "abc", time.Now()}, {dev2, "def", time.Now()}, {dev2p, "public", time.Now()}}
+	diskMigrations := []types.Migration{{MigrationDefinition: mdef1, Contents: ""}, {MigrationDefinition: mdef2, Contents: ""}, {MigrationDefinition: mdef3, Contents: ""}, {MigrationDefinition: dev1, Contents: ""}, {MigrationDefinition: dev1p1, Contents: ""}, {MigrationDefinition: dev1p2, Contents: ""}, {MigrationDefinition: dev2, Contents: ""}, {MigrationDefinition: dev2p, Contents: ""}}
+	dbMigrations := []types.MigrationDB{{MigrationDefinition: mdef1, Schema: "abc", Created: time.Now()}, {MigrationDefinition: mdef1, Schema: "def", Created: time.Now()}, {MigrationDefinition: mdef2, Schema: "public", Created: time.Now()}, {MigrationDefinition: mdef3, Schema: "public", Created: time.Now()}, {MigrationDefinition: dev2, Schema: "abc", Created: time.Now()}, {MigrationDefinition: dev2, Schema: "def", Created: time.Now()}, {MigrationDefinition: dev2p, Schema: "public", Created: time.Now()}}
 	migrations := ComputeMigrationsToApply(diskMigrations, dbMigrations)
 
 	assert.Len(t, migrations, 3)

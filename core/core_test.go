@@ -12,31 +12,55 @@ import (
 	"testing"
 )
 
-var (
+const (
 	unknownAction = "unknown"
 	configFile    = "../test/migrator.yaml"
 )
 
-func TestLoadDiskMigrations(t *testing.T) {
+func TestPrintConfig(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	LoadDiskMigrations(config, createMockedDiskLoader)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = PrintConfigAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
 }
 
-func TestLoadDBTenants(t *testing.T) {
+func TestGetDiskMigrations(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	LoadDBTenants(config, createMockedConnector)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDiskMigrationsAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
 }
 
-func TestLoadDBMigrations(t *testing.T) {
+func TestGetDBTenants(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	LoadDBMigrations(config, createMockedConnector)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDBTenantsAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+}
+
+func TestGetDBMigrations(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDBMigrationsAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
 }
 
 func TestApplyMigrations(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	ApplyMigrations(config, createMockedConnector, createMockedDiskLoader)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+}
+
+func TestAddTenant(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = AddTenantAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
 }
