@@ -9,6 +9,7 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 	"time"
 )
@@ -47,7 +48,7 @@ func TestDBConnectorInitPanicConnectionError(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	config.DataSource = ""
+	config.DataSource = strings.Replace(config.DataSource, "127.0.0.1", "1.0.0.1", -1)
 
 	connector := CreateConnector(config)
 	assert.Panics(t, func() {

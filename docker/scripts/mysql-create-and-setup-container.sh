@@ -22,7 +22,7 @@ function mysql_start() {
   if [[ "true" == "$running" ]]; then
     mysql -u root -h $ip -P $port -e "create database $database"
     mysql -u root -h $ip -P $port -D $database < ../test/create-test-tenants.sql
-    cat ../test/migrator-mysql.yaml | sed "s/A/root:@tcp($ip:$port)\/$database?parseTime=true/g" > ../test/migrator.yaml
+    cat ../test/migrator-mysql.yaml | sed "s/A/root:@tcp($ip:$port)\/$database?parseTime=true&timeout=1s/g" > ../test/migrator.yaml
   else
     >&2 echo "Could not setup mysql-$name"
     exit 1

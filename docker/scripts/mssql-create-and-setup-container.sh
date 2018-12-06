@@ -20,7 +20,7 @@ function mssql_start() {
     sqlcmd -S "$ip,$port" -U SA -P $password -Q "CREATE DATABASE $database"
     sqlcmd -S "$ip,$port" -U SA -P $password -d $database -i ../test/create-test-tenants-mssql.sql
 
-    cat ../test/migrator-mssql.yaml | sed "s/A/sqlserver:\/\/SA:$password@$ip:$port\/?database=$database/g" > ../test/migrator.yaml
+    cat ../test/migrator-mssql.yaml | sed "s/A/sqlserver:\/\/SA:$password@$ip:$port\/?database=$database&connection+timeout=1/g" > ../test/migrator.yaml
   else
     >&2 echo "Could not setup mssql-$name"
     exit 1

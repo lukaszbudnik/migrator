@@ -95,19 +95,19 @@ Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HT
 
 Currently migrator supports the following databases and their flavours:
 
-* PostgreSQL - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
   * PostgreSQL - original PostgreSQL server
   * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
   * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
   * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-* MySQL - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
+* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
   * MySQL - original MySQL server
   * MariaDB - enhanced near linearly scalable multi-master MySQL
   * Percona - an enhanced drop-in replacement for MySQL
   * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
   * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
   * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-* Microsoft SQL Server - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
   * Microsoft SQL Server - original Microsoft SQL Server
 
 # Do you speak docker?

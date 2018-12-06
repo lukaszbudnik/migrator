@@ -1,6 +1,6 @@
 baseDir: test/migrations
 driver: mysql
-dataSource: "root:@tcp(127.0.0.1:3306)/migrator_test?parseTime=true"
+dataSource: "root:@tcp(127.0.0.1:3306)/migrator_test?parseTime=true&timeout=1s"
 singleSchemas:
   - public
   - ref

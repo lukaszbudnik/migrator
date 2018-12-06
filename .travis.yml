@@ -1,5 +1,8 @@
 language: go
 
+addons:
+  postgresql: "9.3"
+
 env:
   - DB=postgresql
   - DB=mysql
@@ -26,5 +29,4 @@ before_script:
   - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
 
 script:
-  - ./coverage.sh
   - $GOPATH/bin/goveralls -service=travis-ci
