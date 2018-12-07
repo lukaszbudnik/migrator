@@ -24,7 +24,7 @@ $ Usage of ./migrator:
 
 Migrator requires a simple `migrator.yaml` file:
 
-```
+```yaml
 baseDir: test/migrations
 driver: postgres
 # dataSource format is specific to DB go driver implementation - see below 'Supported databases'
@@ -51,7 +51,7 @@ Migrator will scan all directories under `baseDir` directory. Migrations listed 
 
 SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
-```
+```sql
 create schema if not exists {schema};
 create table if not exists {schema}.modules ( k int, v text );
 insert into {schema}.modules values ( 123, '123' );
@@ -128,7 +128,7 @@ In the config file you need to provide 2 parameters:
 
 Here is an example:
 
-```
+```yaml
 tenantSelectSQL: select name from global.customers
 tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
 ```
