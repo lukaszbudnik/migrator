@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/types"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 // Connector interface abstracts all DB operations performed by migrator
@@ -212,7 +213,7 @@ func (bc *BaseConnector) GetTenantInsertSQL() string {
 }
 
 // GetSchemaPlaceHolder returns a schema placeholder which is
-// either the default one or overriden by user in config
+// either the default one or overridden by user in config
 func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 	var schemaPlaceHolder string
 	if bc.Config.SchemaPlaceHolder != "" {
