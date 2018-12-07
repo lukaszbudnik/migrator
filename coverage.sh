@@ -7,7 +7,7 @@ else
   packages="$1"
 fi
 
-echo "mode: set" > coverage-all.txt
+echo "mode: atomic" > coverage.txt
 
 go clean -testcache
 
@@ -16,6 +16,6 @@ do
   if [[ "main" == "$package" ]]; then
     continue
   fi
-  go test -cover -coverprofile=coverage-$package.txt ./$package
-  cat coverage-$package.txt | sed '/^mode/d' >> coverage-all.txt
+  go test -race -covermode=atomic -coverprofile=coverage-$package.txt ./$package
+  cat coverage-$package.txt | sed '/^mode/d' >> coverage.txt
 done
