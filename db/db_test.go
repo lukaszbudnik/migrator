@@ -6,12 +6,13 @@ package db
 
 import (
 	"fmt"
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/types"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
@@ -77,8 +78,8 @@ func TestDBApplyMigrationsPanicSQLSyntaxError(t *testing.T) {
 	connector := CreateConnector(config)
 	connector.Init()
 	defer connector.Dispose()
-	m := types.MigrationDefinition{Name: "201602220002.sql", SourceDir: "error", File: "error/201602220002.sql", MigrationType: types.MigrationTypeTenantSchema}
-	ms := []types.Migration{{MigrationDefinition: m, Contents: "createtablexyx ( idint primary key (id) )"}}
+	m := types.Migration{Name: "201602220002.sql", SourceDir: "error", File: "error/201602220002.sql", MigrationType: types.MigrationTypeTenantSchema, Contents: "createtablexyx ( idint primary key (id) )"}
+	ms := []types.Migration{m}
 
 	assert.Panics(t, func() {
 		connector.ApplyMigrations(ms)
@@ -124,19 +125,13 @@ func TestDBApplyMigrations(t *testing.T) {
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
 
-	publicdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p1), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p1), MigrationType: types.MigrationTypeSingleSchema}
-	publicdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p2), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p2), MigrationType: types.MigrationTypeSingleSchema}
-	publicdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", p3), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p3), MigrationType: types.MigrationTypeSingleSchema}
-	public1 := types.Migration{MigrationDefinition: publicdef1, Contents: "drop table if exists modules"}
-	public2 := types.Migration{MigrationDefinition: publicdef2, Contents: "create table modules ( k int, v text )"}
-	public3 := types.Migration{MigrationDefinition: publicdef3, Contents: "insert into modules values ( 123, '123' )"}
+	public1 := types.Migration{Name: fmt.Sprintf("%v.sql", p1), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p1), MigrationType: types.MigrationTypeSingleSchema, Contents: "drop table if exists modules"}
+	public2 := types.Migration{Name: fmt.Sprintf("%v.sql", p2), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p2), MigrationType: types.MigrationTypeSingleSchema, Contents: "create table modules ( k int, v text )"}
+	public3 := types.Migration{Name: fmt.Sprintf("%v.sql", p3), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p3), MigrationType: types.MigrationTypeSingleSchema, Contents: "insert into modules values ( 123, '123' )"}
 
-	tenantdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema}
-	tenantdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
-	tenantdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
-	tenant1 := types.Migration{MigrationDefinition: tenantdef1, Contents: "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{MigrationDefinition: tenantdef2, Contents: "create table {schema}.settings (k int, v text)"}
-	tenant3 := types.Migration{MigrationDefinition: tenantdef3, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "create table {schema}.settings (k int, v text)"}
+	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3}
 
@@ -234,12 +229,9 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
 
-	tenantdef1 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema}
-	tenantdef2 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema}
-	tenantdef3 := types.MigrationDefinition{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantSchema}
-	tenant1 := types.Migration{MigrationDefinition: tenantdef1, Contents: "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{MigrationDefinition: tenantdef2, Contents: "create table {schema}.settings (k int, v text) "}
-	tenant3 := types.Migration{MigrationDefinition: tenantdef3, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "create table {schema}.settings (k int, v text)"}
+	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456')"}
 
 	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3}
 
@@ -263,7 +255,7 @@ func TestMySQLGetMigrationInsertSQL(t *testing.T) {
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values (?, ?, ?, ?, ?)", insertMigrationSQL)
+	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema, contents, checksum) values (?, ?, ?, ?, ?, ?, ?)", insertMigrationSQL)
 }
 
 func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
@@ -276,7 +268,7 @@ func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values ($1, $2, $3, $4, $5)", insertMigrationSQL)
+	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema, contents, checksum) values ($1, $2, $3, $4, $5, $6, $7)", insertMigrationSQL)
 }
 
 func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
@@ -289,7 +281,7 @@ func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
-	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema) values (@p1, @p2, @p3, @p4, @p5)", insertMigrationSQL)
+	assert.Equal(t, "insert into migrator.migrator_migrations (name, source_dir, filename, type, db_schema, contents, checksum) values (@p1, @p2, @p3, @p4, @p5, @p6, @p7)", insertMigrationSQL)
 }
 
 func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
@@ -387,7 +379,9 @@ BEGIN
     filename varchar(200) not null,
     type int not null,
     db_schema varchar(200) not null,
-    created datetime default CURRENT_TIMESTAMP
+    created datetime default CURRENT_TIMESTAMP,
+		contents text,
+		checksum varchar(64)
   );
 END
 `
@@ -434,7 +428,9 @@ create table if not exists migrator.migrator_migrations (
   filename varchar(200) not null,
   type int not null,
   db_schema varchar(200) not null,
-  created timestamp default now()
+  created timestamp default now(),
+	contents text,
+	checksum varchar(64)
 )
 `
 

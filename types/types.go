@@ -14,23 +14,19 @@ const (
 	MigrationTypeTenantSchema MigrationType = 2
 )
 
-// MigrationDefinition contains basic information about migration
-type MigrationDefinition struct {
+// Migration contains basic information about migration
+type Migration struct {
 	Name          string
 	SourceDir     string
 	File          string
 	MigrationType MigrationType
+	Contents      string
+	CheckSum      string
 }
 
-// Migration embeds MigrationDefinition and contains its contents
-type Migration struct {
-	MigrationDefinition
-	Contents string
-}
-
-// MigrationDB embeds MigrationDefinition and contain other DB properties
+// MigrationDB embeds Migration and adds DB-specific fields
 type MigrationDB struct {
-	MigrationDefinition
+	Migration
 	Schema  string
 	Created time.Time
 }

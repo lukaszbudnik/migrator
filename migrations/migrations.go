@@ -1,24 +1,25 @@
 package migrations
 
 import (
-	"github.com/lukaszbudnik/migrator/types"
 	"log"
+
+	"github.com/lukaszbudnik/migrator/types"
 )
 
-func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.MigrationDefinition {
-	var flattened []types.MigrationDefinition
-	var previousMigrationDefinition types.MigrationDefinition
+func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.Migration {
+	var flattened []types.Migration
+	var previousMigration types.Migration
 	for i, m := range dbMigrations {
-		if i == 0 || m.MigrationType == types.MigrationTypeSingleSchema || m.MigrationDefinition != previousMigrationDefinition {
-			flattened = append(flattened, m.MigrationDefinition)
-			previousMigrationDefinition = m.MigrationDefinition
+		if i == 0 || m.MigrationType == types.MigrationTypeSingleSchema || m.Migration != previousMigration {
+			flattened = append(flattened, m.Migration)
+			previousMigration = m.Migration
 		}
 	}
 	return flattened
 }
 
 // difference returns the elements on disk which are not yet in DB
-func difference(diskMigrations []types.Migration, flattenedMigrationDBs []types.MigrationDefinition) []types.Migration {
+func difference(diskMigrations []types.Migration, flattenedMigrationDBs []types.Migration) []types.Migration {
 	// key is Migration.File
 	existsInDB := map[string]bool{}
 	for _, m := range flattenedMigrationDBs {

@@ -2,8 +2,9 @@ package db
 
 import (
 	"fmt"
-	"github.com/lukaszbudnik/migrator/config"
 	"log"
+
+	"github.com/lukaszbudnik/migrator/config"
 )
 
 // Dialect returns SQL statements for given DB
@@ -22,7 +23,7 @@ type BaseDialect struct {
 }
 
 const (
-	selectMigrationsSQL      = "select name, source_dir as sd, filename, type, db_schema, created from %v.%v order by name, source_dir"
+	selectMigrationsSQL      = "select name, source_dir as sd, filename, type, db_schema, created, contents, checksum from %v.%v order by name, source_dir"
 	selectTenantsSQL         = "select name from %v.%v"
 	createMigrationsTableSQL = `
 create table if not exists %v.%v (
@@ -32,7 +33,9 @@ create table if not exists %v.%v (
   filename varchar(200) not null,
   type int not null,
   db_schema varchar(200) not null,
-  created timestamp default now()
+  created timestamp default now(),
+	contents text,
+	checksum varchar(64)
 )
 `
 	createTenantsTableSQL = `

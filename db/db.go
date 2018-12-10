@@ -138,12 +138,14 @@ func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
 			migrationType types.MigrationType
 			schema        string
 			created       time.Time
+			contents      string
+			checksum      string
 		)
-		if err := rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created); err != nil {
+		if err := rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created, &contents, &checksum); err != nil {
 			log.Panicf("Could not read DB migration: %v", err)
 		}
-		mdef := types.MigrationDefinition{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType}
-		dbMigrations = append(dbMigrations, types.MigrationDB{MigrationDefinition: mdef, Schema: schema, Created: created})
+		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
+		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, Created: created})
 	}
 
 	return dbMigrations
@@ -252,7 +254,7 @@ func (bc *BaseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migra
 				log.Panicf("SQL failed, transaction rollback was called: %v %v", err, contents)
 			}
 
-			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s)
+			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum)
 			if err != nil {
 				tx.Rollback()
 				log.Panicf("Failed to add migration entry, transaction rollback was called: %v", err)
