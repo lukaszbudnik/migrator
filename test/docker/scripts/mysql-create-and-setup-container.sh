@@ -14,7 +14,7 @@ function mysql_start() {
     -P \
     "$flavour"
 
-  sleep 15
+  sleep 20
 
   running=$(docker inspect -f {{.State.Running}} "migrator-$name")
 

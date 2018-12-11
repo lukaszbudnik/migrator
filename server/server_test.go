@@ -1,19 +1,14 @@
-// These are integration tests.
-// The following tests must be working in order to get this one working:
-// * config_test.go
-// * migrations_test.go
-// DB & Disk operations are mocked using xcli_mocks.go
-
 package server
 
 import (
 	"bytes"
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -91,7 +86,7 @@ func TestServerTenantsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc"},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerTenantsPostBadRequest(t *testing.T) {
@@ -109,6 +104,22 @@ func TestServerTenantsPostBadRequest(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestServerTenantsPostFailedDependency(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	json := []byte(`{"name": "new_tenant"}`)
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	handler := makeHandler(tenantsHandler, config, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	handler(w, req)
+
+	assert.Equal(t, http.StatusFailedDependency, w.Code)
+	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"ErrorMessage":"Checksum verification failed. Please review offending migrations.","OffendingMigrations":[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":"xxx"}]}`, strings.TrimSpace(w.Body.String()))
+}
+
 func TestServerDiskMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
@@ -121,7 +132,7 @@ func TestServerDiskMigrationsGet(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc"},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerMigrationsGet(t *testing.T) {
@@ -136,7 +147,7 @@ func TestServerMigrationsGet(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Schema":"source","Created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"","CheckSum":"","Schema":"source","Created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerMigrationsPost(t *testing.T) {
@@ -151,7 +162,22 @@ func TestServerMigrationsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestServerMigrationsPostFailedDependency(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
+
+	w := httptest.NewRecorder()
+	handler := makeHandler(migrationsHandler, config, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	handler(w, req)
+
+	assert.Equal(t, http.StatusFailedDependency, w.Code)
+	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"ErrorMessage":"Checksum verification failed. Please review offending migrations.","OffendingMigrations":[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":"xxx"}]}`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerMigrationsMethodNotAllowed(t *testing.T) {

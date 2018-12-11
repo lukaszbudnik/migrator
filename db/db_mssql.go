@@ -11,7 +11,7 @@ type msSQLDialect struct {
 }
 
 const (
-	insertMigrationMSSQLDialectSQL    = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (@p1, @p2, @p3, @p4, @p5)"
+	insertMigrationMSSQLDialectSQL    = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum) values (@p1, @p2, @p3, @p4, @p5, @p6, @p7)"
 	insertTenantMSSQLDialectSQL       = "insert into %v.%v (name) values (@p1)"
 	createTenantsTableMSSQLDialectSQL = `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = '%v' and table_name = '%v')
@@ -33,7 +33,9 @@ BEGIN
     filename varchar(200) not null,
     type int not null,
     db_schema varchar(200) not null,
-    created datetime default CURRENT_TIMESTAMP
+    created datetime default CURRENT_TIMESTAMP,
+		contents text,
+		checksum varchar(64)
   );
 END
 `

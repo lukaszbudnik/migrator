@@ -1,4 +1,4 @@
-create table config (
+create table {schema}.config (
   id integer,
   k varchar(100),
   v varchar(100),

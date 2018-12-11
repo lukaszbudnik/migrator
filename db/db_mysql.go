@@ -11,7 +11,7 @@ type mySQLDialect struct {
 }
 
 const (
-	insertMigrationMySQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema) values (?, ?, ?, ?, ?)"
+	insertMigrationMySQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum) values (?, ?, ?, ?, ?, ?, ?)"
 	insertTenantMySQLDialectSQL    = "insert into %v.%v (name) values (?)"
 )
 

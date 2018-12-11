@@ -1,14 +1,17 @@
 package loader
 
 import (
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/types"
-	"github.com/lukaszbudnik/migrator/utils"
+	"crypto/sha256"
+	"encoding/hex"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
+	"github.com/lukaszbudnik/migrator/utils"
 )
 
 // DiskLoader is struct used for implementing Loader interface for loading migrations from disk
@@ -69,12 +72,14 @@ func (dl *DiskLoader) readMigrationsFromSchemaDirs(migrations map[string][]types
 		}
 		for _, file := range files {
 			if !file.IsDir() {
-				mdef := types.MigrationDefinition{Name: file.Name(), SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType}
-				contents, err := ioutil.ReadFile(filepath.Join(dl.Config.BaseDir, mdef.File))
+				contents, err := ioutil.ReadFile(filepath.Join(dl.Config.BaseDir, sourceDir, file.Name()))
 				if err != nil {
 					log.Panicf("Could not read migration contents: %v", err)
 				}
-				m := types.Migration{MigrationDefinition: mdef, Contents: string(contents)}
+				hasher := sha256.New()
+				hasher.Write([]byte(contents))
+				m := types.Migration{Name: file.Name(), SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType, Contents: string(contents), CheckSum: hex.EncodeToString(hasher.Sum(nil))}
+
 				e, ok := migrations[m.Name]
 				if ok {
 					e = append(e, m)

@@ -11,7 +11,7 @@ type postgreSQLDialect struct {
 }
 
 const (
-	insertMigrationPostgreSQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema) values ($1, $2, $3, $4, $5)"
+	insertMigrationPostgreSQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum) values ($1, $2, $3, $4, $5, $6, $7)"
 	insertTenantPostgreSQLDialectSQL    = "insert into %v.%v (name) values ($1)"
 )
 
