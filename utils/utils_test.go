@@ -75,10 +75,10 @@ func TestMigrationDBArrayToString(t *testing.T) {
 	d2 := time.Date(2016, 02, 22, 16, 41, 2, 456, time.UTC)
 	var ms = []types.MigrationDB{{Migration: m1, Schema: "source", Created: d1}, {Migration: m2, Schema: "abc", Created: d2}, {Migration: m2, Schema: "def", Created: d2}}
 
-	expected := `SourceDir  | Name              | File                      | Schema  | Created              | Type  | CheckSum
-source     | 201602220000.sql  | source/201602220000.sql   | source  | 2016-02-22 16:41:01  | 1     | abc
-tenants    | 201602220001.sql  | tenants/201602220001.sql  | abc     | 2016-02-22 16:41:02  | 2     | def
-tenants    | 201602220001.sql  | tenants/201602220001.sql  | def     | 2016-02-22 16:41:02  | 2     | def`
+	expected := `SourceDir  | Name              | File                      | Schema  | Created                                  | Type  | CheckSum
+source     | 201602220000.sql  | source/201602220000.sql   | source  | 2016-02-22 16:41:01.000000123 +0000 UTC  | 1     | abc
+tenants    | 201602220001.sql  | tenants/201602220001.sql  | abc     | 2016-02-22 16:41:02.000000456 +0000 UTC  | 2     | def
+tenants    | 201602220001.sql  | tenants/201602220001.sql  | def     | 2016-02-22 16:41:02.000000456 +0000 UTC  | 2     | def`
 	actual := MigrationDBArrayToString(ms)
 
 	assert.Equal(t, expected, actual)

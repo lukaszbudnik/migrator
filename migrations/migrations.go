@@ -34,6 +34,31 @@ func difference(diskMigrations []types.Migration, flattenedMigrationDBs []types.
 	return diff
 }
 
+// intersect returns the elements on disk and in DB
+func intersect(diskMigrations []types.Migration, flattenedMigrationDBs []types.Migration) []struct {
+	disk types.Migration
+	db   types.Migration
+} {
+	// key is Migration.File
+	existsInDB := map[string]types.Migration{}
+	for _, m := range flattenedMigrationDBs {
+		existsInDB[m.File] = m
+	}
+	intersect := []struct {
+		disk types.Migration
+		db   types.Migration
+	}{}
+	for _, m := range diskMigrations {
+		if db, ok := existsInDB[m.File]; ok {
+			intersect = append(intersect, struct {
+				disk types.Migration
+				db   types.Migration
+			}{m, db})
+		}
+	}
+	return intersect
+}
+
 // ComputeMigrationsToApply computes which disk migrations should be applied to DB based on migrations already present in DB
 func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []types.MigrationDB) []types.Migration {
 	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
@@ -59,4 +84,24 @@ func FilterTenantMigrations(diskMigrations []types.Migration) []types.Migration 
 	log.Printf("Number of flattened DB migrations: %d", len)
 
 	return filteredTenantMigrations
+}
+
+// VerifyCheckSums verifies if CheckSum of disk and flattened DB migrations match
+// returns bool indicating if offending (i.e., modified) disk migrations were found
+// if bool is false the function returns a slice of offending migrations
+// if bool is true the slice of effending migrations is empty
+func VerifyCheckSums(diskMigrations []types.Migration, dbMigrations []types.MigrationDB) (bool, []types.Migration) {
+
+	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
+
+	intersect := intersect(diskMigrations, flattenedMigrationDBs)
+	var offendingMigrations []types.Migration
+	var result = true
+	for _, t := range intersect {
+		if t.disk.CheckSum != t.db.CheckSum {
+			offendingMigrations = append(offendingMigrations, t.disk)
+			result = false
+		}
+	}
+	return result, offendingMigrations
 }

@@ -18,6 +18,18 @@ func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
 	return []types.Migration{m1, m2}
 }
 
+type mockedBrokenCheckSumDiskLoader struct {
+}
+
+func (m *mockedBrokenCheckSumDiskLoader) GetDiskMigrations() []types.Migration {
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc", CheckSum: "xxx"}
+	return []types.Migration{m1}
+}
+
+func createBrokenCheckSumMockedDiskLoader(config *config.Config) loader.Loader {
+	return new(mockedBrokenCheckSumDiskLoader)
+}
+
 func createMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedDiskLoader)
 }

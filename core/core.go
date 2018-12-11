@@ -2,6 +2,8 @@ package core
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
@@ -9,7 +11,6 @@ import (
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/lukaszbudnik/migrator/utils"
-	"log"
 )
 
 const (
@@ -45,7 +46,6 @@ type ExecuteFlags struct {
 func GetDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) []types.Migration {
 	loader := createLoader(config)
 	diskMigrations := loader.GetDiskMigrations()
-	log.Printf("Read disk migrations: %d", len(diskMigrations))
 	return diskMigrations
 }
 
@@ -56,7 +56,6 @@ func GetDBTenants(config *config.Config, createConnector func(*config.Config) db
 	connector.Init()
 	defer connector.Dispose()
 	dbTenants := connector.GetTenants()
-	log.Printf("Read DB tenants: %d", len(dbTenants))
 	return dbTenants
 }
 
@@ -67,7 +66,6 @@ func GetDBMigrations(config *config.Config, createConnector func(*config.Config)
 	connector.Init()
 	defer connector.Dispose()
 	dbMigrations := connector.GetDBMigrations()
-	log.Printf("Read DB migrations: %d", len(dbMigrations))
 	return dbMigrations
 }
 
@@ -75,10 +73,14 @@ func GetDBMigrations(config *config.Config, createConnector func(*config.Config)
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
 	diskMigrations := GetDiskMigrations(config, createLoader)
-	dbMigrations := GetDBMigrations(config, createConnector)
-	migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
+	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
+	dbMigrations := GetDBMigrations(config, createConnector)
+	log.Printf("Read DB migrations: %d", len(dbMigrations))
+
+	migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
 	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
+
 	doApplyMigrations(migrationsToApply, config, createConnector)
 
 	notifier := notifications.CreateNotifier(config)
@@ -98,12 +100,13 @@ func ApplyMigrations(config *config.Config, createConnector func(*config.Config)
 func AddTenant(tenant string, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
 
 	diskMigrations := GetDiskMigrations(config, createLoader)
+	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
 	// filter only tenant schemas
 	// var migrationsToApply []types.Migration
 	migrationsToApply := migrations.FilterTenantMigrations(diskMigrations)
-
 	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
+
 	doAddTenantAndApplyMigrations(tenant, migrationsToApply, config, createConnector)
 
 	notifier := notifications.CreateNotifier(config)
@@ -117,6 +120,14 @@ func AddTenant(tenant string, config *config.Config, createConnector func(*confi
 	}
 
 	return diskMigrations
+}
+
+// VerifyMigrations loads disk and db migrations and verifies their checksums
+// see migrations.VerifyCheckSums for more information
+func VerifyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) (bool, []types.Migration) {
+	diskMigrations := GetDiskMigrations(config, createLoader)
+	dbMigrations := GetDBMigrations(config, createConnector)
+	return migrations.VerifyCheckSums(diskMigrations, dbMigrations)
 }
 
 // ExecuteMigrator is a function which executes actions on resources defined in config passed as first argument action defined as second argument
@@ -136,20 +147,34 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 		}
 	case GetDBMigrationsAction:
 		dbMigrations := GetDBMigrations(config, createConnector)
+		log.Printf("Read DB migrations: %d", len(dbMigrations))
 		if len(dbMigrations) > 0 {
 			log.Printf("List of db migrations\n%v", utils.MigrationDBArrayToString(dbMigrations))
 		}
 	case AddTenantAction:
-		AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+		verified, offendingMigrations := VerifyMigrations(config, createConnector, createLoader)
+		if !verified {
+			log.Printf("Checksum verification failed.")
+			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
+		} else {
+			AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+		}
 	case GetDBTenantsAction:
 		dbTenants := GetDBTenants(config, createConnector)
+		log.Printf("Read DB tenants: %d", len(dbTenants))
 		if len(dbTenants) > 0 {
 			log.Printf("List of db tenants\n%v", utils.TenantArrayToString(dbTenants))
 		}
 	case ApplyAction:
-		migrationsApplied := ApplyMigrations(config, createConnector, createLoader)
-		if len(migrationsApplied) > 0 {
-			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
+		verified, offendingMigrations := VerifyMigrations(config, createConnector, createLoader)
+		if !verified {
+			log.Printf("Checksum verification failed.")
+			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
+		} else {
+			migrationsApplied := ApplyMigrations(config, createConnector, createLoader)
+			if len(migrationsApplied) > 0 {
+				log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
+			}
 		}
 	}
 }

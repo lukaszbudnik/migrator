@@ -17,5 +17,5 @@ do
     continue
   fi
   go test -race -covermode=atomic -coverprofile=coverage-$package.txt ./$package
-  cat coverage-$package.txt | sed '/^mode/d' >> coverage.txt
+  cat coverage-$package.txt | sed '/^mode/d' | sed '/_mocks.go/d' >> coverage.txt
 done

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/lukaszbudnik/migrator/types"
@@ -55,10 +54,7 @@ func MigrationDBArrayToString(migrations []types.MigrationDB) string {
 }
 
 func formatMigrationDB(w io.Writer, m *types.MigrationDB) {
-	created := fmt.Sprintf("%v", m.Created)
-	index := strings.Index(created, ".")
-	created = created[:index]
-	fmt.Fprintf(w, "\n%v \t %v \t %v \t %v \t %v \t %v \t %v", m.SourceDir, m.Name, m.File, m.Schema, created, m.MigrationType, m.CheckSum)
+	fmt.Fprintf(w, "\n%v \t %v \t %v \t %v \t %v \t %v \t %v", m.SourceDir, m.Name, m.File, m.Schema, m.Created, m.MigrationType, m.CheckSum)
 }
 
 // TenantArrayToString creates a string representation of Tenant array

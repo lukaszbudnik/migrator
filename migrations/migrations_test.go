@@ -118,3 +118,42 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	assert.Equal(t, dev1p1.File, migrations[1].File)
 	assert.Equal(t, dev1p2.File, migrations[2].File)
 }
+
+func TestIntersect(t *testing.T) {
+	mdef1 := types.Migration{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeTenantSchema}
+	mdef2 := types.Migration{Name: "20181111", SourceDir: "public", File: "public/20181111", MigrationType: types.MigrationTypeSingleSchema}
+	mdef3 := types.Migration{Name: "20181112", SourceDir: "public", File: "public/20181112", MigrationType: types.MigrationTypeSingleSchema}
+
+	dev1 := types.Migration{Name: "20181119", SourceDir: "tenants", File: "tenants/20181119", MigrationType: types.MigrationTypeTenantSchema}
+	dev1p1 := types.Migration{Name: "201811190", SourceDir: "public", File: "public/201811190", MigrationType: types.MigrationTypeSingleSchema}
+	dev1p2 := types.Migration{Name: "20181191", SourceDir: "public", File: "public/201811191", MigrationType: types.MigrationTypeSingleSchema}
+
+	dev2 := types.Migration{Name: "20181120", SourceDir: "tenants", File: "tenants/20181120", MigrationType: types.MigrationTypeTenantSchema}
+	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleSchema}
+
+	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
+	dbMigrations := []types.Migration{mdef1, mdef2, mdef3, dev2, dev2p}
+
+	intersect := intersect(diskMigrations, dbMigrations)
+	assert.Len(t, intersect, 5)
+	for i := range intersect {
+		assert.Equal(t, intersect[i].disk, intersect[i].db)
+		assert.Equal(t, intersect[i].disk, dbMigrations[i])
+	}
+}
+
+func TestVerifyCheckSumsOK(t *testing.T) {
+	mdef1 := types.Migration{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeTenantSchema, CheckSum: "abc"}
+	mdef2 := types.Migration{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeSingleSchema, CheckSum: "abc"}
+	verified, offendingMigrations := VerifyCheckSums([]types.Migration{mdef1}, []types.MigrationDB{{Migration: mdef2}})
+	assert.True(t, verified)
+	assert.Empty(t, offendingMigrations)
+}
+
+func TestVerifyCheckSumsKO(t *testing.T) {
+	mdef1 := types.Migration{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeTenantSchema, CheckSum: "abc"}
+	mdef2 := types.Migration{Name: "20181111", SourceDir: "tenants", File: "tenants/20181111", MigrationType: types.MigrationTypeSingleSchema, CheckSum: "abcd"}
+	verified, offendingMigrations := VerifyCheckSums([]types.Migration{mdef1}, []types.MigrationDB{{Migration: mdef2}})
+	assert.False(t, verified)
+	assert.Equal(t, mdef1, offendingMigrations[0])
+}

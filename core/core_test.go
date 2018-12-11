@@ -1,15 +1,10 @@
-// These are integration tests.
-// The following tests must be working in order to get this one working:
-// * config_test.go
-// * migrations_test.go
-// DB & Disk operations are mocked using xcli_mocks.go
-
 package core
 
 import (
+	"testing"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 const (
@@ -57,10 +52,26 @@ func TestApplyMigrations(t *testing.T) {
 	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
 }
 
+func TestApplyMigrationsVerificationFailed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+}
+
 func TestAddTenant(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = AddTenantAction
 	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+}
+
+func TestAddTenantVerificationFailed(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = AddTenantAction
+	doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
 }

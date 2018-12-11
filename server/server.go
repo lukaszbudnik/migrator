@@ -3,14 +3,16 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/core"
-	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/loader"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/core"
+	"github.com/lukaszbudnik/migrator/db"
+	"github.com/lukaszbudnik/migrator/loader"
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 const (
@@ -28,6 +30,25 @@ func getPort(config *config.Config) string {
 	return config.Port
 }
 
+func errorResponse(w http.ResponseWriter, errorStatus int, response interface{}) {
+	w.WriteHeader(errorStatus)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func errorResponseStatusErrorMessage(w http.ResponseWriter, errorStatus int, errorMessage string) {
+	errorResponse(w, errorStatus, struct{ ErrorMessage string }{errorMessage})
+}
+
+func errorMethodNotAllowedResponse(w http.ResponseWriter) {
+	errorResponseStatusErrorMessage(w, http.StatusMethodNotAllowed, "405 method not allowed")
+}
+
+func jsonResponse(w http.ResponseWriter, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
@@ -40,7 +61,7 @@ func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *co
 
 func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		errorMethodNotAllowedResponse(w)
 		return
 	}
 	w.Header().Set("Content-Type", "application/x-yaml")
@@ -49,12 +70,11 @@ func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config
 
 func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		errorMethodNotAllowedResponse(w)
 		return
 	}
 	diskMigrations := core.GetDiskMigrations(config, createLoader)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(diskMigrations)
+	jsonResponse(w, diskMigrations)
 }
 
 func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
@@ -62,14 +82,21 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 	switch r.Method {
 	case http.MethodGet:
 		dbMigrations := core.GetDBMigrations(config, createConnector)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(dbMigrations)
+		jsonResponse(w, dbMigrations)
 	case http.MethodPost:
-		migrationsApplied := core.ApplyMigrations(config, createConnector, createLoader)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(migrationsApplied)
+		verified, offendingMigrations := core.VerifyMigrations(config, createConnector, createLoader)
+		if !verified {
+			log.Printf("Checksum verification failed.")
+			errorResponse(w, http.StatusFailedDependency, struct {
+				ErrorMessage        string
+				OffendingMigrations []types.Migration
+			}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
+		} else {
+			migrationsApplied := core.ApplyMigrations(config, createConnector, createLoader)
+			jsonResponse(w, migrationsApplied)
+		}
 	default:
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		errorMethodNotAllowedResponse(w)
 	}
 
 }
@@ -79,25 +106,32 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 	switch r.Method {
 	case http.MethodGet:
 		tenants := core.GetDBTenants(config, createConnector)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tenants)
+		jsonResponse(w, tenants)
 	case http.MethodPost:
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "500 internal server error", http.StatusInternalServerError)
+			errorResponseStatusErrorMessage(w, http.StatusInternalServerError, "500 internal server error")
 			return
 		}
 		var param tenantParam
 		err = json.Unmarshal(body, &param)
 		if err != nil || param.Name == "" {
-			http.Error(w, "400 bad request", http.StatusBadRequest)
+			errorResponseStatusErrorMessage(w, http.StatusBadRequest, "400 bad request")
 			return
 		}
-		migrationsApplied := core.AddTenant(param.Name, config, createConnector, createLoader)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(migrationsApplied)
+		verified, offendingMigrations := core.VerifyMigrations(config, createConnector, createLoader)
+		if !verified {
+			log.Printf("Checksum verification failed.")
+			errorResponse(w, http.StatusFailedDependency, struct {
+				ErrorMessage        string
+				OffendingMigrations []types.Migration
+			}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
+		} else {
+			migrationsApplied := core.AddTenant(param.Name, config, createConnector, createLoader)
+			jsonResponse(w, migrationsApplied)
+		}
 	default:
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		errorMethodNotAllowedResponse(w)
 	}
 
 }

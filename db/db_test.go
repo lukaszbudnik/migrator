@@ -1,9 +1,5 @@
 package db
 
-// These are integration tests which talk to database.
-// These tests are almost self-contain
-// they only depended on config package (reading config from file)
-
 import (
 	"fmt"
 	"strings"
