@@ -40,8 +40,12 @@ func errorResponseStatusErrorMessage(w http.ResponseWriter, errorStatus int, err
 	errorResponse(w, errorStatus, struct{ ErrorMessage string }{errorMessage})
 }
 
-func errorMethodNotAllowedResponse(w http.ResponseWriter) {
-	errorResponseStatusErrorMessage(w, http.StatusMethodNotAllowed, "405 method not allowed")
+func errorDefaultResponse(w http.ResponseWriter, errorStatus int) {
+	errorResponseStatusErrorMessage(w, errorStatus, http.StatusText(errorStatus))
+}
+
+func errorInternalServerErrorResponse(w http.ResponseWriter, err error) {
+	errorResponseStatusErrorMessage(w, http.StatusInternalServerError, err.Error())
 }
 
 func jsonResponse(w http.ResponseWriter, response interface{}) {
@@ -61,7 +65,7 @@ func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *co
 
 func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
-		errorMethodNotAllowedResponse(w)
+		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
 	w.Header().Set("Content-Type", "application/x-yaml")
@@ -70,7 +74,7 @@ func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config
 
 func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
-		errorMethodNotAllowedResponse(w)
+		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
 	diskMigrations := core.GetDiskMigrations(config, createLoader)
@@ -78,39 +82,42 @@ func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *confi
 }
 
 func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-
 	switch r.Method {
 	case http.MethodGet:
-		dbMigrations := core.GetDBMigrations(config, createConnector)
+		dbMigrations, err := core.GetDBMigrations(config, createConnector)
+		if err != nil {
+			errorInternalServerErrorResponse(w, err)
+			return
+		}
 		jsonResponse(w, dbMigrations)
 	case http.MethodPost:
-		verified, offendingMigrations := core.VerifyMigrations(config, createConnector, createLoader)
-		if !verified {
-			log.Printf("Checksum verification failed.")
-			errorResponse(w, http.StatusFailedDependency, struct {
-				ErrorMessage        string
-				OffendingMigrations []types.Migration
-			}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
-		} else {
-			migrationsApplied := core.ApplyMigrations(config, createConnector, createLoader)
+		verified := verifyMigrations(w, config, createConnector, createLoader)
+		if verified {
+			migrationsApplied, err := core.ApplyMigrations(config, createConnector, createLoader)
+			if err != nil {
+				errorInternalServerErrorResponse(w, err)
+				return
+			}
 			jsonResponse(w, migrationsApplied)
 		}
 	default:
-		errorMethodNotAllowedResponse(w)
+		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 	}
-
 }
 
 func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
-
 	switch r.Method {
 	case http.MethodGet:
-		tenants := core.GetDBTenants(config, createConnector)
+		tenants, err := core.GetDBTenants(config, createConnector)
+		if err != nil {
+			errorInternalServerErrorResponse(w, err)
+			return
+		}
 		jsonResponse(w, tenants)
 	case http.MethodPost:
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			errorResponseStatusErrorMessage(w, http.StatusInternalServerError, "500 internal server error")
+			errorInternalServerErrorResponse(w, err)
 			return
 		}
 		var param tenantParam
@@ -119,21 +126,18 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 			errorResponseStatusErrorMessage(w, http.StatusBadRequest, "400 bad request")
 			return
 		}
-		verified, offendingMigrations := core.VerifyMigrations(config, createConnector, createLoader)
-		if !verified {
-			log.Printf("Checksum verification failed.")
-			errorResponse(w, http.StatusFailedDependency, struct {
-				ErrorMessage        string
-				OffendingMigrations []types.Migration
-			}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
-		} else {
-			migrationsApplied := core.AddTenant(param.Name, config, createConnector, createLoader)
+		verified := verifyMigrations(w, config, createConnector, createLoader)
+		if verified {
+			migrationsApplied, err := core.AddTenant(param.Name, config, createConnector, createLoader)
+			if err != nil {
+				errorResponseStatusErrorMessage(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 			jsonResponse(w, migrationsApplied)
 		}
 	default:
-		errorMethodNotAllowedResponse(w)
+		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 	}
-
 }
 
 func registerHandlers(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
@@ -141,6 +145,22 @@ func registerHandlers(config *config.Config, createConnector func(*config.Config
 	http.HandleFunc("/diskMigrations", makeHandler(diskMigrationsHandler, config, nil, createLoader))
 	http.HandleFunc("/migrations", makeHandler(migrationsHandler, config, createConnector, createLoader))
 	http.HandleFunc("/tenants", makeHandler(tenantsHandler, config, createConnector, createLoader))
+}
+
+func verifyMigrations(w http.ResponseWriter, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) bool {
+	verified, offendingMigrations, err := core.VerifyMigrations(config, createConnector, createLoader)
+	if err != nil {
+		errorInternalServerErrorResponse(w, err)
+		return false
+	}
+	if !verified {
+		log.Printf("Checksum verification failed.")
+		errorResponse(w, http.StatusFailedDependency, struct {
+			ErrorMessage        string
+			OffendingMigrations []types.Migration
+		}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
+	}
+	return verified
 }
 
 // Start starts simple Migrator API endpoint using config passed as first argument

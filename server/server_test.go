@@ -2,12 +2,17 @@ package server
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/db"
+	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +91,29 @@ func TestServerTenantsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+}
+
+type errReader int
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("trouble maker")
+}
+
+func TestServerTenantsPostIOError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", errReader(0))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"ErrorMessage":"trouble maker"}`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerTenantsPostBadRequest(t *testing.T) {
@@ -132,7 +159,7 @@ func TestServerDiskMigrationsGet(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerMigrationsGet(t *testing.T) {
@@ -162,7 +189,7 @@ func TestServerMigrationsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":1,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestServerMigrationsPostFailedDependency(t *testing.T) {
@@ -250,6 +277,30 @@ func TestServerConfigMethodNotAllowed(t *testing.T) {
 		handler(w, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	}
+
+}
+
+func TestServerInternalServerErrorGetRequests(t *testing.T) {
+	c, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	requests := []struct {
+		method          string
+		path            string
+		handler         func(http.ResponseWriter, *http.Request, *config.Config, func(*config.Config) db.Connector, func(*config.Config) loader.Loader)
+		createConnector func(config *config.Config) db.Connector
+		payload         io.Reader
+	}{{http.MethodGet, "tenants", tenantsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "tenants", tenantsHandler, createMockedErrorConnector, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))}, {http.MethodPost, "tenants", tenantsHandler, createMockedPassingVerificationErrorConnector, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))}, {http.MethodGet, "dbMigrations", migrationsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "migrations", migrationsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "migrations", migrationsHandler, createMockedPassingVerificationErrorConnector, nil}}
+
+	for _, r := range requests {
+		req, _ := http.NewRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)
+
+		w := httptest.NewRecorder()
+		handler := makeHandler(r.handler, c, r.createConnector, createMockedDiskLoader)
+		handler(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	}
 
 }

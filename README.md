@@ -167,7 +167,7 @@ cd migrator
 ./setup.sh
 ```
 
-Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all built on Travis).
+Migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
 
 # Contributing, code style, running unit & integration tests
 

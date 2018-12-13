@@ -37,7 +37,8 @@ func createBrokenCheckSumMockedDiskLoader(config *config.Config) loader.Loader {
 type mockedConnector struct {
 }
 
-func (m *mockedConnector) Init() {
+func (m *mockedConnector) Init() error {
+	return nil
 }
 
 func (m *mockedConnector) Dispose() {
@@ -51,33 +52,28 @@ func (m *mockedConnector) GetTenantSelectSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetMigrationInsertSQL() string {
-	return ""
-}
-
 func (m *mockedConnector) GetTenantInsertSQL() string {
 	return ""
 }
 
-func (m *mockedConnector) GetTenants() []string {
-	return []string{"a", "b", "c"}
+func (m *mockedConnector) GetTenants() ([]string, error) {
+	return []string{"a", "b", "c"}, nil
 }
 
-func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) {
+func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
+	return nil
 }
 
-func (m *mockedConnector) GetDBMigrations() []types.MigrationDB {
+func (m *mockedConnector) GetDBMigrations() ([]types.MigrationDB, error) {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, CheckSum: "abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	ms := []types.MigrationDB{{Migration: m1, Schema: "source", Created: d1}}
 
-	return ms
+	return ms, nil
 }
 
-func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) {
-}
-
-func (m *mockedConnector) applyMigrationsWithInsertMigrationSQL(migrations []types.Migration, insertMigrationSQL string) {
+func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) error {
+	return nil
 }
 
 func createMockedConnector(config *config.Config) db.Connector {

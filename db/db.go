@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -12,14 +13,14 @@ import (
 
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
-	Init()
+	Init() error
 	GetTenantSelectSQL() string
 	GetTenantInsertSQL() string
-	AddTenantAndApplyMigrations(string, []types.Migration)
-	GetTenants() []string
+	AddTenantAndApplyMigrations(string, []types.Migration) error
+	GetTenants() ([]string, error)
 	GetSchemaPlaceHolder() string
-	GetDBMigrations() []types.MigrationDB
-	ApplyMigrations(migrations []types.Migration)
+	GetDBMigrations() ([]types.MigrationDB, error)
+	ApplyMigrations(migrations []types.Migration) error
 	Dispose()
 }
 
@@ -45,42 +46,47 @@ const (
 )
 
 // Init initialises connector by opening a connection to database
-func (bc *BaseConnector) Init() {
+func (bc *BaseConnector) Init() error {
 	db, err := sql.Open(bc.Config.Driver, bc.Config.DataSource)
 	if err != nil {
-		log.Panicf("Failed to create database connection: %v", err)
+		return err
 	}
+	return bc.doInit(db)
+}
+
+// Init initialises connector by opening a connection to database
+func (bc *BaseConnector) doInit(db *sql.DB) error {
 	if err := db.Ping(); err != nil {
-		log.Panicf("Failed to connect to database: %v", err)
+		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 	bc.DB = db
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		log.Panicf("Could not start DB transaction: %v", err)
+		return fmt.Errorf("Could not start DB transaction: %v", err)
 	}
 
 	// make sure migrator schema exists
 	createSchema := bc.Dialect.GetCreateSchemaSQL(migratorSchema)
 	if _, err := bc.DB.Query(createSchema); err != nil {
-		log.Panicf("Could not create migrator schema: %v", err)
+		return fmt.Errorf("Could not create migrator schema: %v", err)
 	}
 
 	// make sure migrations table exists
 	createMigrationsTable := bc.Dialect.GetCreateMigrationsTableSQL()
 	if _, err := bc.DB.Query(createMigrationsTable); err != nil {
-		log.Panicf("Could not create migrations table: %v", err)
+		return fmt.Errorf("Could not create migrations table: %v", err)
 	}
 
 	// if using default migrator tenants table make sure it exists
 	if bc.Config.TenantSelectSQL == "" {
 		createTenantsTable := bc.Dialect.GetCreateTenantsTableSQL()
 		if _, err := bc.DB.Query(createTenantsTable); err != nil {
-			log.Panicf("Could not create default tenants table: %v", err)
+			return fmt.Errorf("Could not create default tenants table: %v", err)
 		}
 	}
 
-	tx.Commit()
+	return tx.Commit()
 }
 
 // Dispose closes all resources allocated by connector
@@ -102,34 +108,36 @@ func (bc *BaseConnector) GetTenantSelectSQL() string {
 }
 
 // GetTenants returns a list of all DB tenants
-func (bc *BaseConnector) GetTenants() []string {
+func (bc *BaseConnector) GetTenants() (tenants []string, err error) {
 	tenantSelectSQL := bc.GetTenantSelectSQL()
 
 	rows, err := bc.DB.Query(tenantSelectSQL)
 	if err != nil {
-		log.Panicf("Could not query tenants: %v", err)
+		err = fmt.Errorf("Could not query tenants: %v", err)
+		return
 	}
-	var tenants []string
+
 	for rows.Next() {
 		var name string
-		if err := rows.Scan(&name); err != nil {
-			log.Panicf("Could not read tenants: %v", err)
+		if err = rows.Scan(&name); err != nil {
+			err = fmt.Errorf("Could not read tenants: %v", err)
+			return
 		}
 		tenants = append(tenants, name)
 	}
-	return tenants
+	return
 }
 
 // GetDBMigrations returns a list of all applied DB migrations
-func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
+func (bc *BaseConnector) GetDBMigrations() (dbMigrations []types.MigrationDB, err error) {
 	query := bc.Dialect.GetMigrationSelectSQL()
 
 	rows, err := bc.DB.Query(query)
 	if err != nil {
-		log.Panicf("Could not query DB migrations: %v", err)
+		err = fmt.Errorf("Could not query DB migrations: %v", err)
+		return
 	}
 
-	var dbMigrations []types.MigrationDB
 	for rows.Next() {
 		var (
 			name          string
@@ -141,46 +149,78 @@ func (bc *BaseConnector) GetDBMigrations() []types.MigrationDB {
 			contents      string
 			checksum      string
 		)
-		if err := rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created, &contents, &checksum); err != nil {
-			log.Panicf("Could not read DB migration: %v", err)
+		if err = rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created, &contents, &checksum); err != nil {
+			err = fmt.Errorf("Could not read DB migration: %v", err)
+			return
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
 		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, Created: created})
 	}
 
-	return dbMigrations
+	return
 }
 
 // ApplyMigrations applies passed migrations
-func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) {
+func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) (err error) {
 	if len(migrations) == 0 {
 		return
 	}
 
-	tenants := bc.GetTenants()
+	tenants, err := bc.GetTenants()
+	if err != nil {
+		return
+	}
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		log.Panicf("Could not start DB transaction: %v", err)
+		return
 	}
 
-	bc.applyMigrationsInTx(tx, tenants, migrations)
+	defer func() {
+		r := recover()
+		if r == nil {
+			err = tx.Commit()
+		} else {
+			log.Println("Recovered in ApplyMigrations. Transaction rollback.")
+			tx.Rollback()
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("%v", r)
+			}
+		}
+	}()
 
-	tx.Commit()
+	bc.applyMigrationsInTx(tx, tenants, migrations)
+	return
 }
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
-func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) {
+func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) (err error) {
 	tenantInsertSQL := bc.GetTenantInsertSQL()
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
-		log.Panicf("Could not start DB transaction: %v", err)
+		return
 	}
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			err = tx.Commit()
+		} else {
+			log.Println("Recovered in AddTenantAndApplyMigrations. Transaction rollback.")
+			tx.Rollback()
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("%v", r)
+			}
+		}
+	}()
 
 	createSchema := bc.Dialect.GetCreateSchemaSQL(tenant)
 	if _, err = tx.Exec(createSchema); err != nil {
-		tx.Rollback()
 		log.Panicf("Create schema failed, transaction rollback was called: %v", err)
 	}
 
@@ -191,13 +231,12 @@ func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 
 	_, err = tx.Stmt(insert).Exec(tenant)
 	if err != nil {
-		tx.Rollback()
-		log.Panicf("Failed to add tenant entry, transaction rollback was called: %v", err)
+		log.Panicf("Failed to add tenant entry: %v", err)
 	}
 
 	bc.applyMigrationsInTx(tx, []string{tenant}, migrations)
 
-	tx.Commit()
+	return
 }
 
 // GetTenantInsertSQL returns tenant insert SQL statement from configuration file
@@ -250,14 +289,12 @@ func (bc *BaseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migra
 
 			_, err = tx.Exec(contents)
 			if err != nil {
-				tx.Rollback()
-				log.Panicf("SQL failed, transaction rollback was called: %v %v", err, contents)
+				log.Panicf("SQL migration failed: %v", err)
 			}
 
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum)
 			if err != nil {
-				tx.Rollback()
-				log.Panicf("Failed to add migration entry, transaction rollback was called: %v", err)
+				log.Panicf("Failed to add migration entry: %v", err)
 			}
 		}
 
