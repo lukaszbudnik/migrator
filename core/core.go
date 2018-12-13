@@ -167,7 +167,13 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 			log.Printf("Checksum verification failed.")
 			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
 		} else {
-			AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+			migrationsApplied, err := AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+			if err != nil {
+				return err
+			}
+			if len(migrationsApplied) > 0 {
+				log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
+			}
 		}
 	case GetDBTenantsAction:
 		dbTenants, err := GetDBTenants(config, createConnector)
@@ -201,14 +207,18 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 
 func doApplyMigrations(migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) error {
 	connector := createConnector(config)
-	connector.Init()
+	if err := connector.Init(); err != nil {
+		return err
+	}
 	defer connector.Dispose()
 	return connector.ApplyMigrations(migrationsToApply)
 }
 
 func doAddTenantAndApplyMigrations(tenant string, migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) error {
 	connector := createConnector(config)
-	connector.Init()
+	if err := connector.Init(); err != nil {
+		return err
+	}
 	defer connector.Dispose()
 	return connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
 }

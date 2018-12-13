@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"time"
 
 	"github.com/lukaszbudnik/migrator/config"
@@ -14,7 +15,7 @@ type mockedDiskLoader struct {
 
 func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc", CheckSum: "abc"}
-	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select def", CheckSum: "def"}
+	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeTenantSchema, Contents: "select def", CheckSum: "def"}
 	return []types.Migration{m1, m2}
 }
 
@@ -78,4 +79,92 @@ func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) error {
 
 func createMockedConnector(config *config.Config) db.Connector {
 	return new(mockedConnector)
+}
+
+type mockedErrorConnector struct {
+}
+
+func (m *mockedErrorConnector) Init() error {
+	return errors.New("trouble maker")
+}
+
+func (m *mockedErrorConnector) Dispose() {
+}
+
+func (m *mockedErrorConnector) GetSchemaPlaceHolder() string {
+	return ""
+}
+
+func (m *mockedErrorConnector) GetTenantSelectSQL() string {
+	return ""
+}
+
+func (m *mockedErrorConnector) GetTenantInsertSQL() string {
+	return ""
+}
+
+func (m *mockedErrorConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
+	return errors.New("trouble maker")
+}
+
+func (m *mockedErrorConnector) GetTenants() ([]string, error) {
+	return []string{}, errors.New("trouble maker")
+}
+
+func (m *mockedErrorConnector) GetDBMigrations() ([]types.MigrationDB, error) {
+	return []types.MigrationDB{}, errors.New("trouble maker")
+}
+
+func (m *mockedErrorConnector) ApplyMigrations(migrations []types.Migration) error {
+	return errors.New("trouble maker")
+}
+
+func createMockedErrorConnector(config *config.Config) db.Connector {
+	return new(mockedErrorConnector)
+}
+
+type mockedPassingVerificationErrorConnector struct {
+}
+
+func (m *mockedPassingVerificationErrorConnector) Init() error {
+	return nil
+}
+
+func (m *mockedPassingVerificationErrorConnector) Dispose() {
+}
+
+func (m *mockedPassingVerificationErrorConnector) GetSchemaPlaceHolder() string {
+	return ""
+}
+
+func (m *mockedPassingVerificationErrorConnector) GetTenantSelectSQL() string {
+	return ""
+}
+
+func (m *mockedPassingVerificationErrorConnector) GetTenantInsertSQL() string {
+	return ""
+}
+
+func (m *mockedPassingVerificationErrorConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
+	return errors.New("trouble maker")
+}
+
+func (m *mockedPassingVerificationErrorConnector) GetTenants() ([]string, error) {
+	return []string{}, errors.New("trouble maker")
+}
+
+func (m *mockedPassingVerificationErrorConnector) GetDBMigrations() ([]types.MigrationDB, error) {
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, CheckSum: "abc"}
+	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
+	ms := []types.MigrationDB{{Migration: m1, Schema: "source", Created: d1}}
+
+	return ms, nil
+}
+
+func (m *mockedPassingVerificationErrorConnector) ApplyMigrations(migrations []types.Migration) error {
+	return errors.New("trouble maker")
+}
+
+func createMockedPassingVerificationErrorConnector(config *config.Config) db.Connector {
+	return new(mockedPassingVerificationErrorConnector)
 }

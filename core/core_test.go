@@ -75,3 +75,59 @@ func TestAddTenantVerificationFailed(t *testing.T) {
 	executeFlags.Action = AddTenantAction
 	doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
 }
+
+// todo 81%
+
+func TestGetDBTenantsError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDBTenantsAction
+	err = doExecuteMigrator(config, executeFlags, createMockedErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestGetDBMigrationsError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDBMigrationsAction
+	err = doExecuteMigrator(config, executeFlags, createMockedErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestApplyMigrationsError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	err = doExecuteMigrator(config, executeFlags, createMockedErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestApplyMigrationsPassingVerificationError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	err = doExecuteMigrator(config, executeFlags, createMockedPassingVerificationErrorConnector, createMockedDiskLoader)
+	// assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestAddTenantError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = AddTenantAction
+	err = doExecuteMigrator(config, executeFlags, createMockedErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestAddTenantPassingVerificationError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = AddTenantAction
+	err = doExecuteMigrator(config, executeFlags, createMockedPassingVerificationErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
