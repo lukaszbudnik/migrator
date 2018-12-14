@@ -157,10 +157,10 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantSelectSQL := connector.GetTenantSelectSQL()
+	tenantSelectSQL := connector.getTenantSelectSQL()
 
 	assert.Equal(t, "select name from migrator.migrator_tenants", tenantSelectSQL)
 }
@@ -169,10 +169,10 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantSelectSQL := connector.GetTenantSelectSQL()
+	tenantSelectSQL := connector.getTenantSelectSQL()
 
 	assert.Equal(t, "select somename from someschema.sometable", tenantSelectSQL)
 }
@@ -181,10 +181,10 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	placeholder := connector.GetSchemaPlaceHolder()
+	placeholder := connector.getSchemaPlaceHolder()
 
 	assert.Equal(t, "{schema}", placeholder)
 }
@@ -193,10 +193,10 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	placeholder := connector.GetSchemaPlaceHolder()
+	placeholder := connector.getSchemaPlaceHolder()
 
 	assert.Equal(t, "[schema]", placeholder)
 }
@@ -205,7 +205,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	connector.Init()
 	defer connector.Dispose()
 
@@ -280,10 +280,10 @@ func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantInsertSQL := connector.GetTenantInsertSQL()
+	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (?)", tenantInsertSQL)
 }
@@ -293,10 +293,10 @@ func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantInsertSQL := connector.GetTenantInsertSQL()
+	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_tenants (name) values ($1)", tenantInsertSQL)
 }
@@ -306,10 +306,10 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantInsertSQL := connector.GetTenantInsertSQL()
+	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into migrator.migrator_tenants (name) values (@p1)", tenantInsertSQL)
 }
@@ -318,10 +318,10 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector := BaseConnector{config, CreateDialect(config), nil}
 	defer connector.Dispose()
 
-	tenantInsertSQL := connector.GetTenantInsertSQL()
+	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
 }

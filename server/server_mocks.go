@@ -56,18 +56,6 @@ func (m *mockedConnector) Init() error {
 func (m *mockedConnector) Dispose() {
 }
 
-func (m *mockedConnector) GetSchemaPlaceHolder() string {
-	return ""
-}
-
-func (m *mockedConnector) GetTenantSelectSQL() string {
-	return ""
-}
-
-func (m *mockedConnector) GetTenantInsertSQL() string {
-	return ""
-}
-
 func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
 	return nil
 }
@@ -102,18 +90,6 @@ func (m *mockedErrorConnector) Init() error {
 func (m *mockedErrorConnector) Dispose() {
 }
 
-func (m *mockedErrorConnector) GetSchemaPlaceHolder() string {
-	return ""
-}
-
-func (m *mockedErrorConnector) GetTenantSelectSQL() string {
-	return ""
-}
-
-func (m *mockedErrorConnector) GetTenantInsertSQL() string {
-	return ""
-}
-
 func (m *mockedErrorConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
 	return errors.New("trouble maker")
 }
@@ -142,18 +118,6 @@ func (m *mockedPassingVerificationErrorConnector) Init() error {
 }
 
 func (m *mockedPassingVerificationErrorConnector) Dispose() {
-}
-
-func (m *mockedPassingVerificationErrorConnector) GetSchemaPlaceHolder() string {
-	return ""
-}
-
-func (m *mockedPassingVerificationErrorConnector) GetTenantSelectSQL() string {
-	return ""
-}
-
-func (m *mockedPassingVerificationErrorConnector) GetTenantInsertSQL() string {
-	return ""
 }
 
 func (m *mockedPassingVerificationErrorConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {

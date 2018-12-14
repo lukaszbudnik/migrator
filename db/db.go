@@ -14,13 +14,10 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	Init() error
-	GetTenantSelectSQL() string
-	GetTenantInsertSQL() string
-	AddTenantAndApplyMigrations(string, []types.Migration) error
 	GetTenants() ([]string, error)
-	GetSchemaPlaceHolder() string
 	GetDBMigrations() ([]types.MigrationDB, error)
 	ApplyMigrations(migrations []types.Migration) error
+	AddTenantAndApplyMigrations(string, []types.Migration) error
 	Dispose()
 }
 
@@ -96,8 +93,8 @@ func (bc *BaseConnector) Dispose() {
 	}
 }
 
-// GetTenantSelectSQL returns SQL to be executed to list all DB tenants
-func (bc *BaseConnector) GetTenantSelectSQL() string {
+// getTenantSelectSQL returns SQL to be executed to list all DB tenants
+func (bc *BaseConnector) getTenantSelectSQL() string {
 	var tenantSelectSQL string
 	if bc.Config.TenantSelectSQL != "" {
 		tenantSelectSQL = bc.Config.TenantSelectSQL
@@ -109,7 +106,7 @@ func (bc *BaseConnector) GetTenantSelectSQL() string {
 
 // GetTenants returns a list of all DB tenants
 func (bc *BaseConnector) GetTenants() (tenants []string, err error) {
-	tenantSelectSQL := bc.GetTenantSelectSQL()
+	tenantSelectSQL := bc.getTenantSelectSQL()
 
 	rows, err := bc.DB.Query(tenantSelectSQL)
 	if err != nil {
@@ -197,7 +194,7 @@ func (bc *BaseConnector) ApplyMigrations(migrations []types.Migration) (err erro
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
 func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) (err error) {
-	tenantInsertSQL := bc.GetTenantInsertSQL()
+	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.DB.Begin()
 	if err != nil {
@@ -239,9 +236,9 @@ func (bc *BaseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 	return
 }
 
-// GetTenantInsertSQL returns tenant insert SQL statement from configuration file
+// getTenantInsertSQL returns tenant insert SQL statement from configuration file
 // or, if absent, returns default Dialect-specific migrator tenant insert SQL
-func (bc *BaseConnector) GetTenantInsertSQL() string {
+func (bc *BaseConnector) getTenantInsertSQL() string {
 	var tenantInsertSQL string
 	// if set explicitly in config use it
 	// otherwise use default value provided by Dialect implementation
@@ -255,7 +252,7 @@ func (bc *BaseConnector) GetTenantInsertSQL() string {
 
 // GetSchemaPlaceHolder returns a schema placeholder which is
 // either the default one or overridden by user in config
-func (bc *BaseConnector) GetSchemaPlaceHolder() string {
+func (bc *BaseConnector) getSchemaPlaceHolder() string {
 	var schemaPlaceHolder string
 	if bc.Config.SchemaPlaceHolder != "" {
 		schemaPlaceHolder = bc.Config.SchemaPlaceHolder
@@ -266,7 +263,7 @@ func (bc *BaseConnector) GetSchemaPlaceHolder() string {
 }
 
 func (bc *BaseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration) {
-	schemaPlaceHolder := bc.GetSchemaPlaceHolder()
+	schemaPlaceHolder := bc.getSchemaPlaceHolder()
 
 	insertMigrationSQL := bc.Dialect.GetMigrationInsertSQL()
 	insert, err := bc.DB.Prepare(insertMigrationSQL)
