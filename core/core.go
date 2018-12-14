@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -43,10 +44,9 @@ type ExecuteFlags struct {
 
 // GetDiskMigrations is a function which loads all migrations from disk as defined in config passed as first argument
 // and using loader created by a function passed as second argument
-func GetDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) []types.Migration {
+func GetDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) ([]types.Migration, error) {
 	loader := createLoader(config)
-	diskMigrations := loader.GetDiskMigrations()
-	return diskMigrations
+	return loader.GetDiskMigrations()
 }
 
 // GetDBTenants is a function which loads all tenants for multi-tenant schemas from DB as defined in config passed as first argument
@@ -74,7 +74,10 @@ func GetDBMigrations(config *config.Config, createConnector func(*config.Config)
 // ApplyMigrations is a function which applies disk migrations to DB as defined in config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) (migrationsToApply []types.Migration, err error) {
-	diskMigrations := GetDiskMigrations(config, createLoader)
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return
+	}
 	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
 	dbMigrations, err := GetDBMigrations(config, createConnector)
@@ -98,31 +101,37 @@ func ApplyMigrations(config *config.Config, createConnector func(*config.Config)
 }
 
 // AddTenant creates new tenant in DB and applies all tenant migrations
-func AddTenant(tenant string, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) ([]types.Migration, error) {
+func AddTenant(tenant string, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) (migrationsToApply []types.Migration, err error) {
 
-	diskMigrations := GetDiskMigrations(config, createLoader)
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return
+	}
 	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
 	// filter only tenant schemas
-	// var migrationsToApply []types.Migration
-	migrationsToApply := migrations.FilterTenantMigrations(diskMigrations)
+	migrationsToApply = migrations.FilterTenantMigrations(diskMigrations)
 	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
 
-	err := doAddTenantAndApplyMigrations(tenant, migrationsToApply, config, createConnector)
+	err = doAddTenantAndApplyMigrations(tenant, migrationsToApply, config, createConnector)
 	if err != nil {
-		return []types.Migration{}, err
+		return
 	}
 
 	text := fmt.Sprintf("Tenant %q added, migrations applied: %d", tenant, len(migrationsToApply))
 	sendNotification(config, text)
 
-	return migrationsToApply, nil
+	return
 }
 
 // VerifyMigrations loads disk and db migrations and verifies their checksums
 // see migrations.VerifyCheckSums for more information
 func VerifyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) (bool, []types.Migration, error) {
-	diskMigrations := GetDiskMigrations(config, createLoader)
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return false, []types.Migration{}, err
+	}
+
 	dbMigrations, err := GetDBMigrations(config, createConnector)
 	if err != nil {
 		return false, []types.Migration{}, err
@@ -145,7 +154,10 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 	case PrintConfigAction:
 		log.Printf("Configuration file ==>\n%v\n", config)
 	case GetDiskMigrationsAction:
-		diskMigrations := GetDiskMigrations(config, createLoader)
+		diskMigrations, err := GetDiskMigrations(config, createLoader)
+		if err != nil {
+			return err
+		}
 		if len(diskMigrations) > 0 {
 			log.Printf("List of disk migrations\n%v", utils.MigrationArrayToString(diskMigrations))
 		}
@@ -166,14 +178,15 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 		if !verified {
 			log.Printf("Checksum verification failed.")
 			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
-		} else {
-			migrationsApplied, err := AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
-			if err != nil {
-				return err
-			}
-			if len(migrationsApplied) > 0 {
-				log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
-			}
+			return errors.New("Checksum verification failed")
+		}
+
+		migrationsApplied, err := AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+		if err != nil {
+			return err
+		}
+		if len(migrationsApplied) > 0 {
+			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	case GetDBTenantsAction:
 		dbTenants, err := GetDBTenants(config, createConnector)
@@ -192,14 +205,14 @@ func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createC
 		if !verified {
 			log.Printf("Checksum verification failed.")
 			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
-		} else {
-			migrationsApplied, err := ApplyMigrations(config, createConnector, createLoader)
-			if err != nil {
-				return err
-			}
-			if len(migrationsApplied) > 0 {
-				log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
-			}
+			return errors.New("Checksum verification failed")
+		}
+		migrationsApplied, err := ApplyMigrations(config, createConnector, createLoader)
+		if err != nil {
+			return err
+		}
+		if len(migrationsApplied) > 0 {
+			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	}
 	return nil

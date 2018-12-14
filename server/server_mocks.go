@@ -13,26 +13,37 @@ import (
 type mockedDiskLoader struct {
 }
 
-func (m *mockedDiskLoader) GetDiskMigrations() []types.Migration {
+func (m *mockedDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc"}
 	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeTenantSchema, Contents: "select def"}
-	return []types.Migration{m1, m2}
+	return []types.Migration{m1, m2}, nil
+}
+
+func createMockedDiskLoader(config *config.Config) loader.Loader {
+	return new(mockedDiskLoader)
 }
 
 type mockedBrokenCheckSumDiskLoader struct {
 }
 
-func (m *mockedBrokenCheckSumDiskLoader) GetDiskMigrations() []types.Migration {
+func (m *mockedBrokenCheckSumDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc", CheckSum: "xxx"}
-	return []types.Migration{m1}
+	return []types.Migration{m1}, nil
 }
 
 func createBrokenCheckSumMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedBrokenCheckSumDiskLoader)
 }
 
-func createMockedDiskLoader(config *config.Config) loader.Loader {
-	return new(mockedDiskLoader)
+type mockedErrorDiskLoader struct {
+}
+
+func (m *mockedErrorDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
+	return []types.Migration{}, errors.New("disk trouble maker")
+}
+
+func createMockedErrorDiskLoader(config *config.Config) loader.Loader {
+	return new(mockedErrorDiskLoader)
 }
 
 type mockedConnector struct {

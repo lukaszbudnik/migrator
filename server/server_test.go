@@ -290,14 +290,21 @@ func TestServerInternalServerErrorGetRequests(t *testing.T) {
 		path            string
 		handler         func(http.ResponseWriter, *http.Request, *config.Config, func(*config.Config) db.Connector, func(*config.Config) loader.Loader)
 		createConnector func(config *config.Config) db.Connector
+		createLoader    func(config *config.Config) loader.Loader
 		payload         io.Reader
-	}{{http.MethodGet, "tenants", tenantsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "tenants", tenantsHandler, createMockedErrorConnector, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))}, {http.MethodPost, "tenants", tenantsHandler, createMockedPassingVerificationErrorConnector, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))}, {http.MethodGet, "dbMigrations", migrationsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "migrations", migrationsHandler, createMockedErrorConnector, nil}, {http.MethodPost, "migrations", migrationsHandler, createMockedPassingVerificationErrorConnector, nil}}
+	}{{http.MethodGet, "tenants", tenantsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
+		{http.MethodPost, "tenants", tenantsHandler, createMockedErrorConnector, createMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
+		{http.MethodPost, "tenants", tenantsHandler, createMockedPassingVerificationErrorConnector, createMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
+		{http.MethodGet, "migrations", migrationsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
+		{http.MethodPost, "migrations", migrationsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
+		{http.MethodPost, "migrations", migrationsHandler, createMockedPassingVerificationErrorConnector, createMockedDiskLoader, nil},
+		{http.MethodGet, "diskMigrations", diskMigrationsHandler, createMockedConnector, createMockedErrorDiskLoader, nil}}
 
 	for _, r := range requests {
 		req, _ := http.NewRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)
 
 		w := httptest.NewRecorder()
-		handler := makeHandler(r.handler, c, r.createConnector, createMockedDiskLoader)
+		handler := makeHandler(r.handler, c, r.createConnector, r.createLoader)
 		handler(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)

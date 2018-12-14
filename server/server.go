@@ -77,7 +77,10 @@ func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *confi
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
-	diskMigrations := core.GetDiskMigrations(config, createLoader)
+	diskMigrations, err := core.GetDiskMigrations(config, createLoader)
+	if err != nil {
+		errorInternalServerErrorResponse(w, err)
+	}
 	jsonResponse(w, diskMigrations)
 }
 

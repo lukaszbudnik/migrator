@@ -2,13 +2,14 @@ package config
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/validator.v2"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/validator.v2"
+	"gopkg.in/yaml.v2"
 )
 
 func noopLogger() *log.Logger {
@@ -63,13 +64,13 @@ slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX`
 	assert.Equal(t, expected, actual)
 }
 
-func TestConfigPanicFromEmptyFile(t *testing.T) {
+func TestConfigReadFromEmptyFileError(t *testing.T) {
 	config, err := FromFile("../test/empty.yaml")
 	assert.Nil(t, config)
 	assert.IsType(t, (validator.ErrorMap)(nil), err, "Should error because of validation errors")
 }
 
-func TestConfigPanicFromNonExistingFile(t *testing.T) {
+func TestConfigReadFromNonExistingFileError(t *testing.T) {
 	config, err := FromFile("abcxyz.yaml")
 	assert.Nil(t, config)
 	assert.IsType(t, (*os.PathError)(nil), err, "Should error because non-existing file")

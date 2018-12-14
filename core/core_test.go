@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,8 @@ func TestPrintConfig(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = PrintConfigAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	assert.Nil(t, err)
 }
 
 func TestGetDiskMigrations(t *testing.T) {
@@ -25,7 +27,17 @@ func TestGetDiskMigrations(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = GetDiskMigrationsAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	assert.Nil(t, err)
+}
+
+func TestGetDiskMigrationsError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = GetDiskMigrationsAction
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedErrorDiskLoader)
+	assert.Equal(t, "disk trouble maker", err.Error())
 }
 
 func TestGetDBTenants(t *testing.T) {
@@ -33,7 +45,8 @@ func TestGetDBTenants(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = GetDBTenantsAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	assert.Nil(t, err)
 }
 
 func TestGetDBMigrations(t *testing.T) {
@@ -41,7 +54,8 @@ func TestGetDBMigrations(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = GetDBMigrationsAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	assert.Nil(t, err)
 }
 
 func TestApplyMigrations(t *testing.T) {
@@ -49,7 +63,8 @@ func TestApplyMigrations(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = ApplyAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedDiskLoader)
+	assert.Nil(t, err)
 }
 
 func TestApplyMigrationsVerificationFailed(t *testing.T) {
@@ -57,7 +72,8 @@ func TestApplyMigrationsVerificationFailed(t *testing.T) {
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = ApplyAction
-	doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	assert.Equal(t, "Checksum verification failed", err.Error())
 }
 
 func TestAddTenant(t *testing.T) {
@@ -75,8 +91,6 @@ func TestAddTenantVerificationFailed(t *testing.T) {
 	executeFlags.Action = AddTenantAction
 	doExecuteMigrator(config, executeFlags, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
 }
-
-// todo 81%
 
 func TestGetDBTenantsError(t *testing.T) {
 	config, err := config.FromFile(configFile)
@@ -96,13 +110,36 @@ func TestGetDBMigrationsError(t *testing.T) {
 	assert.Equal(t, "trouble maker", err.Error())
 }
 
-func TestApplyMigrationsError(t *testing.T) {
+func TestApplyMigrationsDBError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = ApplyAction
 	err = doExecuteMigrator(config, executeFlags, createMockedErrorConnector, createMockedDiskLoader)
 	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestApplyMigrationsDirectDBError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	_, err = ApplyMigrations(config, createMockedErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestApplyMigrationsDiskError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	err = doExecuteMigrator(config, executeFlags, createMockedConnector, createMockedErrorDiskLoader)
+	assert.Equal(t, "disk trouble maker", err.Error())
+}
+
+func TestApplyMigrationsDirectDiskError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	_, err = ApplyMigrations(config, createMockedConnector, createMockedErrorDiskLoader)
+	assert.Equal(t, "disk trouble maker", err.Error())
 }
 
 func TestApplyMigrationsPassingVerificationError(t *testing.T) {
@@ -111,10 +148,19 @@ func TestApplyMigrationsPassingVerificationError(t *testing.T) {
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = ApplyAction
 	err = doExecuteMigrator(config, executeFlags, createMockedPassingVerificationErrorConnector, createMockedDiskLoader)
-	// assert.Equal(t, "trouble maker", err.Error())
+	assert.Equal(t, "trouble maker", err.Error())
 }
 
-func TestAddTenantError(t *testing.T) {
+func TestDoApplyMigrationsDBError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = ApplyAction
+	err = doApplyMigrations([]types.Migration{}, config, createMockedErrorConnector)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestAddTenantDBError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
@@ -123,11 +169,27 @@ func TestAddTenantError(t *testing.T) {
 	assert.Equal(t, "trouble maker", err.Error())
 }
 
+func TestAddTenantDirectDiskError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	_, err = AddTenant("tenant", config, createMockedConnector, createMockedErrorDiskLoader)
+	assert.Equal(t, "disk trouble maker", err.Error())
+}
+
 func TestAddTenantPassingVerificationError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 	executeFlags := ExecuteFlags{}
 	executeFlags.Action = AddTenantAction
 	err = doExecuteMigrator(config, executeFlags, createMockedPassingVerificationErrorConnector, createMockedDiskLoader)
+	assert.Equal(t, "trouble maker", err.Error())
+}
+
+func TestDoAddTenantDBError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	executeFlags := ExecuteFlags{}
+	executeFlags.Action = AddTenantAction
+	err = doAddTenantAndApplyMigrations("tencio", []types.Migration{}, config, createMockedErrorConnector)
 	assert.Equal(t, "trouble maker", err.Error())
 }

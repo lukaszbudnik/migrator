@@ -7,7 +7,7 @@ import (
 
 // Loader interface abstracts all loading operations performed by migrator
 type Loader interface {
-	GetDiskMigrations() []types.Migration
+	GetDiskMigrations() ([]types.Migration, error)
 }
 
 // CreateLoader abstracts all loading operations performed by migrator
