@@ -24,7 +24,7 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 func TestBaseConnectorPanicUnknownDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "sfsdf"
-	connector := BaseConnector{config, nil, nil}
+	connector := baseConnector{config, nil, nil}
 	err := connector.Init()
 	assert.Contains(t, err.Error(), "unknown driver")
 }
@@ -165,7 +165,7 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -179,7 +179,7 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -193,7 +193,7 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -207,7 +207,7 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -221,7 +221,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	connector.Init()
 	defer connector.Dispose()
 
@@ -301,7 +301,7 @@ func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 	config.Driver = "mysql"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -316,7 +316,7 @@ func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -331,7 +331,7 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 	config.Driver = "sqlserver"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -345,7 +345,7 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -502,7 +502,7 @@ func TestDoInitCannotBeginTransactionError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "sqlmock"
-	connector := BaseConnector{config, nil, nil}
+	connector := baseConnector{config, nil, nil}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker"))
 
@@ -522,7 +522,7 @@ func TestDoInitCannotCreateMigratorSchema(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -544,7 +544,7 @@ func TestDoInitCannotCreateMigratorMigrationsTable(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -567,7 +567,7 @@ func TestDoInitCannotCreateMigratorTenantsTable(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -591,12 +591,12 @@ func TestDBGetTenantsError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
 
-	connector.DB = db
+	connector.db = db
 
 	_, err = connector.GetTenants()
 	assert.Equal(t, "Could not query tenants: trouble maker", err.Error())
@@ -614,12 +614,12 @@ func TestDBGetMigrationsError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
 
-	connector.DB = db
+	connector.db = db
 
 	_, err = connector.GetDBMigrations()
 	assert.Equal(t, "Could not query DB migrations: trouble maker", err.Error())
@@ -637,13 +637,13 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	rows := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(rows)
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -666,7 +666,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -674,7 +674,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -696,7 +696,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -705,7 +705,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -727,7 +727,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	time := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -742,7 +742,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	err = connector.ApplyMigrations(migrationsToApply)
 	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
@@ -760,11 +760,11 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -787,13 +787,13 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -815,14 +815,14 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -844,7 +844,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenant := "tenant"
 
@@ -854,7 +854,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -876,7 +876,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *test
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenant := "tenant"
 
@@ -887,7 +887,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *test
 	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -909,7 +909,7 @@ func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenant := "tenant"
 
@@ -921,7 +921,7 @@ func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
 	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -943,7 +943,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
 	config.Driver = "postgres"
 	dialect, err := newDialect(config)
 	assert.Nil(t, err)
-	connector := BaseConnector{config, dialect, nil}
+	connector := baseConnector{config, dialect, nil}
 
 	tenant := "tenant"
 	time := time.Now().UnixNano()
@@ -959,7 +959,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.DB = db
+	connector.db = db
 
 	err = connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
 	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
