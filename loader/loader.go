@@ -12,5 +12,5 @@ type Loader interface {
 
 // NewLoader returns new instance of Loader, currently DiskLoader is available
 func NewLoader(config *config.Config) Loader {
-	return &DiskLoader{config}
+	return &diskLoader{config}
 }
