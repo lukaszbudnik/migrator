@@ -76,8 +76,8 @@ func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) error {
 	return nil
 }
 
-func createMockedConnector(config *config.Config) db.Connector {
-	return new(mockedConnector)
+func createMockedConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedConnector), nil
 }
 
 type mockedErrorConnector struct {
@@ -106,8 +106,8 @@ func (m *mockedErrorConnector) ApplyMigrations(migrations []types.Migration) err
 	return errors.New("trouble maker")
 }
 
-func createMockedErrorConnector(config *config.Config) db.Connector {
-	return new(mockedErrorConnector)
+func createMockedErrorConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedErrorConnector), nil
 }
 
 type mockedPassingVerificationErrorConnector struct {
@@ -140,6 +140,6 @@ func (m *mockedPassingVerificationErrorConnector) ApplyMigrations(migrations []t
 	return errors.New("trouble maker")
 }
 
-func createMockedPassingVerificationErrorConnector(config *config.Config) db.Connector {
-	return new(mockedPassingVerificationErrorConnector)
+func createMockedPassingVerificationErrorConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedPassingVerificationErrorConnector), nil
 }

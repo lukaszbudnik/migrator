@@ -24,15 +24,18 @@ type Connector interface {
 // BaseConnector struct is a base struct for implementing DB specific dialects
 type BaseConnector struct {
 	Config  *config.Config
-	Dialect Dialect
+	Dialect dialect
 	DB      *sql.DB
 }
 
-// CreateConnector constructs Connector instance based on the passed Config
-func CreateConnector(config *config.Config) Connector {
-	dialect := CreateDialect(config)
+// NewConnector constructs Connector instance based on the passed Config
+func NewConnector(config *config.Config) (Connector, error) {
+	dialect, err := newDialect(config)
+	if err != nil {
+		return nil, err
+	}
 	connector := &BaseConnector{config, dialect, nil}
-	return connector
+	return connector, nil
 }
 
 const (

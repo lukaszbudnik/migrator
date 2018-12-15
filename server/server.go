@@ -57,13 +57,13 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader), config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) http.HandlerFunc {
+func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader), config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, config, createConnector, createLoader)
+		handler(w, r, config, newConnector, createLoader)
 	}
 }
 
-func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
@@ -72,7 +72,7 @@ func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config
 	fmt.Fprintf(w, "%v", config)
 }
 
-func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) {
 	if r.Method != http.MethodGet {
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
@@ -84,19 +84,19 @@ func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *confi
 	jsonResponse(w, diskMigrations)
 }
 
-func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) {
 	switch r.Method {
 	case http.MethodGet:
-		dbMigrations, err := core.GetDBMigrations(config, createConnector)
+		dbMigrations, err := core.GetDBMigrations(config, newConnector)
 		if err != nil {
 			errorInternalServerErrorResponse(w, err)
 			return
 		}
 		jsonResponse(w, dbMigrations)
 	case http.MethodPost:
-		verified := verifyMigrations(w, config, createConnector, createLoader)
+		verified := verifyMigrations(w, config, newConnector, createLoader)
 		if verified {
-			migrationsApplied, err := core.ApplyMigrations(config, createConnector, createLoader)
+			migrationsApplied, err := core.ApplyMigrations(config, newConnector, createLoader)
 			if err != nil {
 				errorInternalServerErrorResponse(w, err)
 				return
@@ -108,10 +108,10 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 	}
 }
 
-func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) {
 	switch r.Method {
 	case http.MethodGet:
-		tenants, err := core.GetDBTenants(config, createConnector)
+		tenants, err := core.GetDBTenants(config, newConnector)
 		if err != nil {
 			errorInternalServerErrorResponse(w, err)
 			return
@@ -129,9 +129,9 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 			errorResponseStatusErrorMessage(w, http.StatusBadRequest, "400 bad request")
 			return
 		}
-		verified := verifyMigrations(w, config, createConnector, createLoader)
+		verified := verifyMigrations(w, config, newConnector, createLoader)
 		if verified {
-			migrationsApplied, err := core.AddTenant(param.Name, config, createConnector, createLoader)
+			migrationsApplied, err := core.AddTenant(param.Name, config, newConnector, createLoader)
 			if err != nil {
 				errorResponseStatusErrorMessage(w, http.StatusInternalServerError, err.Error())
 				return
@@ -143,15 +143,15 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 	}
 }
 
-func registerHandlers(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func registerHandlers(config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) {
 	http.HandleFunc("/", makeHandler(configHandler, config, nil, nil))
 	http.HandleFunc("/diskMigrations", makeHandler(diskMigrationsHandler, config, nil, createLoader))
-	http.HandleFunc("/migrations", makeHandler(migrationsHandler, config, createConnector, createLoader))
-	http.HandleFunc("/tenants", makeHandler(tenantsHandler, config, createConnector, createLoader))
+	http.HandleFunc("/migrations", makeHandler(migrationsHandler, config, newConnector, createLoader))
+	http.HandleFunc("/tenants", makeHandler(tenantsHandler, config, newConnector, createLoader))
 }
 
-func verifyMigrations(w http.ResponseWriter, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) bool {
-	verified, offendingMigrations, err := core.VerifyMigrations(config, createConnector, createLoader)
+func verifyMigrations(w http.ResponseWriter, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) bool {
+	verified, offendingMigrations, err := core.VerifyMigrations(config, newConnector, createLoader)
 	if err != nil {
 		errorInternalServerErrorResponse(w, err)
 		return false
@@ -169,7 +169,7 @@ func verifyMigrations(w http.ResponseWriter, config *config.Config, createConnec
 // Start starts simple Migrator API endpoint using config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) {
-	registerHandlers(config, db.CreateConnector, loader.CreateLoader)
+	registerHandlers(config, db.NewConnector, loader.CreateLoader)
 	port := getPort(config)
 	log.Printf("Migrator web server starting on port %s", port)
 	http.ListenAndServe(":"+port, nil)

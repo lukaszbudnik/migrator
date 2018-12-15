@@ -19,7 +19,7 @@ func (m *mockedDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 	return []types.Migration{m1, m2}, nil
 }
 
-func createMockedDiskLoader(config *config.Config) loader.Loader {
+func newMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedDiskLoader)
 }
 
@@ -31,7 +31,7 @@ func (m *mockedBrokenCheckSumDiskLoader) GetDiskMigrations() ([]types.Migration,
 	return []types.Migration{m1}, nil
 }
 
-func createBrokenCheckSumMockedDiskLoader(config *config.Config) loader.Loader {
+func newBrokenCheckSumMockedDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedBrokenCheckSumDiskLoader)
 }
 
@@ -42,7 +42,7 @@ func (m *mockedErrorDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 	return []types.Migration{}, errors.New("disk trouble maker")
 }
 
-func createMockedErrorDiskLoader(config *config.Config) loader.Loader {
+func newMockedErrorDiskLoader(config *config.Config) loader.Loader {
 	return new(mockedErrorDiskLoader)
 }
 
@@ -76,8 +76,8 @@ func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) error {
 	return nil
 }
 
-func createMockedConnector(config *config.Config) db.Connector {
-	return new(mockedConnector)
+func newMockedConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedConnector), nil
 }
 
 type mockedErrorConnector struct {
@@ -106,8 +106,8 @@ func (m *mockedErrorConnector) ApplyMigrations(migrations []types.Migration) err
 	return errors.New("trouble maker")
 }
 
-func createMockedErrorConnector(config *config.Config) db.Connector {
-	return new(mockedErrorConnector)
+func newMockedErrorConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedErrorConnector), nil
 }
 
 type mockedPassingVerificationErrorConnector struct {
@@ -140,6 +140,6 @@ func (m *mockedPassingVerificationErrorConnector) ApplyMigrations(migrations []t
 	return errors.New("trouble maker")
 }
 
-func createMockedPassingVerificationErrorConnector(config *config.Config) db.Connector {
-	return new(mockedPassingVerificationErrorConnector)
+func newMockedPassingVerificationErrorConnector(config *config.Config) (db.Connector, error) {
+	return new(mockedPassingVerificationErrorConnector), nil
 }

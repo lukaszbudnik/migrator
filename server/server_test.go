@@ -69,7 +69,7 @@ func TestServerTenantsGet(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/tenants", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, createMockedConnector, nil)
+	handler := makeHandler(tenantsHandler, config, newMockedConnector, nil)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -86,7 +86,7 @@ func TestServerTenantsPost(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -108,7 +108,7 @@ func TestServerTenantsPostIOError(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -125,7 +125,7 @@ func TestServerTenantsPostBadRequest(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -139,7 +139,7 @@ func TestServerTenantsPostFailedDependency(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	handler := makeHandler(tenantsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusFailedDependency, w.Code)
@@ -154,7 +154,7 @@ func TestServerDiskMigrationsGet(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/diskMigrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(diskMigrationsHandler, config, nil, createMockedDiskLoader)
+	handler := makeHandler(diskMigrationsHandler, config, nil, newMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -169,7 +169,7 @@ func TestServerMigrationsGet(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, createMockedConnector, nil)
+	handler := makeHandler(migrationsHandler, config, newMockedConnector, nil)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -184,7 +184,7 @@ func TestServerMigrationsPost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, createMockedConnector, createMockedDiskLoader)
+	handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -199,7 +199,7 @@ func TestServerMigrationsPostFailedDependency(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, createMockedConnector, createBrokenCheckSumMockedDiskLoader)
+	handler := makeHandler(migrationsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
 	handler(w, req)
 
 	assert.Equal(t, http.StatusFailedDependency, w.Code)
@@ -217,7 +217,7 @@ func TestServerMigrationsMethodNotAllowed(t *testing.T) {
 		req, _ := http.NewRequest(httpMethod, "http://example.com/migrations", nil)
 
 		w := httptest.NewRecorder()
-		handler := makeHandler(migrationsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
 		handler(w, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
@@ -235,7 +235,7 @@ func TestServerTenantMethodNotAllowed(t *testing.T) {
 		req, _ := http.NewRequest(httpMethod, "http://example.com/tenants", nil)
 
 		w := httptest.NewRecorder()
-		handler := makeHandler(tenantsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
 		handler(w, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
@@ -254,7 +254,7 @@ func TestServerDiskMigrationsMethodNotAllowed(t *testing.T) {
 		req, _ := http.NewRequest(httpMethod, "http://example.com/diskMigrations", nil)
 
 		w := httptest.NewRecorder()
-		handler := makeHandler(diskMigrationsHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler := makeHandler(diskMigrationsHandler, config, newMockedConnector, newMockedDiskLoader)
 		handler(w, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
@@ -273,7 +273,7 @@ func TestServerConfigMethodNotAllowed(t *testing.T) {
 		req, _ := http.NewRequest(httpMethod, "http://example.com/", nil)
 
 		w := httptest.NewRecorder()
-		handler := makeHandler(configHandler, config, createMockedConnector, createMockedDiskLoader)
+		handler := makeHandler(configHandler, config, newMockedConnector, newMockedDiskLoader)
 		handler(w, req)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
@@ -288,17 +288,17 @@ func TestServerInternalServerErrorGetRequests(t *testing.T) {
 	requests := []struct {
 		method          string
 		path            string
-		handler         func(http.ResponseWriter, *http.Request, *config.Config, func(*config.Config) db.Connector, func(*config.Config) loader.Loader)
-		createConnector func(config *config.Config) db.Connector
+		handler         func(http.ResponseWriter, *http.Request, *config.Config, func(*config.Config) (db.Connector, error), func(*config.Config) loader.Loader)
+		createConnector func(config *config.Config) (db.Connector, error)
 		createLoader    func(config *config.Config) loader.Loader
 		payload         io.Reader
-	}{{http.MethodGet, "tenants", tenantsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
-		{http.MethodPost, "tenants", tenantsHandler, createMockedErrorConnector, createMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodPost, "tenants", tenantsHandler, createMockedPassingVerificationErrorConnector, createMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodGet, "migrations", migrationsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, createMockedErrorConnector, createMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, createMockedPassingVerificationErrorConnector, createMockedDiskLoader, nil},
-		{http.MethodGet, "diskMigrations", diskMigrationsHandler, createMockedConnector, createMockedErrorDiskLoader, nil}}
+	}{{http.MethodGet, "tenants", tenantsHandler, newMockedErrorConnector, newMockedDiskLoader, nil},
+		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector, newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
+		{http.MethodPost, "tenants", tenantsHandler, newMockedPassingVerificationErrorConnector, newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
+		{http.MethodGet, "migrations", migrationsHandler, newMockedErrorConnector, newMockedDiskLoader, nil},
+		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector, newMockedDiskLoader, nil},
+		{http.MethodPost, "migrations", migrationsHandler, newMockedPassingVerificationErrorConnector, newMockedDiskLoader, nil},
+		{http.MethodGet, "diskMigrations", diskMigrationsHandler, newMockedConnector, newMockedErrorDiskLoader, nil}}
 
 	for _, r := range requests {
 		req, _ := http.NewRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)

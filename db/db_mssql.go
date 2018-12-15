@@ -7,7 +7,7 @@ import (
 )
 
 type msSQLDialect struct {
-	BaseDialect
+	baseDialect
 }
 
 const (

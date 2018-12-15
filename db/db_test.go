@@ -17,9 +17,8 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "abcxyz"
 
-	assert.Panics(t, func() {
-		CreateConnector(config)
-	}, "Should panic because of unknown driver")
+	_, err := NewConnector(config)
+	assert.Contains(t, err.Error(), "unknown driver")
 }
 
 func TestBaseConnectorPanicUnknownDriver(t *testing.T) {
@@ -27,27 +26,30 @@ func TestBaseConnectorPanicUnknownDriver(t *testing.T) {
 	config.Driver = "sfsdf"
 	connector := BaseConnector{config, nil, nil}
 	err := connector.Init()
-	assert.Contains(t, err.Error(), "sql: unknown driver")
+	assert.Contains(t, err.Error(), "unknown driver")
 }
 
 func TestDBCreateDialectPostgreSQLDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	assert.IsType(t, &postgreSQLDialect{}, dialect)
 }
 
 func TestDBCreateDialectMysqlDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "mysql"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	assert.IsType(t, &mySQLDialect{}, dialect)
 }
 
 func TestDBCreateDialectMSSQLDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "sqlserver"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	assert.IsType(t, &msSQLDialect{}, dialect)
 }
 
@@ -57,7 +59,8 @@ func TestDBConnectorInitPanicConnectionError(t *testing.T) {
 
 	config.DataSource = strings.Replace(config.DataSource, "127.0.0.1", "1.0.0.1", -1)
 
-	connector := CreateConnector(config)
+	connector, err := NewConnector(config)
+	assert.Nil(t, err)
 	err = connector.Init()
 	assert.Contains(t, err.Error(), "Failed to connect to database")
 }
@@ -66,7 +69,8 @@ func TestDBGetTenants(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector, err := NewConnector(config)
+	assert.Nil(t, err)
 
 	err = connector.Init()
 	assert.Nil(t, err)
@@ -85,7 +89,8 @@ func TestDBApplyMigrations(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector, err := NewConnector(config)
+	assert.Nil(t, err)
 	connector.Init()
 	defer connector.Dispose()
 
@@ -132,7 +137,8 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := CreateConnector(config)
+	connector, err := NewConnector(config)
+	assert.Nil(t, err)
 	connector.Init()
 	defer connector.Dispose()
 
@@ -157,7 +163,9 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -169,7 +177,9 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -181,7 +191,9 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -193,7 +205,9 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -205,7 +219,9 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	connector.Init()
 	defer connector.Dispose()
 
@@ -242,7 +258,8 @@ func TestMySQLGetMigrationInsertSQL(t *testing.T) {
 
 	config.Driver = "mysql"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
@@ -255,7 +272,8 @@ func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
@@ -268,7 +286,8 @@ func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
@@ -280,7 +299,9 @@ func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -293,7 +314,9 @@ func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -306,7 +329,9 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -318,7 +343,9 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	connector := BaseConnector{config, CreateDialect(config), nil}
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
+	connector := BaseConnector{config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -332,7 +359,8 @@ func TestMSSQLDialectGetCreateTenantsTableSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
@@ -356,7 +384,8 @@ func TestMSSQLDialectGetCreateMigrationsTableSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
@@ -386,7 +415,8 @@ func TestBaseDialectGetCreateTenantsTableSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
@@ -407,7 +437,8 @@ func TestBaseDialectGetCreateMigrationsTableSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
@@ -434,7 +465,8 @@ func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createSchemaSQL := dialect.GetCreateSchemaSQL("abc")
 
@@ -449,7 +481,8 @@ func TestMSSQLDialectGetCreateSchemaSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 
 	createSchemaSQL := dialect.GetCreateSchemaSQL("def")
 
@@ -487,7 +520,8 @@ func TestDoInitCannotCreateMigratorSchema(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
@@ -508,7 +542,8 @@ func TestDoInitCannotCreateMigratorMigrationsTable(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
@@ -530,7 +565,8 @@ func TestDoInitCannotCreateMigratorTenantsTable(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
@@ -553,7 +589,8 @@ func TestDBGetTenantsError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	// don't have to provide full SQL here - patterns at work
@@ -575,7 +612,8 @@ func TestDBGetMigrationsError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	// don't have to provide full SQL here - patterns at work
@@ -597,7 +635,8 @@ func TestApplyTransactionBeginError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	rows := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
@@ -625,7 +664,8 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
@@ -654,7 +694,8 @@ func TestApplyMigrationSQLError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
@@ -684,7 +725,8 @@ func TestApplyInsertMigrationError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	time := time.Now().UnixNano()
@@ -716,7 +758,8 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
@@ -742,7 +785,8 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
@@ -769,7 +813,8 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	mock.ExpectBegin()
@@ -797,7 +842,8 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenant := "tenant"
@@ -828,7 +874,8 @@ func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *test
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenant := "tenant"
@@ -860,7 +907,8 @@ func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenant := "tenant"
@@ -893,7 +941,8 @@ func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect := CreateDialect(config)
+	dialect, err := newDialect(config)
+	assert.Nil(t, err)
 	connector := BaseConnector{config, dialect, nil}
 
 	tenant := "tenant"
