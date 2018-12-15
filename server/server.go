@@ -169,7 +169,7 @@ func verifyMigrations(w http.ResponseWriter, config *config.Config, newConnector
 // Start starts simple Migrator API endpoint using config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) {
-	registerHandlers(config, db.NewConnector, loader.CreateLoader)
+	registerHandlers(config, db.NewConnector, loader.NewLoader)
 	port := getPort(config)
 	log.Printf("Migrator web server starting on port %s", port)
 	http.ListenAndServe(":"+port, nil)

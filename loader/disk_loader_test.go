@@ -12,7 +12,7 @@ func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 	var config config.Config
 	config.BaseDir = "xyzabc"
 
-	loader := CreateLoader(&config)
+	loader := NewLoader(&config)
 
 	_, err := loader.GetDiskMigrations()
 	assert.Equal(t, "open xyzabc: no such file or directory", err.Error())
@@ -25,7 +25,7 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	config.SingleSchemas = []string{"config", "ref"}
 	config.TenantSchemas = []string{"tenants"}
 
-	loader := CreateLoader(&config)
+	loader := NewLoader(&config)
 	migrations, err := loader.GetDiskMigrations()
 	assert.Nil(t, err)
 

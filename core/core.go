@@ -149,7 +149,7 @@ func VerifyMigrations(config *config.Config, newConnector func(*config.Config) (
 // ExecuteMigrator is a function which executes actions on resources defined in config passed as first argument action defined as second argument
 // and using connector created by a function passed as third argument and disk loader created by a function passed as fourth argument
 func ExecuteMigrator(config *config.Config, executeFlags ExecuteFlags) {
-	err := doExecuteMigrator(config, executeFlags, db.NewConnector, loader.CreateLoader)
+	err := doExecuteMigrator(config, executeFlags, db.NewConnector, loader.NewLoader)
 	if err != nil {
 		log.Printf("Error encountered: %v", err)
 	}
