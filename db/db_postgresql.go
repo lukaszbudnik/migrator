@@ -7,7 +7,7 @@ import (
 )
 
 type postgreSQLDialect struct {
-	BaseDialect
+	baseDialect
 }
 
 const (

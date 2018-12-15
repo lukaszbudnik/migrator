@@ -1,9 +1,10 @@
 package notifications
 
 import (
+	"testing"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCreateSlackNotifierWhenSlackWebHookDefined(t *testing.T) {
@@ -14,4 +15,14 @@ func TestCreateSlackNotifierWhenSlackWebHookDefined(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.Nil(t, err)
+}
+
+func TestSlackNotifierURLError(t *testing.T) {
+	config := config.Config{}
+	config.SlackWebHook = "xczxcvv"
+	notifier := CreateNotifier(&config)
+	result, err := notifier.Notify("abc")
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "", result)
 }

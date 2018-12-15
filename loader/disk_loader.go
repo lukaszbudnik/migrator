@@ -4,30 +4,41 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"fmt"
 
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/lukaszbudnik/migrator/utils"
 )
 
-// DiskLoader is struct used for implementing Loader interface for loading migrations from disk
-type DiskLoader struct {
-	Config *config.Config
+// diskLoader is struct used for implementing Loader interface for loading migrations from disk
+type diskLoader struct {
+	config *config.Config
 }
 
 // GetDiskMigrations returns all migrations from disk
-func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
-	dirs, err := ioutil.ReadDir(dl.Config.BaseDir)
+func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("%v", r)
+			}
+		}
+	}()
+
+	dirs, err := ioutil.ReadDir(dl.config.BaseDir)
 	if err != nil {
-		log.Panicf("Could not read migration base dir: %v", err)
+		panic(err.Error())
 	}
 
-	singleSchemasDirs := dl.filterSchemaDirs(dirs, dl.Config.SingleSchemas)
-	tenantSchemasDirs := dl.filterSchemaDirs(dirs, dl.Config.TenantSchemas)
+	singleSchemasDirs := dl.filterSchemaDirs(dirs, dl.config.SingleSchemas)
+	tenantSchemasDirs := dl.filterSchemaDirs(dirs, dl.config.TenantSchemas)
 
 	migrationsMap := make(map[string][]types.Migration)
 
@@ -40,7 +51,6 @@ func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
 	}
 	sort.Strings(keys)
 
-	var migrations []types.Migration
 	for _, key := range keys {
 		ms := migrationsMap[key]
 		for _, m := range ms {
@@ -48,10 +58,10 @@ func (dl *DiskLoader) GetDiskMigrations() []types.Migration {
 		}
 	}
 
-	return migrations
+	return
 }
 
-func (dl *DiskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string) []string {
+func (dl *diskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string) []string {
 	var dirs []string
 	for _, f := range files {
 		if f.IsDir() {
@@ -64,17 +74,17 @@ func (dl *DiskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string)
 	return dirs
 }
 
-func (dl *DiskLoader) readMigrationsFromSchemaDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
+func (dl *diskLoader) readMigrationsFromSchemaDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
 	for _, sourceDir := range sourceDirs {
-		files, err := ioutil.ReadDir(filepath.Join(dl.Config.BaseDir, sourceDir))
+		files, err := ioutil.ReadDir(filepath.Join(dl.config.BaseDir, sourceDir))
 		if err != nil {
-			log.Panicf("Could not read migration source dir: %v", err)
+			panic(err.Error())
 		}
 		for _, file := range files {
 			if !file.IsDir() {
-				contents, err := ioutil.ReadFile(filepath.Join(dl.Config.BaseDir, sourceDir, file.Name()))
+				contents, err := ioutil.ReadFile(filepath.Join(dl.config.BaseDir, sourceDir, file.Name()))
 				if err != nil {
-					log.Panicf("Could not read migration contents: %v", err)
+					panic(err.Error())
 				}
 				hasher := sha256.New()
 				hasher.Write([]byte(contents))

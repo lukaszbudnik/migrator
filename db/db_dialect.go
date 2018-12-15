@@ -2,13 +2,12 @@ package db
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/lukaszbudnik/migrator/config"
 )
 
-// Dialect returns SQL statements for given DB
-type Dialect interface {
+// dialect returns SQL statements for given DB
+type dialect interface {
 	GetTenantInsertSQL() string
 	GetTenantSelectSQL() string
 	GetMigrationInsertSQL() string
@@ -18,8 +17,8 @@ type Dialect interface {
 	GetCreateSchemaSQL(string) string
 }
 
-// BaseDialect struct is used to provide default Dialect interface implementation
-type BaseDialect struct {
+// baseDialect struct is used to provide default dialect interface implementation
+type baseDialect struct {
 }
 
 const (
@@ -50,38 +49,38 @@ create table if not exists %v.%v (
 
 // GetCreateTenantsTableSQL returns migrator's default create tenants table SQL statement.
 // This SQL is used by both MySQL and PostgreSQL.
-func (bd *BaseDialect) GetCreateTenantsTableSQL() string {
+func (bd *baseDialect) GetCreateTenantsTableSQL() string {
 	return fmt.Sprintf(createTenantsTableSQL, migratorSchema, migratorTenantsTable)
 }
 
 // GetCreateMigrationsTableSQL returns migrator's create migrations table SQL statement.
 // This SQL is used by both MySQL and PostgreSQL.
-func (bd *BaseDialect) GetCreateMigrationsTableSQL() string {
+func (bd *baseDialect) GetCreateMigrationsTableSQL() string {
 	return fmt.Sprintf(createMigrationsTableSQL, migratorSchema, migratorMigrationsTable)
 }
 
 // GetTenantSelectSQL returns migrator's default tenant select SQL statement.
 // This SQL is used by all MySQL, PostgreSQL, and MS SQL.
-func (bd *BaseDialect) GetTenantSelectSQL() string {
+func (bd *baseDialect) GetTenantSelectSQL() string {
 	return fmt.Sprintf(selectTenantsSQL, migratorSchema, migratorTenantsTable)
 }
 
 // GetMigrationSelectSQL returns migrator's migrations select SQL statement.
 // This SQL is used by all MySQL, PostgreSQL, MS SQL.
-func (bd *BaseDialect) GetMigrationSelectSQL() string {
+func (bd *baseDialect) GetMigrationSelectSQL() string {
 	return fmt.Sprintf(selectMigrationsSQL, migratorSchema, migratorMigrationsTable)
 }
 
 // GetCreateSchemaSQL returns create schema SQL statement.
 // This SQL is used by both MySQL and PostgreSQL.
-func (bd *BaseDialect) GetCreateSchemaSQL(schema string) string {
+func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 	return fmt.Sprintf(createSchemaSQL, schema)
 }
 
-// CreateDialect constructs Dialect instance based on the passed Config
-func CreateDialect(config *config.Config) Dialect {
+// newDialect constructs dialect instance based on the passed Config
+func newDialect(config *config.Config) (dialect, error) {
 
-	var dialect Dialect
+	var dialect dialect
 
 	switch config.Driver {
 	case "mysql":
@@ -91,8 +90,8 @@ func CreateDialect(config *config.Config) Dialect {
 	case "postgres":
 		dialect = &postgreSQLDialect{}
 	default:
-		log.Panicf("Failed to create Connector: %q is an unknown driver.", config.Driver)
+		return nil, fmt.Errorf("Failed to create Connector: %q is an unknown driver", config.Driver)
 	}
 
-	return dialect
+	return dialect, nil
 }

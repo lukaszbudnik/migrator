@@ -34,6 +34,7 @@ func (sn *slackNotifier) Notify(text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

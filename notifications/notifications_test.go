@@ -1,9 +1,10 @@
 package notifications
 
 import (
+	"testing"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCreateNoopWhenSlackWebHookNotDefined(t *testing.T) {

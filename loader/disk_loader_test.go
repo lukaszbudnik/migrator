@@ -7,17 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDiskPanicReadDiskMigrationsNonExistingBaseDir(t *testing.T) {
+func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 
 	var config config.Config
 	config.BaseDir = "xyzabc"
 
-	loader := CreateLoader(&config)
+	loader := NewLoader(&config)
 
-	assert.Panics(t, func() {
-		loader.GetDiskMigrations()
-	}, "Should panic because of non-existing base dir")
-
+	_, err := loader.GetDiskMigrations()
+	assert.Equal(t, "open xyzabc: no such file or directory", err.Error())
 }
 
 func TestDiskGetDiskMigrations(t *testing.T) {
@@ -27,8 +25,9 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	config.SingleSchemas = []string{"config", "ref"}
 	config.TenantSchemas = []string{"tenants"}
 
-	loader := CreateLoader(&config)
-	migrations := loader.GetDiskMigrations()
+	loader := NewLoader(&config)
+	migrations, err := loader.GetDiskMigrations()
+	assert.Nil(t, err)
 
 	assert.Len(t, migrations, 8)
 

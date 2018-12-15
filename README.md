@@ -8,6 +8,8 @@ migrator can run as a HTTP REST service. Further, there is a ready-to-go migrato
 
 # Usage
 
+Important: Migrator since its inception supported both CLI and REST API. However, CLI is deprecated as of v2.2 and will be removed in migrator v3.0. Starting v3.0 only REST API will be supported.
+
 Short and sweet.
 
 ```
@@ -57,14 +59,6 @@ create table if not exists {schema}.modules ( k int, v text );
 insert into {schema}.modules values ( 123, '123' );
 ```
 
-# DB Schemas
-
-When using migrator please remember about these:
-
-* migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
-* when adding a new tenant migrator creates a new schema automatically
-* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL statement (see example above)
-
 # Server mode
 
 When migrator is run with `-mode server` it starts a HTTP service and exposes simple REST API which you can use to invoke migrator actions remotely.
@@ -84,12 +78,20 @@ Some curl examples to get you started:
 curl http://localhost:8080/
 curl http://localhost:8080/diskMigrations
 curl http://localhost:8080/tenants
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 curl http://localhost:8080/migrations
 curl -X POST http://localhost:8080/migrations
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
 
 Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
+
+# DB Schemas
+
+When using migrator please remember about these:
+
+* migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
+* when adding a new tenant migrator creates a new schema automatically
+* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL statement (see example above)
 
 # Supported databases
 
@@ -167,7 +169,7 @@ cd migrator
 ./setup.sh
 ```
 
-Migrator supports the following Go versions: 1.8, 1.9, 1.10, 1.11, and tip (all built on Travis).
+Migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
 
 # Contributing, code style, running unit & integration tests
 

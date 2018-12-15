@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -43,152 +44,217 @@ type ExecuteFlags struct {
 
 // GetDiskMigrations is a function which loads all migrations from disk as defined in config passed as first argument
 // and using loader created by a function passed as second argument
-func GetDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) []types.Migration {
+func GetDiskMigrations(config *config.Config, createLoader func(*config.Config) loader.Loader) ([]types.Migration, error) {
 	loader := createLoader(config)
-	diskMigrations := loader.GetDiskMigrations()
-	return diskMigrations
+	return loader.GetDiskMigrations()
 }
 
 // GetDBTenants is a function which loads all tenants for multi-tenant schemas from DB as defined in config passed as first argument
 // and using connector created by a function passed as second argument
-func GetDBTenants(config *config.Config, createConnector func(*config.Config) db.Connector) []string {
-	connector := createConnector(config)
-	connector.Init()
+func GetDBTenants(config *config.Config, newConnector func(*config.Config) (db.Connector, error)) ([]string, error) {
+	connector, err := newConnector(config)
+	if err != nil {
+		return nil, err
+	}
+	if err := connector.Init(); err != nil {
+		return nil, err
+	}
 	defer connector.Dispose()
-	dbTenants := connector.GetTenants()
-	return dbTenants
+	return connector.GetTenants()
 }
 
 // GetDBMigrations is a function which loads all DB migrations for multi-tenant schemas from DB as defined in config passed as first argument
 // and using connector created by a function passed as second argument
-func GetDBMigrations(config *config.Config, createConnector func(*config.Config) db.Connector) []types.MigrationDB {
-	connector := createConnector(config)
-	connector.Init()
+func GetDBMigrations(config *config.Config, newConnector func(*config.Config) (db.Connector, error)) ([]types.MigrationDB, error) {
+	connector, err := newConnector(config)
+	if err != nil {
+		return nil, err
+	}
+	if err := connector.Init(); err != nil {
+		return nil, err
+	}
 	defer connector.Dispose()
-	dbMigrations := connector.GetDBMigrations()
-	return dbMigrations
+	return connector.GetDBMigrations()
 }
 
 // ApplyMigrations is a function which applies disk migrations to DB as defined in config passed as first argument
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
-func ApplyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
-	diskMigrations := GetDiskMigrations(config, createLoader)
+func ApplyMigrations(config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) (migrationsToApply []types.Migration, err error) {
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return
+	}
 	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
-	dbMigrations := GetDBMigrations(config, createConnector)
+	dbMigrations, err := GetDBMigrations(config, newConnector)
+	if err != nil {
+		return
+	}
 	log.Printf("Read DB migrations: %d", len(dbMigrations))
 
-	migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
+	migrationsToApply = migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
 	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
 
-	doApplyMigrations(migrationsToApply, config, createConnector)
-
-	notifier := notifications.CreateNotifier(config)
-	text := fmt.Sprintf("Migrations applied: %d", len(migrationsToApply))
-	resp, err := notifier.Notify(text)
-
+	err = doApplyMigrations(migrationsToApply, config, newConnector)
 	if err != nil {
-		log.Printf("Notifier err: %v", err)
-	} else {
-		log.Printf("Notifier response: %v", resp)
+		return
 	}
 
-	return migrationsToApply
+	text := fmt.Sprintf("Migrations applied: %d", len(migrationsToApply))
+	sendNotification(config, text)
+
+	return
 }
 
 // AddTenant creates new tenant in DB and applies all tenant migrations
-func AddTenant(tenant string, config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) []types.Migration {
+func AddTenant(tenant string, config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) (migrationsToApply []types.Migration, err error) {
 
-	diskMigrations := GetDiskMigrations(config, createLoader)
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return
+	}
 	log.Printf("Read disk migrations: %d", len(diskMigrations))
 
 	// filter only tenant schemas
-	// var migrationsToApply []types.Migration
-	migrationsToApply := migrations.FilterTenantMigrations(diskMigrations)
+	migrationsToApply = migrations.FilterTenantMigrations(diskMigrations)
 	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
 
-	doAddTenantAndApplyMigrations(tenant, migrationsToApply, config, createConnector)
-
-	notifier := notifications.CreateNotifier(config)
-	text := fmt.Sprintf("Tenant %q added, migrations applied: %d", tenant, len(migrationsToApply))
-	resp, err := notifier.Notify(text)
-
+	err = doAddTenantAndApplyMigrations(tenant, migrationsToApply, config, newConnector)
 	if err != nil {
-		log.Printf("Notifier err: %v", err)
-	} else {
-		log.Printf("Notifier response: %v", resp)
+		return
 	}
 
-	return diskMigrations
+	text := fmt.Sprintf("Tenant %q added, migrations applied: %d", tenant, len(migrationsToApply))
+	sendNotification(config, text)
+
+	return
 }
 
 // VerifyMigrations loads disk and db migrations and verifies their checksums
 // see migrations.VerifyCheckSums for more information
-func VerifyMigrations(config *config.Config, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) (bool, []types.Migration) {
-	diskMigrations := GetDiskMigrations(config, createLoader)
-	dbMigrations := GetDBMigrations(config, createConnector)
-	return migrations.VerifyCheckSums(diskMigrations, dbMigrations)
+func VerifyMigrations(config *config.Config, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) (bool, []types.Migration, error) {
+	diskMigrations, err := GetDiskMigrations(config, createLoader)
+	if err != nil {
+		return false, []types.Migration{}, err
+	}
+
+	dbMigrations, err := GetDBMigrations(config, newConnector)
+	if err != nil {
+		return false, []types.Migration{}, err
+	}
+	verified, offendingMigrations := migrations.VerifyCheckSums(diskMigrations, dbMigrations)
+	return verified, offendingMigrations, nil
 }
 
 // ExecuteMigrator is a function which executes actions on resources defined in config passed as first argument action defined as second argument
 // and using connector created by a function passed as third argument and disk loader created by a function passed as fourth argument
 func ExecuteMigrator(config *config.Config, executeFlags ExecuteFlags) {
-	doExecuteMigrator(config, executeFlags, db.CreateConnector, loader.CreateLoader)
+	err := doExecuteMigrator(config, executeFlags, db.NewConnector, loader.NewLoader)
+	if err != nil {
+		log.Printf("Error encountered: %v", err)
+	}
 }
 
-func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, createConnector func(*config.Config) db.Connector, createLoader func(*config.Config) loader.Loader) {
+func doExecuteMigrator(config *config.Config, executeFlags ExecuteFlags, newConnector func(*config.Config) (db.Connector, error), createLoader func(*config.Config) loader.Loader) error {
 	switch executeFlags.Action {
 	case PrintConfigAction:
 		log.Printf("Configuration file ==>\n%v\n", config)
 	case GetDiskMigrationsAction:
-		diskMigrations := GetDiskMigrations(config, createLoader)
+		diskMigrations, err := GetDiskMigrations(config, createLoader)
+		if err != nil {
+			return err
+		}
 		if len(diskMigrations) > 0 {
 			log.Printf("List of disk migrations\n%v", utils.MigrationArrayToString(diskMigrations))
 		}
 	case GetDBMigrationsAction:
-		dbMigrations := GetDBMigrations(config, createConnector)
+		dbMigrations, err := GetDBMigrations(config, newConnector)
+		if err != nil {
+			return err
+		}
 		log.Printf("Read DB migrations: %d", len(dbMigrations))
 		if len(dbMigrations) > 0 {
 			log.Printf("List of db migrations\n%v", utils.MigrationDBArrayToString(dbMigrations))
 		}
 	case AddTenantAction:
-		verified, offendingMigrations := VerifyMigrations(config, createConnector, createLoader)
+		verified, offendingMigrations, err := VerifyMigrations(config, newConnector, createLoader)
+		if err != nil {
+			return err
+		}
 		if !verified {
 			log.Printf("Checksum verification failed.")
 			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
-		} else {
-			AddTenant(executeFlags.Tenant, config, createConnector, createLoader)
+			return errors.New("Checksum verification failed")
+		}
+
+		migrationsApplied, err := AddTenant(executeFlags.Tenant, config, newConnector, createLoader)
+		if err != nil {
+			return err
+		}
+		if len(migrationsApplied) > 0 {
+			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	case GetDBTenantsAction:
-		dbTenants := GetDBTenants(config, createConnector)
+		dbTenants, err := GetDBTenants(config, newConnector)
+		if err != nil {
+			return err
+		}
 		log.Printf("Read DB tenants: %d", len(dbTenants))
 		if len(dbTenants) > 0 {
 			log.Printf("List of db tenants\n%v", utils.TenantArrayToString(dbTenants))
 		}
 	case ApplyAction:
-		verified, offendingMigrations := VerifyMigrations(config, createConnector, createLoader)
+		verified, offendingMigrations, err := VerifyMigrations(config, newConnector, createLoader)
+		if err != nil {
+			return err
+		}
 		if !verified {
 			log.Printf("Checksum verification failed.")
 			log.Printf("List of offending disk migrations\n%v", utils.MigrationArrayToString(offendingMigrations))
-		} else {
-			migrationsApplied := ApplyMigrations(config, createConnector, createLoader)
-			if len(migrationsApplied) > 0 {
-				log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
-			}
+			return errors.New("Checksum verification failed")
+		}
+		migrationsApplied, err := ApplyMigrations(config, newConnector, createLoader)
+		if err != nil {
+			return err
+		}
+		if len(migrationsApplied) > 0 {
+			log.Printf("List of migrations applied\n%v", utils.MigrationArrayToString(migrationsApplied))
 		}
 	}
+	return nil
 }
 
-func doApplyMigrations(migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) {
-	connector := createConnector(config)
-	connector.Init()
+func doApplyMigrations(migrationsToApply []types.Migration, config *config.Config, newConnector func(*config.Config) (db.Connector, error)) error {
+	connector, err := newConnector(config)
+	if err != nil {
+		return err
+	}
+	if err := connector.Init(); err != nil {
+		return err
+	}
 	defer connector.Dispose()
-	connector.ApplyMigrations(migrationsToApply)
+	return connector.ApplyMigrations(migrationsToApply)
 }
 
-func doAddTenantAndApplyMigrations(tenant string, migrationsToApply []types.Migration, config *config.Config, createConnector func(*config.Config) db.Connector) {
-	connector := createConnector(config)
-	connector.Init()
+func doAddTenantAndApplyMigrations(tenant string, migrationsToApply []types.Migration, config *config.Config, newConnector func(*config.Config) (db.Connector, error)) error {
+	connector, err := newConnector(config)
+	if err != nil {
+		return err
+	}
+	if err := connector.Init(); err != nil {
+		return err
+	}
 	defer connector.Dispose()
-	connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	return connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+}
+
+func sendNotification(config *config.Config, text string) {
+	notifier := notifications.CreateNotifier(config)
+	resp, err := notifier.Notify(text)
+
+	if err != nil {
+		log.Printf("Notifier err: %v", err)
+	} else {
+		log.Printf("Notifier response: %v", resp)
+	}
 }

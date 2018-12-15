@@ -7,7 +7,7 @@ import (
 )
 
 type mySQLDialect struct {
-	BaseDialect
+	baseDialect
 }
 
 const (

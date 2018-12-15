@@ -16,7 +16,6 @@ go:
   - "1.9"
   - "1.10"
   - "1.11"
-  - "tip"
 
 before_script:
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"
