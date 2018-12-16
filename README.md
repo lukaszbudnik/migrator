@@ -50,8 +50,6 @@ port: 8080
 webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
 # the {text} placeholder is replaced by migrator with information about executed migrations or added new tenant
 webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
-# content type is optional and defaults to application/json
-webHookContentType: "application/json"
 # should you need more control over HTTP headers use below
 webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
