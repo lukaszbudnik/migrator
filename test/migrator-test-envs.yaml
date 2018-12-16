@@ -15,4 +15,3 @@ tenantSchemas:
   - tenants
 webHookURL: $SHLVL
 webHookTemplate: $TERM
-webHookContentType: $USER
