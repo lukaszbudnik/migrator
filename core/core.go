@@ -249,7 +249,7 @@ func doAddTenantAndApplyMigrations(tenant string, migrationsToApply []types.Migr
 }
 
 func sendNotification(config *config.Config, text string) {
-	notifier := notifications.CreateNotifier(config)
+	notifier := notifications.NewNotifier(config)
 	resp, err := notifier.Notify(text)
 
 	if err != nil {
