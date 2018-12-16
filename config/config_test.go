@@ -30,7 +30,7 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
 	assert.Equal(t, "https://slack.com/api/api.test", config.WebHookURL)
 	assert.Equal(t, `{"text": "{text}","icon_emoji": ":white_check_mark:"}`, config.WebHookTemplate)
-	assert.Equal(t, "application/json", config.WebHookContentType)
+	assert.Equal(t, []string{"Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l", "Content-Type: application/json", "X-CustomHeader: value1,value2"}, config.WebHookHeaders)
 }
 
 func TestWithEnvFromFile(t *testing.T) {
@@ -46,12 +46,11 @@ func TestWithEnvFromFile(t *testing.T) {
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 	assert.Equal(t, os.Getenv("SHLVL"), config.WebHookURL)
-	assert.Equal(t, os.Getenv("USER"), config.WebHookContentType)
 	assert.Equal(t, os.Getenv("TERM"), config.WebHookTemplate)
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX", "application/json", "{json: text}"}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX", "{json: text}", []string{}}
 	// check if go naming convention applies
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
@@ -65,7 +64,6 @@ tenantSchemas:
 - tenants
 port: "8181"
 webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
-webHookContentType: application/json
 webHookTemplate: '{json: text}'`
 	actual := fmt.Sprintf("%v", config)
 	assert.Equal(t, expected, actual)

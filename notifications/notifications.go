@@ -25,22 +25,29 @@ type baseNotifier struct {
 	config *config.Config
 }
 
-func (bn *baseNotifier) getContentType() string {
-	if len(bn.config.WebHookContentType) > 0 {
-		return bn.config.WebHookContentType
-	}
-	return defaultContentType
-}
-
 func (bn *baseNotifier) Notify(text string) (string, error) {
 
 	message := strings.Replace(bn.config.WebHookTemplate, textPlaceHolder, text, -1)
 	reader := bytes.NewReader([]byte(message))
 
 	url := bn.config.WebHookURL
-	contentType := bn.getContentType()
 
-	resp, err := http.Post(url, contentType, reader)
+	req, err := http.NewRequest(http.MethodPost, url, reader)
+	if err != nil {
+		return "", err
+	}
+	for _, header := range bn.config.WebHookHeaders {
+		pair := strings.SplitN(header, ":", 2)
+		req.Header.Set(pair[0], pair[1])
+	}
+
+	// set default content type
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", defaultContentType)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
