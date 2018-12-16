@@ -45,8 +45,14 @@ tenantSchemas:
   - tenants
 # port is used only when migrator is run in server mode, defaults to:
 port: 8080
-# optional Slack Incoming Web Hook - if defined apply migrations action will post a message to Slack
-slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
+# optional webhooks configuration section
+# webhook URL is required
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+# webhook template is required
+# the {text} placeholder is replaced by migrator with information about executed migrations or added new tenant
+webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
+# content type is optional and defaults to application/json
+webHookContentType: "application/json"
 ```
 
 Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.

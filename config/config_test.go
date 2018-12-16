@@ -28,6 +28,9 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 	assert.Equal(t, "8811", config.Port)
 	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
+	assert.Equal(t, "https://slack.com/api/api.test", config.WebHookURL)
+	assert.Equal(t, `{"text": "{text}","icon_emoji": ":white_check_mark:"}`, config.WebHookTemplate)
+	assert.Equal(t, "application/json", config.WebHookContentType)
 }
 
 func TestWithEnvFromFile(t *testing.T) {
@@ -39,14 +42,16 @@ func TestWithEnvFromFile(t *testing.T) {
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
 	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
 	assert.Equal(t, os.Getenv("_"), config.Port)
-	assert.Equal(t, os.Getenv("SHLVL"), config.SlackWebHook)
 	assert.Equal(t, os.Getenv("USER"), config.SchemaPlaceHolder)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
+	assert.Equal(t, os.Getenv("SHLVL"), config.WebHookURL)
+	assert.Equal(t, os.Getenv("USER"), config.WebHookContentType)
+	assert.Equal(t, os.Getenv("TERM"), config.WebHookTemplate)
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX"}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX", "application/json", "{json: text}"}
 	// check if go naming convention applies
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
@@ -59,7 +64,9 @@ singleSchemas:
 tenantSchemas:
 - tenants
 port: "8181"
-slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX`
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+webHookContentType: application/json
+webHookTemplate: '{json: text}'`
 	actual := fmt.Sprintf("%v", config)
 	assert.Equal(t, expected, actual)
 }

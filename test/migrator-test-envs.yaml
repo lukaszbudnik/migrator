@@ -7,10 +7,12 @@ tenantSelectSQL: $PATH
 tenantInsertSQL: $GOPATH
 schemaPlaceHolder: $USER
 port: $_
-slackWebHook: $SHLVL
 singleSchemas:
   - public
   - ref
   - config
 tenantSchemas:
   - tenants
+webHookURL: $SHLVL
+webHookTemplate: $TERM
+webHookContentType: $USER

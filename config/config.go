@@ -1,26 +1,29 @@
 package config
 
 import (
-	"gopkg.in/validator.v2"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+
+	"gopkg.in/validator.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	BaseDir           string   `yaml:"baseDir" validate:"nonzero"`
-	Driver            string   `yaml:"driver" validate:"nonzero"`
-	DataSource        string   `yaml:"dataSource" validate:"nonzero"`
-	TenantSelectSQL   string   `yaml:"tenantSelectSQL"`
-	TenantInsertSQL   string   `yaml:"tenantInsertSQL"`
-	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder"`
-	SingleSchemas     []string `yaml:"singleSchemas" validate:"min=1"`
-	TenantSchemas     []string `yaml:"tenantSchemas"`
-	Port              string   `yaml:"port"`
-	SlackWebHook      string   `yaml:"slackWebHook"`
+	BaseDir            string   `yaml:"baseDir" validate:"nonzero"`
+	Driver             string   `yaml:"driver" validate:"nonzero"`
+	DataSource         string   `yaml:"dataSource" validate:"nonzero"`
+	TenantSelectSQL    string   `yaml:"tenantSelectSQL,omitempty"`
+	TenantInsertSQL    string   `yaml:"tenantInsertSQL,omitempty"`
+	SchemaPlaceHolder  string   `yaml:"schemaPlaceHolder,omitempty"`
+	SingleSchemas      []string `yaml:"singleSchemas" validate:"min=1"`
+	TenantSchemas      []string `yaml:"tenantSchemas,omitempty"`
+	Port               string   `yaml:"port,omitempty"`
+	WebHookURL         string   `yaml:"webHookURL,omitempty"`
+	WebHookContentType string   `yaml:"webHookContentType,omitempty"`
+	WebHookTemplate    string   `yaml:"webHookTemplate,omitempty"`
 }
 
 func (config Config) String() string {
@@ -78,8 +81,14 @@ func substituteEnvVariables(config *Config) {
 	if strings.HasPrefix(config.Port, "$") {
 		config.Port = os.Getenv(config.Port[1:])
 	}
-	if strings.HasPrefix(config.SlackWebHook, "$") {
-		config.SlackWebHook = os.Getenv(config.SlackWebHook[1:])
+	if strings.HasPrefix(config.WebHookURL, "$") {
+		config.WebHookURL = os.Getenv(config.WebHookURL[1:])
+	}
+	if strings.HasPrefix(config.WebHookContentType, "$") {
+		config.WebHookContentType = os.Getenv(config.WebHookContentType[1:])
+	}
+	if strings.HasPrefix(config.WebHookTemplate, "$") {
+		config.WebHookTemplate = os.Getenv(config.WebHookTemplate[1:])
 	}
 	if strings.HasPrefix(config.SchemaPlaceHolder, "$") {
 		config.SchemaPlaceHolder = os.Getenv(config.SchemaPlaceHolder[1:])
