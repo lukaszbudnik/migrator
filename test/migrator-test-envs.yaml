@@ -1,17 +1,19 @@
 # migrator configuration
-baseDir: $HOME
-driver: $PWD
-dataSource: $TERM
+baseDir: ${TERM}
+driver: ${PWD}
+dataSource: "lets_assume_password=${HOME}&and_something_else=${USER}&param=value"
 # override only if you have own specific way of determining tenants
-tenantSelectSQL: $PATH
-tenantInsertSQL: $GOPATH
-schemaPlaceHolder: $USER
-port: $_
+tenantSelectSQL: ${PATH}
+tenantInsertSQL: ${GOPATH}
+schemaPlaceHolder: ${USER}
+port: ${_}
 singleSchemas:
   - public
   - ref
   - config
 tenantSchemas:
   - tenants
-webHookURL: $SHLVL
-webHookTemplate: $TERM
+webHookURL: ${SHLVL}
+webHookTemplate: ${TERM}
+webHookHeaders:
+  - "X-Security-Token: ${USER}"

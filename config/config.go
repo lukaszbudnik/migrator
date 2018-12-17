@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 
 	"gopkg.in/validator.v2"
@@ -63,32 +64,33 @@ func FromBytes(contents []byte) (*Config, error) {
 }
 
 func substituteEnvVariables(config *Config) {
-	if strings.HasPrefix(config.BaseDir, "$") {
-		config.BaseDir = os.Getenv(config.BaseDir[1:])
+	val := reflect.ValueOf(config).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		valueField := val.Field(i)
+		typeField := val.Type().Field(i)
+		if val.CanAddr() && val.CanSet() {
+			switch typeField.Type.Kind() {
+			case reflect.String:
+				s := valueField.Interface().(string)
+				s = substituteEnvVariable(s)
+				valueField.SetString(s)
+			case reflect.Slice:
+				ss := valueField.Interface().([]string)
+				for i := range ss {
+					ss[i] = substituteEnvVariable(ss[i])
+				}
+				valueField.Set(reflect.ValueOf(ss))
+			}
+		}
 	}
-	if strings.HasPrefix(config.Driver, "$") {
-		config.Driver = os.Getenv(config.Driver[1:])
-	}
-	if strings.HasPrefix(config.DataSource, "$") {
-		config.DataSource = os.Getenv(config.DataSource[1:])
-	}
-	if strings.HasPrefix(config.TenantSelectSQL, "$") {
-		config.TenantSelectSQL = os.Getenv(config.TenantSelectSQL[1:])
-	}
-	if strings.HasPrefix(config.TenantInsertSQL, "$") {
-		config.TenantInsertSQL = os.Getenv(config.TenantInsertSQL[1:])
-	}
-	if strings.HasPrefix(config.Port, "$") {
-		config.Port = os.Getenv(config.Port[1:])
-	}
-	if strings.HasPrefix(config.WebHookURL, "$") {
-		config.WebHookURL = os.Getenv(config.WebHookURL[1:])
-	}
-	if strings.HasPrefix(config.WebHookTemplate, "$") {
-		config.WebHookTemplate = os.Getenv(config.WebHookTemplate[1:])
-	}
-	if strings.HasPrefix(config.SchemaPlaceHolder, "$") {
-		config.SchemaPlaceHolder = os.Getenv(config.SchemaPlaceHolder[1:])
-	}
+}
 
+func substituteEnvVariable(s string) string {
+	start := strings.Index(s, "${")
+	end := strings.Index(s, "}")
+	if start > -1 && end > start && len(s) > end {
+		after := s[0:start] + os.Getenv(s[start+2:end]) + s[end+1:]
+		return substituteEnvVariable(after)
+	}
+	return s
 }

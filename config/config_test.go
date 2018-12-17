@@ -36,17 +36,18 @@ func TestFromFile(t *testing.T) {
 func TestWithEnvFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test-envs.yaml")
 	assert.Nil(t, err)
-	assert.Equal(t, os.Getenv("HOME"), config.BaseDir)
+	assert.Equal(t, os.Getenv("TERM"), config.BaseDir)
 	assert.Equal(t, os.Getenv("PATH"), config.TenantSelectSQL)
 	assert.Equal(t, os.Getenv("GOPATH"), config.TenantInsertSQL)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)
-	assert.Equal(t, os.Getenv("TERM"), config.DataSource)
+	assert.Equal(t, fmt.Sprintf("lets_assume_password=%v&and_something_else=%v&param=value", os.Getenv("HOME"), os.Getenv("USER")), config.DataSource)
 	assert.Equal(t, os.Getenv("_"), config.Port)
 	assert.Equal(t, os.Getenv("USER"), config.SchemaPlaceHolder)
 	assert.Equal(t, []string{"tenants"}, config.TenantSchemas)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleSchemas)
 	assert.Equal(t, os.Getenv("SHLVL"), config.WebHookURL)
 	assert.Equal(t, os.Getenv("TERM"), config.WebHookTemplate)
+	assert.Equal(t, fmt.Sprintf("X-Security-Token: %v", os.Getenv("USER")), config.WebHookHeaders[0])
 }
 
 func TestConfigString(t *testing.T) {
