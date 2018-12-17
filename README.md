@@ -1,4 +1,4 @@
-# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
+# migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
 Super fast and lightweight DB migration & evolution tool written in go.
 
@@ -8,7 +8,7 @@ migrator can run as a HTTP REST service. Further, there is a ready-to-go migrato
 
 # Usage
 
-Important: Migrator since its inception supported both CLI and REST API. However, CLI is deprecated as of v2.2 and will be removed in migrator v3.0. Starting v3.0 only REST API will be supported.
+Important: migrator since its inception supported both CLI and REST API. However, CLI is deprecated as of v2.2 and will be removed in migrator v3.0. Starting v3.0 only REST API will be supported.
 
 Short and sweet.
 
@@ -24,7 +24,7 @@ $ Usage of ./migrator:
     	when run in tool mode and action set to "addTenant", specifies new tenant name
 ```
 
-Migrator requires a simple `migrator.yaml` file:
+migrator requires a simple `migrator.yaml` file:
 
 ```yaml
 baseDir: test/migrations
@@ -57,7 +57,17 @@ webHookHeaders:
   - "X-CustomHeader: value1,value2"
 ```
 
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
+migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
+
+```yaml
+dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB_HOST} port=${DB_PORT}"
+webHookHeaders:
+  - "X-Security-Token: ${SECURITY_TOKEN}"
+```
+
+# migrator under the hood
+
+migrator scans all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
 
 SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
@@ -154,14 +164,14 @@ There is a performance test generator shipped with migrator (`test/performance/g
 
 Execution times are following:
 
-| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| Migrator 	| Ruby       	| Flyway   	|
+| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| migrator 	| Ruby       	| Flyway   	|
 |-----------	|-----------------------	|-----------------------	|----------	|-----------	|----------	|
 |        10 	|                     0 	|                 10001 	|     154s 	|      670s 	|    2360s 	|
 |        10 	|                 10001 	|                    20 	|       2s 	|      455s 	|     340s 	|
 
-Migrator is the undisputed winner.
+migrator is the undisputed winner.
 
-The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
+The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
 
 flyway results are... very surprising. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
 
@@ -177,7 +187,7 @@ cd migrator
 ./setup.sh
 ```
 
-Migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
+migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
 
 # Contributing, code style, running unit & integration tests
 
