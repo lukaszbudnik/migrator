@@ -8,21 +8,33 @@ migrator can run as a HTTP REST service. Further, there is a ready-to-go migrato
 
 # Usage
 
-Important: migrator since its inception supported both CLI and REST API. However, CLI is deprecated as of v2.2 and will be removed in migrator v3.0. Starting v3.0 only REST API will be supported.
+migrator exposes a simple REST API which you can use to invoke different actions:
 
-Short and sweet.
+* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
+* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
+* GET /tenants - returns tenants, response is `Content-Type: application/json`
+* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
+* GET /migrations - returns all applied migrations
+* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
+
+Some curl examples to get you started:
 
 ```
-$ Usage of ./migrator:
-  -action string
-    	when run in tool mode, action to execute, valid actions are: ["apply" "addTenant" "config" "diskMigrations" "dbTenants" "dbMigrations"] (default "apply")
-  -configFile string
-    	path to migrator configuration yaml file (default "migrator.yaml")
-  -mode string
-    	migrator mode to run: ["tool" "server"] (default "tool")
-  -tenant string
-    	when run in tool mode and action set to "addTenant", specifies new tenant name
+curl http://localhost:8080/
+curl http://localhost:8080/diskMigrations
+curl http://localhost:8080/tenants
+curl http://localhost:8080/migrations
+curl -X POST http://localhost:8080/migrations
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
+
+Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
+
+There is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+
+To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+
+# Configuration
 
 migrator requires a simple `migrator.yaml` file:
 
@@ -77,34 +89,6 @@ create table if not exists {schema}.modules ( k int, v text );
 insert into {schema}.modules values ( 123, '123' );
 ```
 
-# Server mode
-
-When migrator is run with `-mode server` it starts a HTTP service and exposes simple REST API which you can use to invoke migrator actions remotely.
-
-All actions which you can invoke from command line can be invoked via REST API:
-
-* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
-* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
-* GET /tenants - returns tenants, response is `Content-Type: application/json`
-* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
-* GET /migrations - returns all applied migrations
-* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
-
-Some curl examples to get you started:
-
-```
-curl http://localhost:8080/
-curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/tenants
-curl http://localhost:8080/migrations
-curl -X POST http://localhost:8080/migrations
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
-```
-
-Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
-
-# DB Schemas
-
 When using migrator please remember about these:
 
 * migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
@@ -130,13 +114,75 @@ Currently migrator supports the following databases and their flavours:
 * Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
   * Microsoft SQL Server - original Microsoft SQL Server
 
-# Do you speak docker?
+# 2 minutes walkthrough
 
-Yes, there is an official docker image available on docker hub.
+You can run your first migrations with migrator in literally couple minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
-migrator docker image is ultra lightweight and has a size of approx. 15MB. Ideal for micro-services deployments!
+Let's start.
 
-To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+1. Clone migrator project locally
+
+Cloning project will fetch test migrations and test docker scripts.
+
+For running migrator on docker `git clone` is enough:
+
+```
+git fetch origin git@github.com:lukaszbudnik/migrator.git
+cd migrator
+```
+
+For building migrator from source code `go get` is required:
+
+```
+go get github.com/lukaszbudnik/migrator
+cd $GOPATH/src/github.com/lukaszbudnik/migrator
+```
+
+Setup test DB container. Let's use postgres (see `ultimate-coverage.sh` for all supported containers).
+
+```
+./test/docker/create-and-setup-container.sh postgres
+```
+
+The script apart of starting test DB container also generates a ready-to-use test config file. We will use it later.
+
+2. a. Build and run migrator from source
+
+```
+./setup.sh
+go build
+./migrator -configFile test/migrator.yaml
+```
+
+2. b. Run migrator from docker
+
+Provide a link to `migrator-postgres`. We also need to update `migrator.yaml`:
+
+```
+sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
+sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
+docker pull lukasz/migrator
+docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
+```
+
+3. Play around with migrator
+
+```
+curl http://localhost:8080/
+curl http://localhost:8080/diskMigrations
+curl http://localhost:8080/tenants
+curl http://localhost:8080/migrations
+curl -X POST http://localhost:8080/migrations
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+```
+
+Break sha256 checksum of first migration and try to apply migrations or add new tenant.
+
+```
+echo " " >> test/migrations/config/201602160001.sql
+curl -X POST http://localhost:8080/migrations
+curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
+```
 
 # Customisation
 
