@@ -10,7 +10,7 @@ migrator can run as a HTTP REST service. Further, there is a ready-to-go migrato
 
 migrator exposes a simple REST API which you can use to invoke different actions:
 
-* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
+* GET /config - returns migrator config, response is `Content-Type: application/x-yaml`
 * GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
 * GET /tenants - returns tenants, response is `Content-Type: application/json`
 * POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
@@ -20,12 +20,12 @@ migrator exposes a simple REST API which you can use to invoke different actions
 Some curl examples to get you started:
 
 ```
-curl http://localhost:8080/
-curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/tenants
-curl http://localhost:8080/migrations
-curl -X POST http://localhost:8080/migrations
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl -v http://localhost:8080/config
+curl -v http://localhost:8080/diskMigrations
+curl -v http://localhost:8080/tenants
+curl -v http://localhost:8080/migrations
+curl -v -X POST http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
 
 Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
@@ -127,7 +127,7 @@ Cloning project will fetch test migrations and test docker scripts.
 For running migrator on docker `git clone` is enough:
 
 ```
-git fetch origin git@github.com:lukaszbudnik/migrator.git
+git clone git@github.com:lukaszbudnik/migrator.git
 cd migrator
 ```
 
@@ -168,20 +168,20 @@ docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml 
 3. Play around with migrator
 
 ```
-curl http://localhost:8080/
-curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/tenants
-curl http://localhost:8080/migrations
-curl -X POST http://localhost:8080/migrations
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl -v http://localhost:8080/config
+curl -v http://localhost:8080/diskMigrations
+curl -v http://localhost:8080/tenants
+curl -v http://localhost:8080/migrations
+curl -v -X POST http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
 
-Break sha256 checksum of first migration and try to apply migrations or add new tenant.
+Break sha256 checksum of first migration and try to apply migrations or add new tenant. We can also use `X-Request-Id` headers:
 
 ```
 echo " " >> test/migrations/config/201602160001.sql
-curl -X POST http://localhost:8080/migrations
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
+curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
 ```
 
 # Customisation

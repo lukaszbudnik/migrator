@@ -1,0 +1,26 @@
+FROM golang:1.11.2-alpine3.8 as builder
+
+MAINTAINER Łukasz Budnik lukasz.budnik@gmail.com
+
+# install migrator
+RUN mkdir -p $GOPATH/src/github.com/lukaszbudnik/migrator
+
+# from local source code
+COPY . $GOPATH/src/github.com/lukaszbudnik/migrator
+# from XXX branch on github
+#RUN apk add git
+#RUN cd $GOPATH/src/github.com/lukaszbudnik && git clone https://github.com/lukaszbudnik/migrator.git migrator
+#RUN cd $GOPATH/src/github.com/lukaszbudnik/migrator && git checkout XXX
+
+RUN cd $GOPATH/src/github.com/lukaszbudnik/migrator && ./setup.sh && go install
+
+FROM alpine:3.8
+COPY --from=builder /go/bin/migrator /bin
+
+VOLUME ["/data"]
+
+# copy and register entrypoint script
+COPY docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+EXPOSE 8080

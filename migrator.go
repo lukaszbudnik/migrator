@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	// DefaultConfigFile contains default file name of migrator configuration file
+	// DefaultConfigFile defines default file name of migrator configuration file
 	DefaultConfigFile = "migrator.yaml"
 )
 
 func main() {
 
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC | log.Lshortfile)
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)
@@ -33,11 +33,14 @@ func main() {
 	}
 
 	config, err := config.FromFile(configFile)
-
 	if err != nil {
-		log.Fatalf("Error reading config file: %v", err)
+		log.Fatalf("ERROR Error reading config file: %v", err)
 	}
 
-	server.Start(config)
+	srv, err := server.Start(config)
+	if err != nil {
+		log.Fatalf("ERROR Error starting: %v", err)
+	}
+	defer srv.Close()
 
 }

@@ -36,16 +36,8 @@ func TestGetDefaultPortOverrides(t *testing.T) {
 func TestRegisterHandlers(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	registerHandlers(config, nil, nil)
-}
-
-func TestServerDefaultHandler(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/qwq", nil)
-
-	w := httptest.NewRecorder()
-	defaultHandler(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	router := registerHandlers(config, nil, nil)
+	assert.NotNil(t, router)
 }
 
 // section: /config
@@ -53,7 +45,7 @@ func TestServerConfig(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/config", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(configHandler, config, nil, nil)
@@ -96,38 +88,6 @@ func TestServerTenantsGet(t *testing.T) {
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
 	assert.Equal(t, `["a","b","c"]`, strings.TrimSpace(w.Body.String()))
 }
-
-// func TestServerTenantsGetErrorConnector(t *testing.T) {
-// 	config, err := config.FromFile(configFile)
-// 	assert.Nil(t, err)
-//
-// 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/tenants", nil)
-//
-// 	w := httptest.NewRecorder()
-//
-// 	handler := makeHandler(tenantsHandler, config, newConnectorReturnError, nil)
-// 	handler(w, req)
-//
-// 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-// 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-// 	assert.Equal(t, `{"ErrorMessage":"trouble maker"}`, strings.TrimSpace(w.Body.String()))
-// }
-//
-// func TestServerTenantsGetErrorDBInit(t *testing.T) {
-// 	config, err := config.FromFile(configFile)
-// 	assert.Nil(t, err)
-//
-// 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/tenants", nil)
-//
-// 	w := httptest.NewRecorder()
-//
-// 	handler := makeHandler(tenantsHandler, config, newMockedErrorConnector, nil)
-// 	handler(w, req)
-//
-// 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-// 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-// 	assert.Equal(t, `{"ErrorMessage":"trouble maker"}`, strings.TrimSpace(w.Body.String()))
-// }
 
 func TestServerTenantsPost(t *testing.T) {
 	config, err := config.FromFile(configFile)
@@ -334,17 +294,14 @@ func TestServerInternalServerErrors(t *testing.T) {
 		{http.MethodGet, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
 		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(0), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
 		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
+		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedErrorDiskLoader(0), bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
 		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(2), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(2), newMockedErrorDiskLoader(1), bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
 		{http.MethodGet, "migrations", migrationsHandler, newConnectorReturnError, newMockedDiskLoader, nil},
-		{http.MethodGet, "migrations", migrationsHandler, newMockedErrorConnector(0), newMockedDiskLoader, nil},
 		{http.MethodGet, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
 		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(0), newMockedDiskLoader, nil},
 		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
+		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedErrorDiskLoader(0), nil},
 		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(2), newMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(2), newMockedErrorDiskLoader(0), nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(2), newMockedErrorDiskLoader(1), nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(3), newMockedDiskLoader, nil},
 		{http.MethodGet, "diskMigrations", diskMigrationsHandler, newMockedConnector, newMockedErrorDiskLoader(0), nil}}
 
 	for _, r := range requests {
@@ -356,4 +313,14 @@ func TestServerInternalServerErrors(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	}
+}
+
+func TestTracing(t *testing.T) {
+	r, _ := http.NewRequest(http.MethodGet, "http://example.com/sdsdf", nil)
+
+	w := httptest.NewRecorder()
+	handler := tracing()(http.NotFoundHandler())
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
