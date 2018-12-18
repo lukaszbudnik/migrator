@@ -111,6 +111,8 @@ func (bc *baseConnector) getTenantSelectSQL() string {
 func (bc *baseConnector) GetTenants() (tenants []string, err error) {
 	tenantSelectSQL := bc.getTenantSelectSQL()
 
+	tenants = []string{}
+
 	rows, err := bc.db.Query(tenantSelectSQL)
 	if err != nil {
 		err = fmt.Errorf("Could not query tenants: %v", err)
@@ -131,6 +133,8 @@ func (bc *baseConnector) GetTenants() (tenants []string, err error) {
 // GetDBMigrations returns a list of all applied DB migrations
 func (bc *baseConnector) GetDBMigrations() (dbMigrations []types.MigrationDB, err error) {
 	query := bc.dialect.GetMigrationSelectSQL()
+
+	dbMigrations = []types.MigrationDB{}
 
 	rows, err := bc.db.Query(query)
 	if err != nil {

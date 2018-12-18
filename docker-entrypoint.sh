@@ -13,4 +13,4 @@ if [ ! -f "$MIGRATOR_YAML" ] ; then
 fi
 
 echo "Starting migrator using config file: $MIGRATOR_YAML"
-migrator -configFile "$MIGRATOR_YAML" -mode server
+migrator -configFile "$MIGRATOR_YAML"

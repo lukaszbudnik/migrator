@@ -32,6 +32,8 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 		}
 	}()
 
+	migrations = []types.Migration{}
+
 	dirs, err := ioutil.ReadDir(dl.config.BaseDir)
 	if err != nil {
 		panic(err.Error())
