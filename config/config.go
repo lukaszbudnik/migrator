@@ -2,7 +2,6 @@ package config
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -37,7 +36,6 @@ func FromFile(configFileName string) (*Config, error) {
 	contents, err := ioutil.ReadFile(configFileName)
 
 	if err != nil {
-		log.Printf("Could not read config file ==> %v", err)
 		return nil, err
 	}
 
@@ -49,12 +47,10 @@ func FromBytes(contents []byte) (*Config, error) {
 	var config Config
 
 	if err := yaml.Unmarshal(contents, &config); err != nil {
-		log.Printf("Could not parse config file ==> %v", err)
 		return nil, err
 	}
 
 	if err := validator.Validate(config); err != nil {
-		log.Printf("Could not validate config file ==> %v", err)
 		return nil, err
 	}
 

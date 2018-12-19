@@ -4,7 +4,16 @@ MAINTAINER Łukasz Budnik lukasz.budnik@gmail.com
 
 # install migrator
 RUN apk add git
-RUN go get -d -v github.com/lukaszbudnik/migrator
+
+RUN mkdir -p /go/src/github.com/lukaszbudnik/migrator
+
+# from local source code
+COPY . /go/src/github.com/lukaszbudnik/migrator
+# from XXX branch on github
+#RUN cd /go/src/github.com/lukaszbudnik && git clone https://github.com/lukaszbudnik/migrator.git migrator
+#RUN cd /go/src/github.com/lukaszbudnik/migrator && git checkout XXX
+
+RUN cd /go/src/github.com/lukaszbudnik/migrator && ./setup.sh
 RUN cd /go/src/github.com/lukaszbudnik/migrator && \
   GIT_BRANCH=$(git branch | awk -v FS=' ' '/\*/{print $NF}' | sed 's|[()]||g') && \
   GIT_COMMIT_SHA=$(git rev-list -1 HEAD) && \

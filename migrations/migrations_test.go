@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -54,7 +55,7 @@ func TestComputeMigrationsToApply(t *testing.T) {
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, mdef4}
 	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "a", Created: time.Now()}, {Migration: mdef2, Schema: "abc", Created: time.Now()}, {Migration: mdef2, Schema: "def", Created: time.Now()}}
-	migrations := ComputeMigrationsToApply(diskMigrations, dbMigrations)
+	migrations := ComputeMigrationsToApply(context.TODO(), diskMigrations, dbMigrations)
 
 	assert.Len(t, migrations, 2)
 
@@ -75,7 +76,7 @@ func TestFilterTenantMigrations(t *testing.T) {
 	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleSchema}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
-	migrations := FilterTenantMigrations(diskMigrations)
+	migrations := FilterTenantMigrations(context.TODO(), diskMigrations)
 
 	assert.Len(t, migrations, 3)
 
@@ -110,7 +111,7 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
 	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "abc", Created: time.Now()}, {Migration: mdef1, Schema: "def", Created: time.Now()}, {Migration: mdef2, Schema: "public", Created: time.Now()}, {Migration: mdef3, Schema: "public", Created: time.Now()}, {Migration: dev2, Schema: "abc", Created: time.Now()}, {Migration: dev2, Schema: "def", Created: time.Now()}, {Migration: dev2p, Schema: "public", Created: time.Now()}}
-	migrations := ComputeMigrationsToApply(diskMigrations, dbMigrations)
+	migrations := ComputeMigrationsToApply(context.TODO(), diskMigrations, dbMigrations)
 
 	assert.Len(t, migrations, 3)
 

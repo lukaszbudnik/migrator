@@ -1,17 +1,30 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v2"
 )
+
+func newTestContext() context.Context {
+	pc, _, _, _ := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+
+	ctx := context.TODO()
+	ctx = context.WithValue(ctx, common.RequestIDKey{}, "123")
+	ctx = context.WithValue(ctx, common.ActionKey{}, strings.Replace(details.Name(), "github.com/lukaszbudnik/migrator/db.", "", -1))
+	return ctx
+}
 
 func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	config := &config.Config{}
@@ -121,7 +134,7 @@ func TestDBApplyMigrations(t *testing.T) {
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3}
 
-	connector.ApplyMigrations(migrationsToApply)
+	connector.ApplyMigrations(newTestContext(), migrationsToApply)
 
 	dbMigrationsAfter, err := connector.GetDBMigrations()
 	assert.Nil(t, err)
@@ -149,7 +162,7 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 
 	migrationsToApply := []types.Migration{}
 
-	connector.ApplyMigrations(migrationsToApply)
+	connector.ApplyMigrations(newTestContext(), migrationsToApply)
 
 	dbMigrationsAfter, err := connector.GetDBMigrations()
 	assert.Nil(t, err)
@@ -242,7 +255,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 
 	uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-	connector.AddTenantAndApplyMigrations(uniqueTenant, migrationsToApply)
+	connector.AddTenantAndApplyMigrations(newTestContext(), uniqueTenant, migrationsToApply)
 
 	dbMigrationsAfter, err := connector.GetDBMigrations()
 	assert.Nil(t, err)
@@ -649,7 +662,7 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.ApplyMigrations(migrationsToApply)
+	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
 	assert.NotNil(t, err)
 	assert.Equal(t, "trouble maker tx.Begin()", err.Error())
 
@@ -680,7 +693,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.ApplyMigrations(migrationsToApply)
+	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
 	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -711,7 +724,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.ApplyMigrations(migrationsToApply)
+	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
 	assert.Equal(t, "SQL migration failed: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -744,7 +757,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 
 	connector.db = db
 
-	err = connector.ApplyMigrations(migrationsToApply)
+	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
 	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -770,7 +783,7 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
 	assert.NotNil(t, err)
 	assert.Equal(t, "trouble maker tx.Begin()", err.Error())
 
@@ -799,7 +812,7 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
 	assert.Equal(t, "Create schema failed, transaction rollback was called: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -828,7 +841,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	err = connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
 	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -860,7 +873,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
-	err = connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
 	assert.Equal(t, "Failed to add tenant entry: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -893,7 +906,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *test
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
-	err = connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
 	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -927,7 +940,7 @@ func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
-	err = connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
 	assert.Equal(t, "SQL migration failed: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -961,7 +974,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
 
 	connector.db = db
 
-	err = connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
 	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
 
 	if err := mock.ExpectationsWereMet(); err != nil {
