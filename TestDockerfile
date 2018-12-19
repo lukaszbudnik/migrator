@@ -2,16 +2,20 @@ FROM golang:1.11.2-alpine3.8 as builder
 
 MAINTAINER Łukasz Budnik lukasz.budnik@gmail.com
 
-# install migrator
+# use "--build-arg BRANCH=migrator-v3" to override at build time
+# docker build -f TestDockerfile --build-arg BRANCH=migrator-v3 -t migratortest:v1 .
+ARG BRANCH=master
+
+# git is required
 RUN apk add git
 
-RUN mkdir -p /go/src/github.com/lukaszbudnik/migrator
+# A - install migrator from local source code
+#RUN mkdir -p /go/src/github.com/lukaszbudnik/migrator
+#COPY . /go/src/github.com/lukaszbudnik/migrator
 
-# from local source code
-COPY . /go/src/github.com/lukaszbudnik/migrator
-# from XXX branch on github
-#RUN cd /go/src/github.com/lukaszbudnik && git clone https://github.com/lukaszbudnik/migrator.git migrator
-#RUN cd /go/src/github.com/lukaszbudnik/migrator && git checkout XXX
+# B - install migrator from $BRANCH branch
+RUN go get -d -v github.com/lukaszbudnik/migrator
+RUN cd /go/src/github.com/lukaszbudnik/migrator && git checkout $BRANCH
 
 RUN cd /go/src/github.com/lukaszbudnik/migrator && ./setup.sh
 RUN cd /go/src/github.com/lukaszbudnik/migrator && \
