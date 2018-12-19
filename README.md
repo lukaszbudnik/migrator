@@ -1,4 +1,4 @@
-# Migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
+# migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
 Super fast and lightweight DB migration & evolution tool written in go.
 
@@ -8,64 +8,9 @@ migrator can run as a HTTP REST service. Further, there is a ready-to-go migrato
 
 # Usage
 
-Important: Migrator since its inception supported both CLI and REST API. However, CLI is deprecated as of v2.2 and will be removed in migrator v3.0. Starting v3.0 only REST API will be supported.
+migrator exposes a simple REST API which you can use to invoke different actions:
 
-Short and sweet.
-
-```
-$ Usage of ./migrator:
-  -action string
-    	when run in tool mode, action to execute, valid actions are: ["apply" "addTenant" "config" "diskMigrations" "dbTenants" "dbMigrations"] (default "apply")
-  -configFile string
-    	path to migrator configuration yaml file (default "migrator.yaml")
-  -mode string
-    	migrator mode to run: ["tool" "server"] (default "tool")
-  -tenant string
-    	when run in tool mode and action set to "addTenant", specifies new tenant name
-```
-
-Migrator requires a simple `migrator.yaml` file:
-
-```yaml
-baseDir: test/migrations
-driver: postgres
-# dataSource format is specific to DB go driver implementation - see below 'Supported databases'
-dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# override only if you have a specific way of determining tenants, default is:
-tenantSelectSQL: "select name from migrator.migrator_tenants"
-# override only if you have a specific way of creating tenants, default is:
-tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
-# override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: {schema}
-singleSchemas:
-  - public
-  - ref
-  - config
-tenantSchemas:
-  - tenants
-# port is used only when migrator is run in server mode, defaults to:
-port: 8080
-# optional Slack Incoming Web Hook - if defined apply migrations action will post a message to Slack
-slackWebHook: https://hooks.slack.com/services/TTT/BBB/XXX
-```
-
-Migrator will scan all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
-
-SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
-
-```sql
-create schema if not exists {schema};
-create table if not exists {schema}.modules ( k int, v text );
-insert into {schema}.modules values ( 123, '123' );
-```
-
-# Server mode
-
-When migrator is run with `-mode server` it starts a HTTP service and exposes simple REST API which you can use to invoke migrator actions remotely.
-
-All actions which you can invoke from command line can be invoked via REST API:
-
-* GET / - returns migrator config, response is `Content-Type: application/x-yaml`
+* GET /config - returns migrator config, response is `Content-Type: application/x-yaml`
 * GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
 * GET /tenants - returns tenants, response is `Content-Type: application/json`
 * POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
@@ -75,17 +20,79 @@ All actions which you can invoke from command line can be invoked via REST API:
 Some curl examples to get you started:
 
 ```
-curl http://localhost:8080/
-curl http://localhost:8080/diskMigrations
-curl http://localhost:8080/tenants
-curl http://localhost:8080/migrations
-curl -X POST http://localhost:8080/migrations
-curl -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl -v http://localhost:8080/config
+curl -v http://localhost:8080/diskMigrations
+curl -v http://localhost:8080/tenants
+curl -v http://localhost:8080/migrations
+curl -v -X POST http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
 
 Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
 
-# DB Schemas
+There is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+
+To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+
+# Configuration
+
+migrator requires a simple `migrator.yaml` file:
+
+```yaml
+# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
+baseDir: test/migrations
+# required, SQL go driver implementation used, see section "Supported databases"
+driver: postgres
+# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
+dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
+# optional, override only if you have a specific way of determining tenants, default is:
+tenantSelectSQL: "select name from migrator.migrator_tenants"
+# optional, override only if you have a specific way of creating tenants, default is:
+tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
+# optional, override only if you have a specific schema placeholder, default is:
+schemaPlaceHolder: {schema}
+# required, single schemas directories, these are subdirectories of baseDir
+singleSchemas:
+  - public
+  - ref
+  - config
+# optional, tenant schemas directories, these are subdirectories of baseDir
+tenantSchemas:
+  - tenants
+# optional, default is:
+port: 8080
+# the webhook configuration section is optional
+# URL and template are required if at least one of them is empty noop notifier is used
+# the default content type header sent is application/json (can be overridden via webHookHeaders below)
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+# the {text} placeholder is replaced by migrator with information about executed migrations or added new tenant
+webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
+# should you need more control over HTTP headers use below
+webHookHeaders:
+  - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
+  - "Content-Type: application/json"
+  - "X-CustomHeader: value1,value2"
+```
+
+migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
+
+```yaml
+dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB_HOST} port=${DB_PORT}"
+webHookHeaders:
+  - "X-Security-Token: ${SECURITY_TOKEN}"
+```
+
+# migrator under the hood
+
+migrator scans all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
+
+SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
+
+```sql
+create schema if not exists {schema};
+create table if not exists {schema}.modules ( k int, v text );
+insert into {schema}.modules values ( 123, '123' );
+```
 
 When using migrator please remember about these:
 
@@ -112,13 +119,84 @@ Currently migrator supports the following databases and their flavours:
 * Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
   * Microsoft SQL Server - original Microsoft SQL Server
 
-# Do you speak docker?
+# Quick Start Guide
 
-Yes, there is an official docker image available on docker hub.
+You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
-migrator docker image is ultra lightweight and has a size of approx. 15MB. Ideal for micro-services deployments!
+Let's start.
 
-To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+## 1. Get the migrator project
+
+For building migrator from source code `go get` is required:
+
+```
+go get -d -v github.com/lukaszbudnik/migrator
+cd $GOPATH/src/github.com/lukaszbudnik/migrator
+```
+
+migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
+
+For running migrator on docker Go is not required and `git clone` is enough:
+
+```
+git clone git@github.com:lukaszbudnik/migrator.git
+cd migrator
+```
+
+## 2. Setup test DB container
+
+migrator comes with helper scripts to setup test DB containers. Let's use postgres (see `ultimate-coverage.sh` for all supported containers).
+
+```
+./test/docker/create-and-setup-container.sh postgres
+```
+
+Script will start container called `migrator-postgres`.
+
+Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it too.
+
+## 3. Build and run migrator
+
+When building & running migrator from source code execute:
+
+```
+./setup.sh
+go build
+./migrator -configFile test/migrator.yaml
+```
+
+> Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+
+When running migrator from docker we need to update `migrator.yaml` (generated in step 2) as well as provide a link to `migrator-postgres` container:
+
+```
+sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
+sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
+docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
+```
+
+## 4. Play around with migrator
+
+Happy path:
+
+```
+curl -v http://localhost:8080/config
+curl -v http://localhost:8080/diskMigrations
+curl -v http://localhost:8080/tenants
+curl -v http://localhost:8080/migrations
+curl -v -X POST http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+```
+
+And some errors. For example let's break a checksum of the first migration and try to apply migrations or add new tenant.
+
+```
+echo " " >> test/migrations/config/201602160001.sql
+curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
+curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
+```
+
+In above error requests we used `X-Request-Id` header. This header can be used with all requests for request tracing and/or auditing purposes.
 
 # Customisation
 
@@ -146,30 +224,18 @@ There is a performance test generator shipped with migrator (`test/performance/g
 
 Execution times are following:
 
-| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| Migrator 	| Ruby       	| Flyway   	|
+| # Tenants 	| # Existing Migrations 	| # Migrations to apply 	| migrator 	| Ruby       	| Flyway   	|
 |-----------	|-----------------------	|-----------------------	|----------	|-----------	|----------	|
 |        10 	|                     0 	|                 10001 	|     154s 	|      670s 	|    2360s 	|
 |        10 	|                 10001 	|                    20 	|       2s 	|      455s 	|     340s 	|
 
-Migrator is the undisputed winner.
+migrator is the undisputed winner.
 
-The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. Migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
+The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
 
 flyway results are... very surprising. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
 
 The other thing to consider is the fact that migrator is written in go which is known to be much faster than Ruby and Java.
-
-# Installation and supported Go versions
-
-To install migrator use:
-
-```
-go get github.com/lukaszbudnik/migrator
-cd migrator
-./setup.sh
-```
-
-Migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
 
 # Contributing, code style, running unit & integration tests
 

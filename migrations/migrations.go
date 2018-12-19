@@ -1,8 +1,9 @@
 package migrations
 
 import (
-	"log"
+	"context"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -60,11 +61,11 @@ func intersect(diskMigrations []types.Migration, flattenedMigrationDBs []types.M
 }
 
 // ComputeMigrationsToApply computes which disk migrations should be applied to DB based on migrations already present in DB
-func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []types.MigrationDB) []types.Migration {
+func ComputeMigrationsToApply(ctx context.Context, diskMigrations []types.Migration, dbMigrations []types.MigrationDB) []types.Migration {
 	flattenedMigrationDBs := flattenMigrationDBs(dbMigrations)
 
 	len := len(flattenedMigrationDBs)
-	log.Printf("Number of flattened DB migrations: %d", len)
+	common.LogInfo(ctx, "Number of flattened DB migrations: %d", len)
 
 	out := difference(diskMigrations, flattenedMigrationDBs)
 
@@ -72,7 +73,7 @@ func ComputeMigrationsToApply(diskMigrations []types.Migration, dbMigrations []t
 }
 
 // FilterTenantMigrations returns only migrations which are of type MigrationTypeTenantSchema
-func FilterTenantMigrations(diskMigrations []types.Migration) []types.Migration {
+func FilterTenantMigrations(ctx context.Context, diskMigrations []types.Migration) []types.Migration {
 	filteredTenantMigrations := []types.Migration{}
 	for _, m := range diskMigrations {
 		if m.MigrationType == types.MigrationTypeTenantSchema {
@@ -81,7 +82,7 @@ func FilterTenantMigrations(diskMigrations []types.Migration) []types.Migration 
 	}
 
 	len := len(filteredTenantMigrations)
-	log.Printf("Number of flattened DB migrations: %d", len)
+	common.LogInfo(ctx, "Number of filtered tenant DB migrations: %d", len)
 
 	return filteredTenantMigrations
 }
