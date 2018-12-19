@@ -119,31 +119,31 @@ Currently migrator supports the following databases and their flavours:
 * Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
   * Microsoft SQL Server - original Microsoft SQL Server
 
-# 2 minutes walkthrough
+# Quick Start Guide
 
 You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
 Let's start.
 
-1. Clone migrator project locally
+## 1. Get the migrator project
 
-Cloning project will fetch test migrations and test docker scripts.
+For building migrator from source code `go get` is required:
 
-For running migrator on docker `git clone` is enough:
+```
+go get -d -v github.com/lukaszbudnik/migrator
+cd $GOPATH/src/github.com/lukaszbudnik/migrator
+```
+
+migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
+
+For running migrator on docker Go is not required and `git clone` is enough:
 
 ```
 git clone git@github.com:lukaszbudnik/migrator.git
 cd migrator
 ```
 
-For building migrator from source code `go get` is required:
-
-```
-go get -v github.com/lukaszbudnik/migrator
-cd $GOPATH/src/github.com/lukaszbudnik/migrator
-```
-
-2. Setup test DB container
+## 2. Setup test DB container
 
 migrator comes with helper scripts to setup test DB containers. Let's use postgres (see `ultimate-coverage.sh` for all supported containers).
 
@@ -155,7 +155,9 @@ Script will start container called `migrator-postgres`.
 
 Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it too.
 
-3.a. Build and run migrator from source
+## 3. Build and run migrator
+
+When building & running migrator from source code execute:
 
 ```
 ./setup.sh
@@ -163,11 +165,9 @@ go build
 ./migrator -configFile test/migrator.yaml
 ```
 
-Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+> Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
 
-3.b. Run migrator from docker
-
-We need to update `migrator.yaml` as well as provide a link to `migrator-postgres`:
+When running migrator from docker we need to update `migrator.yaml` (generated in step 2) as well as provide a link to `migrator-postgres` container:
 
 ```
 sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
@@ -175,7 +175,9 @@ sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
 docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
 ```
 
-4. Play around with migrator
+## 4. Play around with migrator
+
+Happy path:
 
 ```
 curl -v http://localhost:8080/config
@@ -186,13 +188,15 @@ curl -v -X POST http://localhost:8080/migrations
 curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
 ```
 
-Break sha256 checksum of first migration and try to apply migrations or add new tenant. We can also use `X-Request-Id` headers:
+And some errors. For example let's break a checksum of the first migration and try to apply migrations or add new tenant.
 
 ```
 echo " " >> test/migrations/config/201602160001.sql
 curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
 curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
 ```
+
+In above error requests we used `X-Request-Id` header. This header can be used with all requests for request tracing and/or auditing purposes.
 
 # Customisation
 
@@ -232,18 +236,6 @@ The Ruby framework has an undesired functionality of making a DB call each time 
 flyway results are... very surprising. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
 
 The other thing to consider is the fact that migrator is written in go which is known to be much faster than Ruby and Java.
-
-# Installation and supported Go versions
-
-To install migrator use:
-
-```
-go get -v github.com/lukaszbudnik/migrator
-cd migrator
-./setup.sh
-```
-
-migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
 
 # Contributing, code style, running unit & integration tests
 
