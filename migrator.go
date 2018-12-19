@@ -15,9 +15,17 @@ const (
 	DefaultConfigFile = "migrator.yaml"
 )
 
+// GitBranch stores git branch/tag, value injected during production build
+var GitBranch string
+
+// GitCommitSha stores git commit sha, value injected during production build
+var GitCommitSha string
+
 func main() {
 
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC | log.Lshortfile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
+
+	log.Printf("INFO migrator version %v (%v)", GitBranch, GitCommitSha)
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)

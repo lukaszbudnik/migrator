@@ -39,26 +39,31 @@ To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for 
 migrator requires a simple `migrator.yaml` file:
 
 ```yaml
+# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
 baseDir: test/migrations
+# required, SQL go driver implementation used, see section "Supported databases"
 driver: postgres
-# dataSource format is specific to DB go driver implementation - see below 'Supported databases'
+# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# override only if you have a specific way of determining tenants, default is:
+# optional, override only if you have a specific way of determining tenants, default is:
 tenantSelectSQL: "select name from migrator.migrator_tenants"
-# override only if you have a specific way of creating tenants, default is:
+# optional, override only if you have a specific way of creating tenants, default is:
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
-# override only if you have a specific schema placeholder, default is:
+# optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
+# required, single schemas directories, these are subdirectories of baseDir
 singleSchemas:
   - public
   - ref
   - config
+# optional, tenant schemas directories, these are subdirectories of baseDir
 tenantSchemas:
   - tenants
-# port is used only when migrator is run in server mode, defaults to:
+# optional, default is:
 port: 8080
-# optional webhook configuration section
+# the webhook configuration section is optional
 # URL and template are required if at least one of them is empty noop notifier is used
+# the default content type header sent is application/json (can be overridden via webHookHeaders below)
 webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
 # the {text} placeholder is replaced by migrator with information about executed migrations or added new tenant
 webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
@@ -116,7 +121,7 @@ Currently migrator supports the following databases and their flavours:
 
 # 2 minutes walkthrough
 
-You can run your first migrations with migrator in literally couple minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
+You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
 Let's start.
 
@@ -134,19 +139,23 @@ cd migrator
 For building migrator from source code `go get` is required:
 
 ```
-go get github.com/lukaszbudnik/migrator
+go get -v github.com/lukaszbudnik/migrator
 cd $GOPATH/src/github.com/lukaszbudnik/migrator
 ```
 
-Setup test DB container. Let's use postgres (see `ultimate-coverage.sh` for all supported containers).
+2. Setup test DB container
+
+migrator comes with helper scripts to setup test DB containers. Let's use postgres (see `ultimate-coverage.sh` for all supported containers).
 
 ```
 ./test/docker/create-and-setup-container.sh postgres
 ```
 
-The script apart of starting test DB container also generates a ready-to-use test config file. We will use it later.
+Script will start container called `migrator-postgres`.
 
-2. a. Build and run migrator from source
+Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it too.
+
+3.a. Build and run migrator from source
 
 ```
 ./setup.sh
@@ -154,18 +163,19 @@ go build
 ./migrator -configFile test/migrator.yaml
 ```
 
-2. b. Run migrator from docker
+Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
 
-Provide a link to `migrator-postgres`. We also need to update `migrator.yaml`:
+3.b. Run migrator from docker
+
+We need to update `migrator.yaml` as well as provide a link to `migrator-postgres`:
 
 ```
 sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
 sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
-docker pull lukasz/migrator
 docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
 ```
 
-3. Play around with migrator
+4. Play around with migrator
 
 ```
 curl -v http://localhost:8080/config
@@ -228,7 +238,7 @@ The other thing to consider is the fact that migrator is written in go which is 
 To install migrator use:
 
 ```
-go get github.com/lukaszbudnik/migrator
+go get -v github.com/lukaszbudnik/migrator
 cd migrator
 ./setup.sh
 ```

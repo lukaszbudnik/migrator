@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
@@ -20,6 +22,18 @@ var (
 	configFile          = "../test/migrator.yaml"
 	configFileOverrides = "../test/migrator-overrides.yaml"
 )
+
+func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return req, err
+	}
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, common.RequestIDKey{}, "123")
+	action := fmt.Sprintf("%v %v", method, strings.Replace(url, "http://example.com", "", -1))
+	ctx = context.WithValue(ctx, common.ActionKey{}, action)
+	return req.WithContext(ctx), err
+}
 
 func TestGetDefaultPort(t *testing.T) {
 	config, err := config.FromFile(configFile)
@@ -45,7 +59,7 @@ func TestServerConfig(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/config", nil)
+	req, _ := newTestRequest(http.MethodGet, "http://example.com/config", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(configHandler, config, nil, nil)
@@ -63,7 +77,7 @@ func TestServerConfigMethodNotAllowed(t *testing.T) {
 
 	for _, httpMethod := range httpMethods {
 
-		req, _ := http.NewRequest(httpMethod, "http://example.com/", nil)
+		req, _ := newTestRequest(httpMethod, "http://example.com/config", nil)
 
 		w := httptest.NewRecorder()
 		handler := makeHandler(configHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -78,7 +92,7 @@ func TestServerTenantsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/tenants", nil)
+	req, _ := newTestRequest(http.MethodGet, "http://example.com/tenants", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, newMockedConnector, nil)
@@ -94,7 +108,7 @@ func TestServerTenantsPost(t *testing.T) {
 	assert.Nil(t, err)
 
 	json := []byte(`{"name": "new_tenant"}`)
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -116,7 +130,7 @@ func TestServerTenantsPostIOError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", errReader(0))
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", errReader(0))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -134,7 +148,7 @@ func TestServerTenantsPostBadRequest(t *testing.T) {
 
 	// empty JSON payload
 	json := []byte("")
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -148,7 +162,7 @@ func TestServerTenantsPostFailedDependency(t *testing.T) {
 	assert.Nil(t, err)
 
 	json := []byte(`{"name": "new_tenant"}`)
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(tenantsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
@@ -166,7 +180,7 @@ func TestServerTenantMethodNotAllowed(t *testing.T) {
 	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
 
 	for _, httpMethod := range httpMethods {
-		req, _ := http.NewRequest(httpMethod, "http://example.com/tenants", nil)
+		req, _ := newTestRequest(httpMethod, "http://example.com/tenants", nil)
 
 		w := httptest.NewRecorder()
 		handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -183,7 +197,7 @@ func TestServerDiskMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/diskMigrations", nil)
+	req, _ := newTestRequest(http.MethodGet, "http://example.com/diskMigrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(diskMigrationsHandler, config, nil, newMockedDiskLoader)
@@ -202,7 +216,7 @@ func TestServerDiskMigrationsMethodNotAllowed(t *testing.T) {
 
 	for _, httpMethod := range httpMethods {
 
-		req, _ := http.NewRequest(httpMethod, "http://example.com/diskMigrations", nil)
+		req, _ := newTestRequest(httpMethod, "http://example.com/diskMigrations", nil)
 
 		w := httptest.NewRecorder()
 		handler := makeHandler(diskMigrationsHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -219,7 +233,7 @@ func TestServerMigrationsGet(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/migrations", nil)
+	req, _ := newTestRequest(http.MethodGet, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(migrationsHandler, config, newMockedConnector, nil)
@@ -234,7 +248,7 @@ func TestServerMigrationsPost(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -249,7 +263,7 @@ func TestServerMigrationsPostFailedDependency(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com/migrations", nil)
+	req, _ := newTestRequest(http.MethodPost, "http://example.com/migrations", nil)
 
 	w := httptest.NewRecorder()
 	handler := makeHandler(migrationsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
@@ -267,7 +281,7 @@ func TestServerMigrationsMethodNotAllowed(t *testing.T) {
 	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
 
 	for _, httpMethod := range httpMethods {
-		req, _ := http.NewRequest(httpMethod, "http://example.com/migrations", nil)
+		req, _ := newTestRequest(httpMethod, "http://example.com/migrations", nil)
 
 		w := httptest.NewRecorder()
 		handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
@@ -305,7 +319,7 @@ func TestServerInternalServerErrors(t *testing.T) {
 		{http.MethodGet, "diskMigrations", diskMigrationsHandler, newMockedConnector, newMockedErrorDiskLoader(0), nil}}
 
 	for _, r := range requests {
-		req, _ := http.NewRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)
+		req, _ := newTestRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)
 
 		w := httptest.NewRecorder()
 		handler := makeHandler(r.handler, c, r.createConnector, r.createLoader)
@@ -316,7 +330,7 @@ func TestServerInternalServerErrors(t *testing.T) {
 }
 
 func TestTracing(t *testing.T) {
-	r, _ := http.NewRequest(http.MethodGet, "http://example.com/sdsdf", nil)
+	r, _ := newTestRequest(http.MethodGet, "http://example.com/sdsdf", nil)
 
 	w := httptest.NewRecorder()
 	handler := tracing()(http.NotFoundHandler())

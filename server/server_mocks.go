@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -67,7 +68,7 @@ func (m *mockedErrorConnector) Init() error {
 func (m *mockedErrorConnector) Dispose() {
 }
 
-func (m *mockedErrorConnector) AddTenantAndApplyMigrations(string, []types.Migration) error {
+func (m *mockedErrorConnector) AddTenantAndApplyMigrations(context.Context, string, []types.Migration) error {
 	if m.errorThreshold == m.counter {
 		return fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
 	}
@@ -94,7 +95,7 @@ func (m *mockedErrorConnector) GetDBMigrations() ([]types.MigrationDB, error) {
 	return ms, nil
 }
 
-func (m *mockedErrorConnector) ApplyMigrations(migrations []types.Migration) error {
+func (m *mockedErrorConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) error {
 	if m.errorThreshold == m.counter {
 		return fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
 	}

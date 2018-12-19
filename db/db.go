@@ -1,12 +1,13 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 )
@@ -16,8 +17,8 @@ type Connector interface {
 	Init() error
 	GetTenants() ([]string, error)
 	GetDBMigrations() ([]types.MigrationDB, error)
-	ApplyMigrations(migrations []types.Migration) error
-	AddTenantAndApplyMigrations(string, []types.Migration) error
+	ApplyMigrations(context.Context, []types.Migration) error
+	AddTenantAndApplyMigrations(context.Context, string, []types.Migration) error
 	Dispose()
 }
 
@@ -165,7 +166,7 @@ func (bc *baseConnector) GetDBMigrations() (dbMigrations []types.MigrationDB, er
 }
 
 // ApplyMigrations applies passed migrations
-func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) (err error) {
+func (bc *baseConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) (err error) {
 	if len(migrations) == 0 {
 		return
 	}
@@ -185,7 +186,7 @@ func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) (err erro
 		if r == nil {
 			err = tx.Commit()
 		} else {
-			log.Println("Recovered in ApplyMigrations. Transaction rollback.")
+			common.LogInfo(ctx, "Recovered in ApplyMigrations. Transaction rollback.")
 			tx.Rollback()
 			var ok bool
 			err, ok = r.(error)
@@ -195,12 +196,12 @@ func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) (err erro
 		}
 	}()
 
-	bc.applyMigrationsInTx(tx, tenants, migrations)
+	bc.applyMigrationsInTx(ctx, tx, tenants, migrations)
 	return
 }
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
-func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) (err error) {
+func (bc *baseConnector) AddTenantAndApplyMigrations(ctx context.Context, tenant string, migrations []types.Migration) (err error) {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -213,7 +214,7 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 		if r == nil {
 			err = tx.Commit()
 		} else {
-			log.Println("Recovered in AddTenantAndApplyMigrations. Transaction rollback.")
+			common.LogInfo(ctx, "Recovered in AddTenantAndApplyMigrations. Transaction rollback.")
 			tx.Rollback()
 			var ok bool
 			err, ok = r.(error)
@@ -225,20 +226,20 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 
 	createSchema := bc.dialect.GetCreateSchemaSQL(tenant)
 	if _, err = tx.Exec(createSchema); err != nil {
-		log.Panicf("Create schema failed, transaction rollback was called: %v", err)
+		common.LogPanic(ctx, "Create schema failed, transaction rollback was called: %v", err)
 	}
 
 	insert, err := bc.db.Prepare(tenantInsertSQL)
 	if err != nil {
-		log.Panicf("Could not create prepared statement: %v", err)
+		common.LogPanic(ctx, "Could not create prepared statement: %v", err)
 	}
 
 	_, err = tx.Stmt(insert).Exec(tenant)
 	if err != nil {
-		log.Panicf("Failed to add tenant entry: %v", err)
+		common.LogPanic(ctx, "Failed to add tenant entry: %v", err)
 	}
 
-	bc.applyMigrationsInTx(tx, []string{tenant}, migrations)
+	bc.applyMigrationsInTx(ctx, tx, []string{tenant}, migrations)
 
 	return
 }
@@ -269,13 +270,13 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration) {
+func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, tenants []string, migrations []types.Migration) {
 	schemaPlaceHolder := bc.getSchemaPlaceHolder()
 
 	insertMigrationSQL := bc.dialect.GetMigrationInsertSQL()
 	insert, err := bc.db.Prepare(insertMigrationSQL)
 	if err != nil {
-		log.Panicf("Could not create prepared statement: %v", err)
+		common.LogPanic(ctx, "Could not create prepared statement: %v", err)
 	}
 
 	for _, m := range migrations {
@@ -287,18 +288,18 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migra
 		}
 
 		for _, s := range schemas {
-			log.Printf("Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
+			common.LogInfo(ctx, "Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
 
 			contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
 
 			_, err = tx.Exec(contents)
 			if err != nil {
-				log.Panicf("SQL migration failed: %v", err)
+				common.LogPanic(ctx, "SQL migration failed: %v", err)
 			}
 
 			_, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum)
 			if err != nil {
-				log.Panicf("Failed to add migration entry: %v", err)
+				common.LogPanic(ctx, "Failed to add migration entry: %v", err)
 			}
 		}
 

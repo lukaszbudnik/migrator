@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
@@ -23,8 +24,6 @@ const (
 	requestIDHeader string = "X-Request-Id"
 )
 
-type requestIDKey struct{}
-
 func getPort(config *config.Config) string {
 	if len(strings.TrimSpace(config.Port)) == 0 {
 		return defaultPort
@@ -32,14 +31,14 @@ func getPort(config *config.Config) string {
 	return config.Port
 }
 
-func sendNotification(config *config.Config, text string) {
+func sendNotification(ctx context.Context, config *config.Config, text string) {
 	notifier := notifications.NewNotifier(config)
 	resp, err := notifier.Notify(text)
 
 	if err != nil {
-		log.Printf("Notifier err: %v", err)
+		common.LogError(ctx, "Notifier err: %v", err)
 	} else {
-		log.Printf("Notifier response: %v", resp)
+		common.LogInfo(ctx, "Notifier response: %v", resp)
 	}
 }
 
@@ -85,11 +84,15 @@ func jsonResponse(w http.ResponseWriter, response interface{}) {
 func tracing() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// requestID
 			requestID := r.Header.Get(requestIDHeader)
 			if requestID == "" {
 				requestID = fmt.Sprintf("%d", time.Now().UnixNano())
 			}
-			ctx := context.WithValue(r.Context(), requestIDKey{}, requestID)
+			ctx := context.WithValue(r.Context(), common.RequestIDKey{}, requestID)
+			// action
+			action := fmt.Sprintf("%v %v", r.Method, r.RequestURI)
+			ctx = context.WithValue(ctx, common.ActionKey{}, action)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -102,44 +105,41 @@ func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *co
 }
 
 func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	if r.Method != http.MethodGet {
-		log.Printf("[%v] ERROR /config - wrong method: %v", requestID, r.Method)
+		common.LogError(r.Context(), "Wrong method")
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
-	log.Printf("[%v] INFO /config", requestID)
+	common.LogInfo(r.Context(), "returning config file")
 	w.Header().Set("Content-Type", "application/x-yaml")
 	fmt.Fprintf(w, "%v", config)
 }
 
 func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	if r.Method != http.MethodGet {
-		log.Printf("[%v] ERROR /diskMigrations - wrong method: %v", requestID, r.Method)
+		common.LogError(r.Context(), "Wrong method")
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
-	log.Printf("[%v] INFO /diskMigrations", requestID)
+	common.LogInfo(r.Context(), "Start")
 	loader := createAndInitLoader(config, newLoader)
 	diskMigrations, err := loader.GetDiskMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /diskMigrations - internal error: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
-	log.Printf("[%v] INFO /diskMigrations - returning disk migrations: %v", requestID, len(diskMigrations))
+	common.LogInfo(r.Context(), "Returning disk migrations: %v", len(diskMigrations))
 	jsonResponse(w, diskMigrations)
 }
 
 func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		log.Printf("[%v] ERROR /migrations - wrong method: %v", requestID, r.Method)
+		common.LogError(r.Context(), "Wrong method: %v", r.Method)
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
-	log.Printf("[%v] INFO /migrations", requestID)
+	common.LogInfo(r.Context(), "Start")
 	if r.Method == http.MethodGet {
 		migrationsGetHandler(w, r, config, newConnector, newLoader)
 	}
@@ -149,30 +149,28 @@ func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Co
 }
 
 func migrationsGetHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	connector, err := createAndInitConnector(config, newConnector)
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error creating connector: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
 	defer connector.Dispose()
 	dbMigrations, err := connector.GetDBMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error getting DB migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
-	log.Printf("[%v] INFO /migrations - returning DB migrations: %v", requestID, len(dbMigrations))
+	common.LogInfo(r.Context(), "Returning DB migrations: %v", len(dbMigrations))
 	jsonResponse(w, dbMigrations)
 }
 
 func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	loader := createAndInitLoader(config, newLoader)
 	connector, err := createAndInitConnector(config, newConnector)
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error creating connector: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
@@ -180,14 +178,14 @@ func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *confi
 
 	diskMigrations, err := loader.GetDiskMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error getting disk migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
 
 	dbMigrations, err := connector.GetDBMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error getting DB migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
@@ -195,7 +193,7 @@ func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *confi
 	verified, offendingMigrations := migrations.VerifyCheckSums(diskMigrations, dbMigrations)
 
 	if !verified {
-		log.Printf("[%v] ERROR /migrations - checksum verification failed for migrations: %v", requestID, len(offendingMigrations))
+		common.LogError(r.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
 		errorResponse(w, http.StatusFailedDependency, struct {
 			ErrorMessage        string
 			OffendingMigrations []types.Migration
@@ -203,27 +201,30 @@ func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *confi
 		return
 	}
 
-	migrationsToApply := migrations.ComputeMigrationsToApply(diskMigrations, dbMigrations)
-	log.Printf("[%v] INFO /migrations - found migrations to apply: %d", requestID, len(migrationsToApply))
+	migrationsToApply := migrations.ComputeMigrationsToApply(r.Context(), diskMigrations, dbMigrations)
+	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
 
-	err = connector.ApplyMigrations(migrationsToApply)
+	err = connector.ApplyMigrations(r.Context(), migrationsToApply)
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error applying migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error applying migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
-	log.Printf("[%v] INFO /migrations - returning applied migrations: %v", requestID, len(migrationsToApply))
+
+	text := fmt.Sprintf("Applied migrations: %v", len(migrationsToApply))
+	sendNotification(r.Context(), config, text)
+
+	common.LogInfo(r.Context(), "Returning applied migrations: %v", len(migrationsToApply))
 	jsonResponse(w, migrationsToApply)
 }
 
 func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		log.Printf("[%v] ERROR /tenants - wrong method: %v", requestID, r.Method)
+		common.LogError(r.Context(), "Wrong method")
 		errorDefaultResponse(w, http.StatusMethodNotAllowed)
 		return
 	}
-	log.Printf("[%v] INFO /tenants", requestID)
+	common.LogInfo(r.Context(), "Start")
 
 	if r.Method == http.MethodGet {
 		tenantsGetHandler(w, r, config, newConnector, newLoader)
@@ -236,24 +237,26 @@ func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Confi
 func tenantsGetHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
 	connector, err := createAndInitConnector(config, newConnector)
 	if err != nil {
+		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
 	defer connector.Dispose()
 	tenants, err := connector.GetTenants()
 	if err != nil {
+		common.LogError(r.Context(), "Error getting tenants: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
+	common.LogInfo(r.Context(), "Returning tenants: %v", len(tenants))
 	jsonResponse(w, tenants)
 }
 
 func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	requestID := r.Context().Value(requestIDKey{})
-
 	loader := createAndInitLoader(config, newLoader)
 	connector, err := createAndInitConnector(config, newConnector)
 	if err != nil {
+		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
@@ -261,6 +264,7 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		common.LogError(r.Context(), "Error reading request: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
@@ -269,20 +273,21 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 	}
 	err = json.Unmarshal(body, &tenant)
 	if err != nil || tenant.Name == "" {
-		errorResponseStatusErrorMessage(w, http.StatusBadRequest, "400 bad request")
+		common.LogError(r.Context(), "Bad request: %v", err.Error())
+		errorResponseStatusErrorMessage(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	diskMigrations, err := loader.GetDiskMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error getting disk migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
 
 	dbMigrations, err := connector.GetDBMigrations()
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error getting DB migrations: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
@@ -290,7 +295,7 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 	verified, offendingMigrations := migrations.VerifyCheckSums(diskMigrations, dbMigrations)
 
 	if !verified {
-		log.Printf("[%v] ERROR /migrations - checksum verification failed for migrations: %v", requestID, len(offendingMigrations))
+		common.LogError(r.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
 		errorResponse(w, http.StatusFailedDependency, struct {
 			ErrorMessage        string
 			OffendingMigrations []types.Migration
@@ -299,19 +304,20 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 	}
 
 	// filter only tenant schemas
-	migrationsToApply := migrations.FilterTenantMigrations(diskMigrations)
-	log.Printf("Found migrations to apply: %d", len(migrationsToApply))
+	migrationsToApply := migrations.FilterTenantMigrations(r.Context(), diskMigrations)
+	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
 
-	err = connector.AddTenantAndApplyMigrations(tenant.Name, migrationsToApply)
+	err = connector.AddTenantAndApplyMigrations(r.Context(), tenant.Name, migrationsToApply)
 	if err != nil {
-		log.Printf("[%v] ERROR /migrations - internal error adding new tenant: %v", requestID, err.Error())
+		common.LogError(r.Context(), "Error adding new tenant: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
 		return
 	}
 
-	text := fmt.Sprintf("Tenant %q added, migrations applied: %d", tenant.Name, len(migrationsToApply))
-	sendNotification(config, text)
+	text := fmt.Sprintf("Tenant %q added, migrations applied: %v", tenant.Name, len(migrationsToApply))
+	sendNotification(r.Context(), config, text)
 
+	common.LogInfo(r.Context(), text)
 	jsonResponse(w, migrationsToApply)
 }
 
@@ -330,7 +336,7 @@ func registerHandlers(config *config.Config, newConnector func(*config.Config) (
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) (*http.Server, error) {
 	port := getPort(config)
-	log.Printf("INFO Migrator web server starting on port %s", port)
+	log.Printf("INFO migrator starting on port %s", port)
 
 	router := registerHandlers(config, db.NewConnector, loader.NewLoader)
 
