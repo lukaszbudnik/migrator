@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+echo "Running custom build hook"
+
+echo "SOURCE_BRANCH: $SOURCE_BRANCH"
+echo "SOURCE_COMMIT: $SOURCE_COMMIT"
+echo "DOCKERFILE_PATH: $DOCKERFILE_PATH"
+echo "DOCKER_REPO: $DOCKER_REPO"
+echo "CACHE_TAG: $CACHE_TAG"
+echo "IMAGE_NAME: $IMAGE_NAME"
+
+docker build --build-arg SOURCE_BRANCH=$SOURCE_BRANCH -f $DOCKERFILE_PATH -t $IMAGE_NAME .
