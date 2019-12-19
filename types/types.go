@@ -8,10 +8,14 @@ import (
 type MigrationType uint32
 
 const (
-	// MigrationTypeSingleSchema is used to mark single migration
-	MigrationTypeSingleSchema MigrationType = 1
-	// MigrationTypeTenantSchema is used to mark tenant migrations
-	MigrationTypeTenantSchema MigrationType = 2
+	// MigrationTypeSingleMigration is used to mark single migration
+	MigrationTypeSingleMigration MigrationType = 1
+	// MigrationTypeTenantMigration is used to mark tenant migrations
+	MigrationTypeTenantMigration MigrationType = 2
+	// MigrationTypeSingleScript is used to mark single SQL script which is executed always
+	MigrationTypeSingleScript MigrationType = 3
+	// MigrationTypeTenantScript is used to mark tenant SQL scripts which is executed always
+	MigrationTypeTenantScript MigrationType = 4
 )
 
 // Migration contains basic information about migration

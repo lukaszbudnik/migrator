@@ -11,7 +11,7 @@ func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.Migration {
 	var flattened []types.Migration
 	var previousMigration types.Migration
 	for i, m := range dbMigrations {
-		if i == 0 || m.MigrationType == types.MigrationTypeSingleSchema || m.Migration != previousMigration {
+		if i == 0 || m.Migration != previousMigration {
 			flattened = append(flattened, m.Migration)
 			previousMigration = m.Migration
 		}
@@ -20,11 +20,14 @@ func flattenMigrationDBs(dbMigrations []types.MigrationDB) []types.Migration {
 }
 
 // difference returns the elements on disk which are not yet in DB
+// the exceptions are MigrationTypeSingleScript and MigrationTypeTenantScript which are always run
 func difference(diskMigrations []types.Migration, flattenedMigrationDBs []types.Migration) []types.Migration {
 	// key is Migration.File
 	existsInDB := map[string]bool{}
 	for _, m := range flattenedMigrationDBs {
-		existsInDB[m.File] = true
+		if m.MigrationType != types.MigrationTypeSingleScript && m.MigrationType != types.MigrationTypeTenantScript {
+			existsInDB[m.File] = true
+		}
 	}
 	diff := []types.Migration{}
 	for _, m := range diskMigrations {
@@ -76,7 +79,7 @@ func ComputeMigrationsToApply(ctx context.Context, diskMigrations []types.Migrat
 func FilterTenantMigrations(ctx context.Context, diskMigrations []types.Migration) []types.Migration {
 	filteredTenantMigrations := []types.Migration{}
 	for _, m := range diskMigrations {
-		if m.MigrationType == types.MigrationTypeTenantSchema {
+		if m.MigrationType == types.MigrationTypeTenantMigration {
 			filteredTenantMigrations = append(filteredTenantMigrations, m)
 		}
 	}

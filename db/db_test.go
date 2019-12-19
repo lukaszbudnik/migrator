@@ -110,7 +110,7 @@ func TestDBApplyMigrations(t *testing.T) {
 	tenants, err := connector.GetTenants()
 	assert.Nil(t, err)
 
-	lenTenants := len(tenants)
+	noOfTenants := len(tenants)
 
 	dbMigrationsBefore, err := connector.GetDBMigrations()
 	assert.Nil(t, err)
@@ -120,19 +120,31 @@ func TestDBApplyMigrations(t *testing.T) {
 	p1 := time.Now().UnixNano()
 	p2 := time.Now().UnixNano()
 	p3 := time.Now().UnixNano()
+	p4 := time.Now().UnixNano()
+	p5 := time.Now().UnixNano()
 	t1 := time.Now().UnixNano()
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
+	t4 := time.Now().UnixNano()
 
-	public1 := types.Migration{Name: fmt.Sprintf("%v.sql", p1), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p1), MigrationType: types.MigrationTypeSingleSchema, Contents: "drop table if exists modules"}
-	public2 := types.Migration{Name: fmt.Sprintf("%v.sql", p2), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p2), MigrationType: types.MigrationTypeSingleSchema, Contents: "create table modules ( k int, v text )"}
-	public3 := types.Migration{Name: fmt.Sprintf("%v.sql", p3), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p3), MigrationType: types.MigrationTypeSingleSchema, Contents: "insert into modules values ( 123, '123' )"}
+	// public migrations
+	public1 := types.Migration{Name: fmt.Sprintf("%v.sql", p1), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p1), MigrationType: types.MigrationTypeSingleMigration, Contents: "drop table if exists modules"}
+	public2 := types.Migration{Name: fmt.Sprintf("%v.sql", p2), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p2), MigrationType: types.MigrationTypeSingleMigration, Contents: "create table modules ( k int, v text )"}
+	public3 := types.Migration{Name: fmt.Sprintf("%v.sql", p3), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p3), MigrationType: types.MigrationTypeSingleMigration, Contents: "insert into modules values ( 123, '123' )"}
 
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "create table {schema}.settings (k int, v text)"}
-	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	// public scripts
+	public4 := types.Migration{Name: fmt.Sprintf("%v.sql", p4), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p4), MigrationType: types.MigrationTypeSingleScript, Contents: "insert into modules values ( 1234, '1234' )"}
+	public5 := types.Migration{Name: fmt.Sprintf("%v.sql", p5), SourceDir: "public", File: fmt.Sprintf("public/%v.sql", p5), MigrationType: types.MigrationTypeSingleScript, Contents: "insert into modules values ( 12345, '12345' )"}
 
-	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3}
+	// tenant migrations
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantMigration, Contents: "create table {schema}.settings (k int, v text)"}
+	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+
+	// tenant scripts
+	tenant4 := types.Migration{Name: fmt.Sprintf("%v.sql", t4), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t4), MigrationType: types.MigrationTypeTenantScript, Contents: "insert into {schema}.settings values (456, '456') "}
+
+	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3, public4, public5, tenant4}
 
 	connector.ApplyMigrations(newTestContext(), migrationsToApply)
 
@@ -142,7 +154,8 @@ func TestDBApplyMigrations(t *testing.T) {
 	lenAfter := len(dbMigrationsAfter)
 
 	// 3 tenant migrations * no of tenants + 3 public
-	expected := lenTenants*3 + 3
+	// 1 tenant script * no of tenants + 2 public scripts
+	expected := (3*noOfTenants + 3) + (1*noOfTenants + 2)
 	assert.Equal(t, expected, lenAfter-lenBefore)
 }
 
@@ -247,9 +260,9 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	t2 := time.Now().UnixNano()
 	t3 := time.Now().UnixNano()
 
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "drop table if exists {schema}.settings"}
-	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantSchema, Contents: "create table {schema}.settings (k int, v text)"}
-	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456')"}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "drop table if exists {schema}.settings"}
+	tenant2 := types.Migration{Name: fmt.Sprintf("%v.sql", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t2), MigrationType: types.MigrationTypeTenantMigration, Contents: "create table {schema}.settings (k int, v text)"}
+	tenant3 := types.Migration{Name: fmt.Sprintf("%v.sql", t3), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t3), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456')"}
 
 	migrationsToApply := []types.Migration{tenant1, tenant2, tenant3}
 
@@ -659,7 +672,7 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
@@ -690,7 +703,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
@@ -721,7 +734,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
@@ -743,7 +756,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	connector := baseConnector{config, dialect, nil}
 
 	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
@@ -780,7 +793,7 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
@@ -809,7 +822,7 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
@@ -838,7 +851,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
@@ -870,7 +883,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
@@ -903,7 +916,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *test
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
@@ -937,7 +950,7 @@ func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
 	connector.db = db
 
 	t1 := time.Now().UnixNano()
-	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
 	err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
@@ -960,7 +973,7 @@ func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
 
 	tenant := "tenant"
 	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantSchema, Contents: "insert into {schema}.settings values (456, '456') "}
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	mock.ExpectBegin()

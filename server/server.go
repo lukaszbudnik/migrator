@@ -336,7 +336,7 @@ func registerHandlers(config *config.Config, newConnector func(*config.Config) (
 // and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
 func Start(config *config.Config) (*http.Server, error) {
 	port := getPort(config)
-	log.Printf("INFO migrator starting on port %s", port)
+	log.Printf("INFO migrator starting on http://0.0.0.0:%s", port)
 
 	router := registerHandlers(config, db.NewConnector, loader.NewLoader)
 

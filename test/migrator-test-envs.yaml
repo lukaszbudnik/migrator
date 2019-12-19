@@ -7,11 +7,11 @@ tenantSelectSQL: ${PATH}
 tenantInsertSQL: ${GOPATH}
 schemaPlaceHolder: ${USER}
 port: ${_}
-singleSchemas:
+singleMigrations:
   - public
   - ref
   - config
-tenantSchemas:
+tenantMigrations:
   - tenants
 webHookURL: ${SHLVL}
 webHookTemplate: ${TERM}
