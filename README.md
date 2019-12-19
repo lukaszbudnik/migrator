@@ -55,14 +55,20 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
-# required, single schemas directories, these are subdirectories of baseDir
+# required, directories of single schema SQL migrations, these are subdirectories of baseDir
 singleMigrations:
   - public
   - ref
   - config
-# optional, tenant schemas directories, these are subdirectories of baseDir
+# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
 tenantMigrations:
   - tenants
+# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
+singleScripts:
+  - config-scripts
+# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
+tenantScripts:
+  - tenants-scripts
 # optional, default is:
 port: 8080
 # the webhook configuration section is optional
