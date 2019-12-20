@@ -9,16 +9,6 @@ import (
 	"github.com/lukaszbudnik/migrator/types"
 )
 
-// Contains returns true when element is present in slice
-func Contains(slice []string, element *string) bool {
-	for _, a := range slice {
-		if a == *element {
-			return true
-		}
-	}
-	return false
-}
-
 // MigrationArrayToString creates a string representation of Migration array
 func MigrationArrayToString(migrations []types.Migration) string {
 	buffer := new(bytes.Buffer)

@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"fmt"
 
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
-	"github.com/lukaszbudnik/migrator/utils"
 )
 
 // diskLoader is struct used for implementing Loader interface for loading migrations from disk
@@ -34,7 +34,22 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 
 	migrations = []types.Migration{}
 
-	dirs, err := ioutil.ReadDir(dl.config.BaseDir)
+	absBaseDir, err := filepath.Abs(dl.config.BaseDir)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var dirs []string
+	err = filepath.Walk(absBaseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			dirs = append(dirs, path)
+		}
+		return nil
+	})
+
 	if err != nil {
 		panic(err.Error())
 	}
@@ -67,34 +82,34 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 	return
 }
 
-func (dl *diskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string) []string {
-	var dirs []string
-	for _, f := range files {
-		if f.IsDir() {
-			name := f.Name()
-			if utils.Contains(schemaDirs, &name) {
-				dirs = append(dirs, name)
+func (dl *diskLoader) filterSchemaDirs(dirs []string, migrationsDirs []string) []string {
+	var filteredDirs []string
+	for _, dir := range dirs {
+		for _, migrationsDir := range migrationsDirs {
+			if strings.HasSuffix(dir, migrationsDir) {
+				filteredDirs = append(filteredDirs, dir)
 			}
 		}
 	}
-	return dirs
+	return filteredDirs
 }
 
 func (dl *diskLoader) readFromDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
 	for _, sourceDir := range sourceDirs {
-		files, err := ioutil.ReadDir(filepath.Join(dl.config.BaseDir, sourceDir))
+		files, err := ioutil.ReadDir(sourceDir)
 		if err != nil {
 			panic(err.Error())
 		}
 		for _, file := range files {
 			if !file.IsDir() {
-				contents, err := ioutil.ReadFile(filepath.Join(dl.config.BaseDir, sourceDir, file.Name()))
+				contents, err := ioutil.ReadFile(filepath.Join(sourceDir, file.Name()))
 				if err != nil {
 					panic(err.Error())
 				}
 				hasher := sha256.New()
 				hasher.Write([]byte(contents))
-				m := types.Migration{Name: file.Name(), SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType, Contents: string(contents), CheckSum: hex.EncodeToString(hasher.Sum(nil))}
+				name := strings.Replace(file.Name(), dl.config.BaseDir, "", 1)
+				m := types.Migration{Name: name, SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType, Contents: string(contents), CheckSum: hex.EncodeToString(hasher.Sum(nil))}
 
 				e, ok := migrations[m.Name]
 				if ok {

@@ -1,34 +1,12 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestContainsFound(t *testing.T) {
-
-	var slice = []string{"abc", "def", "ghi"}
-
-	for _, s := range slice {
-		found := Contains(slice, &s)
-		assert.True(t, found, fmt.Sprintf("String %#v not found in slice %#v", s, slice))
-	}
-}
-
-func TestContainsNotFound(t *testing.T) {
-
-	var slice = []string{"abc", "def", "ghi"}
-	var other = []string{"", "xyz"}
-
-	for _, s := range other {
-		found := Contains(slice, &s)
-		assert.False(t, found, fmt.Sprintf("String %#v found in slice %#v", s, slice))
-	}
-}
 
 func TestTenantArrayToString(t *testing.T) {
 	dbTenants := []string{"abcabc", "dedededededededededede", "opopopop"}
