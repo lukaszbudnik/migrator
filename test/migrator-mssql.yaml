@@ -1,9 +1,9 @@
 baseDir: test/migrations
 driver: sqlserver
 dataSource: "A"
-singleSchemas:
+singleMigrations:
   - public
   - ref
   - config
-tenantSchemas:
+tenantMigrations:
   - tenants

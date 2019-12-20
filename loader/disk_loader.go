@@ -39,13 +39,17 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 		panic(err.Error())
 	}
 
-	singleSchemasDirs := dl.filterSchemaDirs(dirs, dl.config.SingleSchemas)
-	tenantSchemasDirs := dl.filterSchemaDirs(dirs, dl.config.TenantSchemas)
+	singleMigrationsDirs := dl.filterSchemaDirs(dirs, dl.config.SingleMigrations)
+	tenantMigrationsDirs := dl.filterSchemaDirs(dirs, dl.config.TenantMigrations)
+	singleScriptsDirs := dl.filterSchemaDirs(dirs, dl.config.SingleScripts)
+	tenantScriptsDirs := dl.filterSchemaDirs(dirs, dl.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
 
-	dl.readMigrationsFromSchemaDirs(migrationsMap, singleSchemasDirs, types.MigrationTypeSingleSchema)
-	dl.readMigrationsFromSchemaDirs(migrationsMap, tenantSchemasDirs, types.MigrationTypeTenantSchema)
+	dl.readFromDirs(migrationsMap, singleMigrationsDirs, types.MigrationTypeSingleMigration)
+	dl.readFromDirs(migrationsMap, tenantMigrationsDirs, types.MigrationTypeTenantMigration)
+	dl.readFromDirs(migrationsMap, singleScriptsDirs, types.MigrationTypeSingleScript)
+	dl.readFromDirs(migrationsMap, tenantScriptsDirs, types.MigrationTypeTenantScript)
 
 	keys := make([]string, 0, len(migrationsMap))
 	for key := range migrationsMap {
@@ -76,7 +80,7 @@ func (dl *diskLoader) filterSchemaDirs(files []os.FileInfo, schemaDirs []string)
 	return dirs
 }
 
-func (dl *diskLoader) readMigrationsFromSchemaDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
+func (dl *diskLoader) readFromDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
 	for _, sourceDir := range sourceDirs {
 		files, err := ioutil.ReadDir(filepath.Join(dl.config.BaseDir, sourceDir))
 		if err != nil {

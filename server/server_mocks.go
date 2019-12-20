@@ -24,8 +24,8 @@ func (m *mockedErrorDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 		return nil, errors.New("disk trouble maker")
 	}
 	m.counter++
-	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc"}
-	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeTenantSchema, Contents: "select def"}
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
+	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeTenantMigration, Contents: "select def"}
 	return []types.Migration{m1, m2}, nil
 }
 
@@ -43,7 +43,7 @@ type mockedBrokenCheckSumDiskLoader struct {
 }
 
 func (m *mockedBrokenCheckSumDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
-	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema, Contents: "select abc", CheckSum: "xxx"}
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "xxx"}
 	return []types.Migration{m1}, nil
 }
 
@@ -89,7 +89,7 @@ func (m *mockedErrorConnector) GetDBMigrations() ([]types.MigrationDB, error) {
 		return nil, fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
 	}
 	m.counter++
-	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleSchema}
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	ms := []types.MigrationDB{{Migration: m1, Schema: "source", Created: d1}}
 	return ms, nil

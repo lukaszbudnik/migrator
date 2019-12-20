@@ -1,7 +1,7 @@
 language: go
 
 addons:
-  postgresql: "9.3"
+  postgresql: '9.6'
 
 env:
   - DB=postgresql
@@ -12,10 +12,10 @@ services:
   - mysql
 
 go:
-  - "1.8"
-  - "1.9"
   - "1.10"
   - "1.11"
+  - "1.12"
+  - "1.13"
 
 before_script:
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"

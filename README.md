@@ -4,18 +4,22 @@ Super fast and lightweight DB migration & evolution tool written in go.
 
 migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
 
-migrator can run as a HTTP REST service. Further, there is a ready-to-go migrator docker image.
+migrator run as a HTTP REST service.
+
+Furhter, there is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+
+To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
 
 # Usage
 
 migrator exposes a simple REST API which you can use to invoke different actions:
 
-* GET /config - returns migrator config, response is `Content-Type: application/x-yaml`
-* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
-* GET /tenants - returns tenants, response is `Content-Type: application/json`
-* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
-* GET /migrations - returns all applied migrations
-* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
+* GET /config - returns migrator config (`application/x-yaml`)
+* GET /diskMigrations - returns disk migrations (`application/json`)
+* GET /tenants - returns tenants (`application/json`)
+* POST /tenants - adds new tenant, name parameter is passed as JSON parameter, returns applied migrations (`application/json`)
+* GET /migrations - returns all applied migrations (`application/json`)
+* POST /migrations - applies migrations, no parameters required, returns applied migrations (`application/json`)
 
 Some curl examples to get you started:
 
@@ -30,9 +34,9 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' 
 
 Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
 
-There is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+# Versions
 
-To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+Please navigate to https://github.com/lukaszbudnik/migrator/releases for a complete list of versions, features, and changes.
 
 # Configuration
 
@@ -51,14 +55,20 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
-# required, single schemas directories, these are subdirectories of baseDir
-singleSchemas:
+# required, directories of single schema SQL migrations, these are subdirectories of baseDir
+singleMigrations:
   - public
   - ref
   - config
-# optional, tenant schemas directories, these are subdirectories of baseDir
-tenantSchemas:
+# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
+tenantMigrations:
   - tenants
+# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
+singleScripts:
+  - config-scripts
+# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
+tenantScripts:
+  - tenants-scripts
 # optional, default is:
 port: 8080
 # the webhook configuration section is optional
