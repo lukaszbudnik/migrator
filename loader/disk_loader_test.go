@@ -14,16 +14,16 @@ func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 	loader := NewLoader(&config)
 
 	_, err := loader.GetDiskMigrations()
-	assert.Equal(t, "open xyzabc: no such file or directory", err.Error())
+	assert.Contains(t, err.Error(), "xyzabc: no such file or directory")
 }
 
 func TestDiskGetDiskMigrations(t *testing.T) {
 	var config config.Config
-	config.BaseDir = "../test/migrations"
-	config.SingleMigrations = []string{"config", "ref"}
-	config.TenantMigrations = []string{"tenants"}
-	config.SingleScripts = []string{"config-scripts"}
-	config.TenantScripts = []string{"tenants-scripts"}
+	config.BaseDir = "../test"
+	config.SingleMigrations = []string{"migrations/config", "migrations/ref"}
+	config.TenantMigrations = []string{"migrations/tenants"}
+	config.SingleScripts = []string{"migrations/config-scripts"}
+	config.TenantScripts = []string{"migrations/tenants-scripts"}
 
 	loader := NewLoader(&config)
 	migrations, err := loader.GetDiskMigrations()
@@ -31,14 +31,14 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 
 	assert.Len(t, migrations, 10)
 
-	assert.Equal(t, "config/201602160001.sql", migrations[0].File)
-	assert.Equal(t, "config/201602160002.sql", migrations[1].File)
-	assert.Equal(t, "tenants/201602160002.sql", migrations[2].File)
-	assert.Equal(t, "ref/201602160003.sql", migrations[3].File)
-	assert.Equal(t, "tenants/201602160003.sql", migrations[4].File)
-	assert.Equal(t, "ref/201602160004.sql", migrations[5].File)
-	assert.Equal(t, "tenants/201602160004.sql", migrations[6].File)
-	assert.Equal(t, "tenants/201602160005.sql", migrations[7].File)
-	assert.Equal(t, "config-scripts/201912181227.sql", migrations[8].File)
-	assert.Equal(t, "tenants-scripts/201912181228.sql", migrations[9].File)
+	assert.Contains(t, migrations[0].File, "test/migrations/config/201602160001.sql")
+	assert.Contains(t, migrations[1].File, "test/migrations/config/201602160002.sql")
+	assert.Contains(t, migrations[2].File, "test/migrations/tenants/201602160002.sql")
+	assert.Contains(t, migrations[3].File, "test/migrations/ref/201602160003.sql")
+	assert.Contains(t, migrations[4].File, "test/migrations/tenants/201602160003.sql")
+	assert.Contains(t, migrations[5].File, "test/migrations/ref/201602160004.sql")
+	assert.Contains(t, migrations[6].File, "test/migrations/tenants/201602160004.sql")
+	assert.Contains(t, migrations[7].File, "test/migrations/tenants/201602160005.sql")
+	assert.Contains(t, migrations[8].File, "test/migrations/config-scripts/201912181227.sql")
+	assert.Contains(t, migrations[9].File, "test/migrations/tenants-scripts/201912181228.sql")
 }

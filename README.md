@@ -6,7 +6,7 @@ migrator manages all the DB changes for you and completely eliminates manual and
 
 migrator run as a HTTP REST service.
 
-Furhter, there is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+Further, there is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
 
 To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
 
@@ -133,25 +133,22 @@ Currently migrator supports the following databases and their flavours:
 
 You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
-Let's start.
+The quick start guide shows you how to either build the migrator locally or use the official docker image.
+
+Steps 1 & 2 are required either way (migrator source code contains sample configuration & setup files together with some test migrations).
+Step 3 is for building migrator locally, step 4 is for running the migrator container.
+Step 5 is running examples and enjoying migrator ;)
 
 ## 1. Get the migrator project
 
-For building migrator from source code `go get` is required:
+Get the source code the usual go way:
 
 ```
 go get -d -v github.com/lukaszbudnik/migrator
 cd $GOPATH/src/github.com/lukaszbudnik/migrator
 ```
 
-migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
-
-For running migrator on docker Go is not required and `git clone` is enough:
-
-```
-git clone git@github.com:lukaszbudnik/migrator.git
-cd migrator
-```
+migrator aims to support 3 latest Go versions (built automatically on Travis).
 
 ## 2. Setup test DB container
 
@@ -163,7 +160,7 @@ migrator comes with helper scripts to setup test DB containers. Let's use postgr
 
 Script will start container called `migrator-postgres`.
 
-Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it too.
+Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it later.
 
 ## 3. Build and run migrator
 
@@ -176,6 +173,8 @@ go build
 ```
 
 > Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+
+## 4. Run migrator from official docker image
 
 When running migrator from docker we need to update `migrator.yaml` (generated in step 2) as well as provide a link to `migrator-postgres` container:
 
@@ -206,7 +205,7 @@ curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
 curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
 ```
 
-In above error requests we used `X-Request-Id` header. This header can be used with all requests for request tracing and/or auditing purposes.
+In above error requests I used optional `X-Request-Id` header. This header can be used with all requests for tracing and/or auditing purposes.
 
 # Customisation
 
@@ -264,7 +263,7 @@ The `ultimate-coverage.sh` script loops through 5 different containers (3 MySQL 
 
 # License
 
-Copyright 2016-2018 Łukasz Budnik
+Copyright 2016-2019 Łukasz Budnik
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
