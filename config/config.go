@@ -18,8 +18,10 @@ type Config struct {
 	TenantSelectSQL   string   `yaml:"tenantSelectSQL,omitempty"`
 	TenantInsertSQL   string   `yaml:"tenantInsertSQL,omitempty"`
 	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder,omitempty"`
-	SingleSchemas     []string `yaml:"singleSchemas" validate:"min=1"`
-	TenantSchemas     []string `yaml:"tenantSchemas,omitempty"`
+	SingleMigrations  []string `yaml:"singleMigrations" validate:"min=1"`
+	TenantMigrations  []string `yaml:"tenantMigrations,omitempty"`
+	SingleScripts     []string `yaml:"singleScripts,omitempty"`
+	TenantScripts     []string `yaml:"tenantScripts,omitempty"`
 	Port              string   `yaml:"port,omitempty"`
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
 	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`

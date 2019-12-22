@@ -21,11 +21,14 @@ var GitBranch string
 // GitCommitSha stores git commit sha, value injected during production build
 var GitCommitSha string
 
+// GitCommitDate stores git commit date time, value injected during production build
+var GitCommitDate string
+
 func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
 
-	log.Printf("INFO migrator version %v (%v)", GitBranch, GitCommitSha)
+	log.Printf("INFO migrator version %v, build %v, date %v", GitBranch, GitCommitSha, GitCommitDate)
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)

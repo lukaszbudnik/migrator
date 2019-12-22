@@ -4,18 +4,22 @@ Super fast and lightweight DB migration & evolution tool written in go.
 
 migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
 
-migrator can run as a HTTP REST service. Further, there is a ready-to-go migrator docker image.
+migrator run as a HTTP REST service.
+
+Further, there is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+
+To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
 
 # Usage
 
 migrator exposes a simple REST API which you can use to invoke different actions:
 
-* GET /config - returns migrator config, response is `Content-Type: application/x-yaml`
-* GET /diskMigrations - returns disk migrations, response is `Content-Type: application/json`
-* GET /tenants - returns tenants, response is `Content-Type: application/json`
-* POST /tenants - adds new tenant, name parameter is passed as JSON, returns applied migrations, response is `Content-Type: application/json`
-* GET /migrations - returns all applied migrations
-* POST /migrations - applies migrations, no parameters required, returns applied migrations, response is `Content-Type: application/json`
+* GET /config - returns migrator config (`application/x-yaml`)
+* GET /diskMigrations - returns disk migrations (`application/json`)
+* GET /tenants - returns tenants (`application/json`)
+* POST /tenants - adds new tenant, name parameter is passed as JSON parameter, returns applied migrations (`application/json`)
+* GET /migrations - returns all applied migrations (`application/json`)
+* POST /migrations - applies migrations, no parameters required, returns applied migrations (`application/json`)
 
 Some curl examples to get you started:
 
@@ -30,9 +34,9 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' 
 
 Port is configurable in `migrator.yaml` and defaults to 8080. Should you need HTTPS capabilities I encourage you to use nginx/apache/haproxy for TLS offloading.
 
-There is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+# Versions
 
-To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+Please navigate to https://github.com/lukaszbudnik/migrator/releases for a complete list of versions, features, and changes.
 
 # Configuration
 
@@ -51,14 +55,20 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
-# required, single schemas directories, these are subdirectories of baseDir
-singleSchemas:
+# required, directories of single schema SQL migrations, these are subdirectories of baseDir
+singleMigrations:
   - public
   - ref
   - config
-# optional, tenant schemas directories, these are subdirectories of baseDir
-tenantSchemas:
+# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
+tenantMigrations:
   - tenants
+# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
+singleScripts:
+  - config-scripts
+# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
+tenantScripts:
+  - tenants-scripts
 # optional, default is:
 port: 8080
 # the webhook configuration section is optional
@@ -123,25 +133,22 @@ Currently migrator supports the following databases and their flavours:
 
 You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
 
-Let's start.
+The quick start guide shows you how to either build the migrator locally or use the official docker image.
+
+Steps 1 & 2 are required either way (migrator source code contains sample configuration & setup files together with some test migrations).
+Step 3 is for building migrator locally, step 4 is for running the migrator container.
+Step 5 is running examples and enjoying migrator ;)
 
 ## 1. Get the migrator project
 
-For building migrator from source code `go get` is required:
+Get the source code the usual go way:
 
 ```
 go get -d -v github.com/lukaszbudnik/migrator
 cd $GOPATH/src/github.com/lukaszbudnik/migrator
 ```
 
-migrator supports the following Go versions: 1.8, 1.9, 1.10, and 1.11 (all built on Travis).
-
-For running migrator on docker Go is not required and `git clone` is enough:
-
-```
-git clone git@github.com:lukaszbudnik/migrator.git
-cd migrator
-```
+migrator aims to support 3 latest Go versions (built automatically on Travis).
 
 ## 2. Setup test DB container
 
@@ -153,7 +160,7 @@ migrator comes with helper scripts to setup test DB containers. Let's use postgr
 
 Script will start container called `migrator-postgres`.
 
-Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it too.
+Further, apart of starting test DB container, the script also generates a ready-to-use test config file. We will use it later.
 
 ## 3. Build and run migrator
 
@@ -166,6 +173,8 @@ go build
 ```
 
 > Note: There are 2 git variables injected into the production build (branch/tag and commit sha). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+
+## 4. Run migrator from official docker image
 
 When running migrator from docker we need to update `migrator.yaml` (generated in step 2) as well as provide a link to `migrator-postgres` container:
 
@@ -196,7 +205,7 @@ curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
 curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
 ```
 
-In above error requests we used `X-Request-Id` header. This header can be used with all requests for request tracing and/or auditing purposes.
+In above error requests I used optional `X-Request-Id` header. This header can be used with all requests for tracing and/or auditing purposes.
 
 # Customisation
 
@@ -254,7 +263,7 @@ The `ultimate-coverage.sh` script loops through 5 different containers (3 MySQL 
 
 # License
 
-Copyright 2016-2018 Łukasz Budnik
+Copyright 2016-2019 Łukasz Budnik
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 

@@ -4,10 +4,10 @@ dataSource: "user=postgres dbname=A host=B port=C sslmode=disable"
 tenantSelectSQL: select somename from someschema.sometable
 tenantInsertSQL: insert into someschema.sometable (somename) values ($1)
 schemaPlaceHolder: "[schema]"
-singleSchemas:
+singleMigrations:
   - public
   - ref
   - config
-tenantSchemas:
+tenantMigrations:
   - tenants
 port: 8811

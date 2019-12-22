@@ -6,11 +6,11 @@ dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 s
 tenantSelectSQL: "select name from migrator.migrator_tenants"
 schemaPlaceHolder: "{schema}"
 port: 8811
-singleSchemas:
+singleMigrations:
   - public
   - ref
   - config
-tenantSchemas:
+tenantMigrations:
   - tenants
 webHookURL: https://slack.com/api/api.test
 webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"

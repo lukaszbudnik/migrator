@@ -281,7 +281,8 @@ func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, te
 
 	for _, m := range migrations {
 		var schemas []string
-		if m.MigrationType == types.MigrationTypeTenantSchema {
+		// TODO check if golang supports "in"
+		if m.MigrationType == types.MigrationTypeTenantMigration || m.MigrationType == types.MigrationTypeTenantScript {
 			schemas = tenants
 		} else {
 			schemas = []string{m.SourceDir}
