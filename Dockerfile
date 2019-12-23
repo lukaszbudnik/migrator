@@ -1,4 +1,4 @@
-FROM golang:1.11.2-alpine3.8 as builder
+FROM golang:1.13.5-alpine3.10 as builder
 
 MAINTAINER Łukasz Budnik lukasz.budnik@gmail.com
 
@@ -14,7 +14,7 @@ RUN cd /go/src/github.com/lukaszbudnik/migrator && \
   GIT_COMMIT_SHA=$(git rev-list -1 HEAD) && \
   go build -ldflags "-X main.GitCommitDate=$GIT_COMMIT_DATE -X main.GitCommitSha=$GIT_COMMIT_SHA -X main.GitBranch=$GIT_BRANCH"
 
-FROM alpine:3.8
+FROM alpine:3.10
 COPY --from=builder /go/src/github.com/lukaszbudnik/migrator/migrator /bin
 
 VOLUME ["/data"]
