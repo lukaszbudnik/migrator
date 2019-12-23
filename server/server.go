@@ -204,7 +204,7 @@ func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *confi
 	migrationsToApply := migrations.ComputeMigrationsToApply(r.Context(), diskMigrations, dbMigrations)
 	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
 
-	err = connector.ApplyMigrations(r.Context(), migrationsToApply)
+	results, err := connector.ApplyMigrations(r.Context(), migrationsToApply)
 	if err != nil {
 		common.LogError(r.Context(), "Error applying migrations: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
@@ -215,7 +215,10 @@ func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *confi
 	sendNotification(r.Context(), config, text)
 
 	common.LogInfo(r.Context(), "Returning applied migrations: %v", len(migrationsToApply))
-	jsonResponse(w, migrationsToApply)
+	jsonResponse(w, struct {
+		Results           *types.MigrationResults
+		AppliedMigrations []types.Migration
+	}{results, migrationsToApply})
 }
 
 func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
@@ -307,7 +310,7 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 	migrationsToApply := migrations.FilterTenantMigrations(r.Context(), diskMigrations)
 	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
 
-	err = connector.AddTenantAndApplyMigrations(r.Context(), tenant.Name, migrationsToApply)
+	results, err := connector.AddTenantAndApplyMigrations(r.Context(), tenant.Name, migrationsToApply)
 	if err != nil {
 		common.LogError(r.Context(), "Error adding new tenant: %v", err.Error())
 		errorInternalServerErrorResponse(w, err)
@@ -318,7 +321,10 @@ func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.C
 	sendNotification(r.Context(), config, text)
 
 	common.LogInfo(r.Context(), text)
-	jsonResponse(w, migrationsToApply)
+	jsonResponse(w, struct {
+		Results           *types.MigrationResults
+		AppliedMigrations []types.Migration
+	}{results, migrationsToApply})
 }
 
 func registerHandlers(config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) *http.ServeMux {
