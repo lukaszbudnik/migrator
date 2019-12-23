@@ -129,8 +129,8 @@ func TestDBApplyMigrations(t *testing.T) {
 	assert.Equal(t, 1, results.TenantScripts)
 	assert.Equal(t, noOfTenants*3, results.TenantMigrationsTotal)
 	assert.Equal(t, noOfTenants*1, results.TenantScriptsTotal)
-	assert.Equal(t, noOfTenants*3+3, results.MigrationsTotal)
-	assert.Equal(t, noOfTenants*1+2, results.ScriptsTotal)
+	assert.Equal(t, noOfTenants*3+3, results.MigrationsGrandTotal)
+	assert.Equal(t, noOfTenants*1+2, results.ScriptsGrandTotal)
 
 	dbMigrationsAfter, err := connector.GetDBMigrations()
 	assert.Nil(t, err)
@@ -157,8 +157,8 @@ func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
 	results, err := connector.ApplyMigrations(newTestContext(), migrationsToApply)
 	assert.Nil(t, err)
 
-	assert.Equal(t, 0, results.MigrationsTotal)
-	assert.Equal(t, 0, results.ScriptsTotal)
+	assert.Equal(t, 0, results.MigrationsGrandTotal)
+	assert.Equal(t, 0, results.ScriptsGrandTotal)
 }
 
 func TestGetTenantsSQLDefault(t *testing.T) {

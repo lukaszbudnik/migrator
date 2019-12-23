@@ -278,8 +278,8 @@ func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, te
 
 	defer func() {
 		results.Duration = time.Now().Sub(results.StartedAt)
-		results.MigrationsTotal = results.TenantMigrationsTotal + results.SingleMigrations
-		results.ScriptsTotal = results.TenantScriptsTotal + results.SingleScripts
+		results.MigrationsGrandTotal = results.TenantMigrationsTotal + results.SingleMigrations
+		results.ScriptsGrandTotal = results.TenantScriptsTotal + results.SingleScripts
 	}()
 
 	schemaPlaceHolder := bc.getSchemaPlaceHolder()
