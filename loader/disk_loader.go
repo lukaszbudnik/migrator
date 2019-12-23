@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -36,28 +35,13 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 
 	absBaseDir, err := filepath.Abs(dl.config.BaseDir)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
-	var dirs []string
-	err = filepath.Walk(absBaseDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			dirs = append(dirs, path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	singleMigrationsDirs := dl.filterSchemaDirs(dirs, dl.config.SingleMigrations)
-	tenantMigrationsDirs := dl.filterSchemaDirs(dirs, dl.config.TenantMigrations)
-	singleScriptsDirs := dl.filterSchemaDirs(dirs, dl.config.SingleScripts)
-	tenantScriptsDirs := dl.filterSchemaDirs(dirs, dl.config.TenantScripts)
+	singleMigrationsDirs := dl.getDirs(absBaseDir, dl.config.SingleMigrations)
+	tenantMigrationsDirs := dl.getDirs(absBaseDir, dl.config.TenantMigrations)
+	singleScriptsDirs := dl.getDirs(absBaseDir, dl.config.SingleScripts)
+	tenantScriptsDirs := dl.getDirs(absBaseDir, dl.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
 
@@ -82,14 +66,10 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 	return
 }
 
-func (dl *diskLoader) filterSchemaDirs(dirs []string, migrationsDirs []string) []string {
+func (dl *diskLoader) getDirs(baseDir string, migrationsDirs []string) []string {
 	var filteredDirs []string
-	for _, dir := range dirs {
-		for _, migrationsDir := range migrationsDirs {
-			if strings.HasSuffix(dir, migrationsDir) {
-				filteredDirs = append(filteredDirs, dir)
-			}
-		}
+	for _, migrationsDir := range migrationsDirs {
+		filteredDirs = append(filteredDirs, filepath.Join(baseDir, migrationsDir))
 	}
 	return filteredDirs
 }
