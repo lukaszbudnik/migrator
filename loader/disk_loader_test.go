@@ -10,11 +10,23 @@ import (
 func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 	var config config.Config
 	config.BaseDir = "xyzabc"
+	config.SingleMigrations = []string{"migrations/config"}
 
 	loader := NewLoader(&config)
 
 	_, err := loader.GetDiskMigrations()
-	assert.Contains(t, err.Error(), "xyzabc: no such file or directory")
+	assert.Contains(t, err.Error(), "xyzabc/migrations/config: no such file or directory")
+}
+
+func TestDiskReadDiskMigrationsNonExistingMigrationsDirError(t *testing.T) {
+	var config config.Config
+	config.BaseDir = "../test"
+	config.SingleMigrations = []string{"migrations/abcdef"}
+
+	loader := NewLoader(&config)
+
+	_, err := loader.GetDiskMigrations()
+	assert.Contains(t, err.Error(), "test/migrations/abcdef: no such file or directory")
 }
 
 func TestDiskGetDiskMigrations(t *testing.T) {
