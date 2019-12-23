@@ -68,12 +68,12 @@ func (m *mockedErrorConnector) Init() error {
 func (m *mockedErrorConnector) Dispose() {
 }
 
-func (m *mockedErrorConnector) AddTenantAndApplyMigrations(context.Context, string, []types.Migration) error {
+func (m *mockedErrorConnector) AddTenantAndApplyMigrations(context.Context, string, []types.Migration) (*types.MigrationResults, error) {
 	if m.errorThreshold == m.counter {
-		return fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
+		return nil, fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
 	}
 	m.counter++
-	return nil
+	return &types.MigrationResults{}, nil
 }
 
 func (m *mockedErrorConnector) GetTenants() ([]string, error) {
@@ -95,12 +95,13 @@ func (m *mockedErrorConnector) GetDBMigrations() ([]types.MigrationDB, error) {
 	return ms, nil
 }
 
-func (m *mockedErrorConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) error {
+func (m *mockedErrorConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) (*types.MigrationResults, error) {
 	if m.errorThreshold == m.counter {
-		return fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
+		return nil, fmt.Errorf("Mocked Error Connector: threshold %v reached", m.errorThreshold)
 	}
 	m.counter++
-	return nil
+	results := &types.MigrationResults{}
+	return results, nil
 }
 
 func newMockedConnector(config *config.Config) (db.Connector, error) {

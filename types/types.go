@@ -34,3 +34,18 @@ type MigrationDB struct {
 	Schema  string
 	Created time.Time
 }
+
+// MigrationResults contains summary information about executed migrations
+type MigrationResults struct {
+	StartedAt             time.Time
+	Duration              time.Duration
+	Tenants               int
+	SingleMigrations      int
+	TenantMigrations      int
+	TenantMigrationsTotal int // tenant migrations for all tenants
+	MigrationsTotal       int // total number of all migrations applied
+	SingleScripts         int
+	TenantScripts         int
+	TenantScriptsTotal    int // tenant scripts for all tenants
+	ScriptsTotal          int // total number of all scripts applied
+}

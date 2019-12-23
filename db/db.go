@@ -17,8 +17,8 @@ type Connector interface {
 	Init() error
 	GetTenants() ([]string, error)
 	GetDBMigrations() ([]types.MigrationDB, error)
-	ApplyMigrations(context.Context, []types.Migration) error
-	AddTenantAndApplyMigrations(context.Context, string, []types.Migration) error
+	ApplyMigrations(context.Context, []types.Migration) (*types.MigrationResults, error)
+	AddTenantAndApplyMigrations(context.Context, string, []types.Migration) (*types.MigrationResults, error)
 	Dispose()
 }
 
@@ -166,19 +166,19 @@ func (bc *baseConnector) GetDBMigrations() (dbMigrations []types.MigrationDB, er
 }
 
 // ApplyMigrations applies passed migrations
-func (bc *baseConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) (err error) {
+func (bc *baseConnector) ApplyMigrations(ctx context.Context, migrations []types.Migration) (result *types.MigrationResults, err error) {
 	if len(migrations) == 0 {
-		return
+		return &types.MigrationResults{}, nil
 	}
 
 	tenants, err := bc.GetTenants()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	tx, err := bc.db.Begin()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	defer func() {
@@ -196,12 +196,12 @@ func (bc *baseConnector) ApplyMigrations(ctx context.Context, migrations []types
 		}
 	}()
 
-	bc.applyMigrationsInTx(ctx, tx, tenants, migrations)
-	return
+	results := bc.applyMigrationsInTx(ctx, tx, tenants, migrations)
+	return results, nil
 }
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
-func (bc *baseConnector) AddTenantAndApplyMigrations(ctx context.Context, tenant string, migrations []types.Migration) (err error) {
+func (bc *baseConnector) AddTenantAndApplyMigrations(ctx context.Context, tenant string, migrations []types.Migration) (results *types.MigrationResults, err error) {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -239,7 +239,7 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(ctx context.Context, tenant
 		common.LogPanic(ctx, "Failed to add tenant entry: %v", err)
 	}
 
-	bc.applyMigrationsInTx(ctx, tx, []string{tenant}, migrations)
+	results = bc.applyMigrationsInTx(ctx, tx, []string{tenant}, migrations)
 
 	return
 }
@@ -270,7 +270,18 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, tenants []string, migrations []types.Migration) {
+func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, tenants []string, migrations []types.Migration) *types.MigrationResults {
+
+	results := &types.MigrationResults{}
+	results.StartedAt = time.Now()
+	results.Tenants = len(tenants)
+
+	defer func() {
+		results.Duration = time.Now().Sub(results.StartedAt)
+		results.MigrationsTotal = results.TenantMigrationsTotal + results.SingleMigrations
+		results.ScriptsTotal = results.TenantScriptsTotal + results.SingleScripts
+	}()
+
 	schemaPlaceHolder := bc.getSchemaPlaceHolder()
 
 	insertMigrationSQL := bc.dialect.GetMigrationInsertSQL()
@@ -281,7 +292,6 @@ func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, te
 
 	for _, m := range migrations {
 		var schemas []string
-		// TODO check if golang supports "in"
 		if m.MigrationType == types.MigrationTypeTenantMigration || m.MigrationType == types.MigrationTypeTenantScript {
 			schemas = tenants
 		} else {
@@ -304,5 +314,22 @@ func (bc *baseConnector) applyMigrationsInTx(ctx context.Context, tx *sql.Tx, te
 			}
 		}
 
+		if m.MigrationType == types.MigrationTypeSingleMigration {
+			results.SingleMigrations++
+		}
+		if m.MigrationType == types.MigrationTypeSingleScript {
+			results.SingleScripts++
+		}
+		if m.MigrationType == types.MigrationTypeTenantMigration {
+			results.TenantMigrations++
+			results.TenantMigrationsTotal += len(schemas)
+		}
+		if m.MigrationType == types.MigrationTypeTenantScript {
+			results.TenantScripts++
+			results.TenantScriptsTotal += len(schemas)
+		}
+
 	}
+
+	return results
 }

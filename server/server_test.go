@@ -117,7 +117,7 @@ func TestServerTenantsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`)
 }
 
 type errReader int
@@ -256,7 +256,7 @@ func TestServerMigrationsPost(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`)
 }
 
 func TestServerMigrationsPostFailedDependency(t *testing.T) {
