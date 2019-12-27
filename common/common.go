@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"runtime"
 )
 
 // RequestIDKey is used together with context for setting/getting X-Request-Id
@@ -29,9 +30,12 @@ func LogPanic(ctx context.Context, format string, a ...interface{}) string {
 }
 
 func logLevel(ctx context.Context, level string, format string, a ...interface{}) string {
+	_, file, line, _ := runtime.Caller(2)
+
 	requestID := ctx.Value(RequestIDKey{})
-	action := ctx.Value(ActionKey{})
 	message := fmt.Sprintf(format, a...)
-	log.Printf("%v %v [%v] - %v", level, action, requestID, message)
+
+	log.SetFlags(log.LstdFlags | log.LUTC | log.Lmicroseconds)
+	log.Printf("[%v:%v] %v requestId=%v %v", file, line, level, requestID, message)
 	return message
 }

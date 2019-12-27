@@ -21,7 +21,7 @@ type mockedErrorDiskLoader struct {
 
 func (m *mockedErrorDiskLoader) GetDiskMigrations() ([]types.Migration, error) {
 	if m.errorThreshold == m.counter {
-		return nil, errors.New("disk trouble maker")
+		return nil, fmt.Errorf("Mocked Error Disk Loader: threshold %v reached", m.errorThreshold)
 	}
 	m.counter++
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
