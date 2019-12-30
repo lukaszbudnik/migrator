@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -25,9 +26,7 @@ type baseNotifier struct {
 	config *config.Config
 }
 
-func (bn *baseNotifier) Notify(text string) (string, error) {
-
-	message := strings.Replace(bn.config.WebHookTemplate, textPlaceHolder, text, -1)
+func (bn *baseNotifier) Notify(message string) (string, error) {
 	reader := bytes.NewReader([]byte(message))
 
 	url := bn.config.WebHookURL
@@ -70,10 +69,13 @@ func (sn *noopNotifier) Notify(text string) (string, error) {
 	return "noop", nil
 }
 
-// NewNotifier creates Notifier object based on config passed
-func NewNotifier(config *config.Config) Notifier {
-	// webhook URL and template are required
-	if len(config.WebHookURL) > 0 && len(config.WebHookTemplate) > 0 {
+// Factory is a factory method for creating Loader instance
+type Factory func(context.Context, *config.Config) Notifier
+
+// New creates Notifier object based on config passed
+func New(ctx context.Context, config *config.Config) Notifier {
+	// webhook URL is required
+	if len(config.WebHookURL) > 0 {
 		return &baseNotifier{config}
 	}
 	// otherwise return noop

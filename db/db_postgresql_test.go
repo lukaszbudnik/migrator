@@ -10,8 +10,7 @@ import (
 func TestDBCreateDialectPostgreSQLDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 	assert.IsType(t, &postgreSQLDialect{}, dialect)
 }
 
@@ -21,8 +20,7 @@ func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
@@ -34,9 +32,8 @@ func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()

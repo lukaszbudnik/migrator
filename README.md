@@ -74,9 +74,7 @@ port: 8080
 # the webhook configuration section is optional
 # URL and template are required if at least one of them is empty noop notifier is used
 # the default content type header sent is application/json (can be overridden via webHookHeaders below)
-webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
-# the {text} placeholder is replaced by migrator with information about executed migrations or added new tenant
-webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
+webHookURL: https://your.server.com/services/TTT/BBB/XXX
 # should you need more control over HTTP headers use below
 webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"

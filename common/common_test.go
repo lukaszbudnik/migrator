@@ -14,8 +14,8 @@ func newTestContext() context.Context {
 }
 
 func TestLogInfo(t *testing.T) {
-	message := LogInfo(newTestContext(), "result=success")
-	assert.Equal(t, "result=success", message)
+	message := LogInfo(newTestContext(), "success")
+	assert.Equal(t, "success", message)
 }
 
 func TestLogError(t *testing.T) {
@@ -24,7 +24,11 @@ func TestLogError(t *testing.T) {
 }
 
 func TestLogPanic(t *testing.T) {
-	assert.Panics(t, func() {
-		LogPanic(newTestContext(), "param=%v", 123)
-	})
+	message := LogPanic(newTestContext(), "param=%v", 123456)
+	assert.Equal(t, "param=123456", message)
+}
+
+func TestLog(t *testing.T) {
+	message := Log("INFO", "param=%v", 456)
+	assert.Equal(t, "param=456", message)
 }

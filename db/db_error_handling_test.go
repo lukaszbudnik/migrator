@@ -12,78 +12,78 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v2"
 )
 
-func TestDoInitCannotBeginTransactionError(t *testing.T) {
+func TestInitCannotBeginTransactionError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "sqlmock"
-	connector := baseConnector{config, nil, nil}
+	connector := baseConnector{newTestContext(), config, nil, db}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker"))
 
-	err = connector.doInit(db)
-	assert.Equal(t, "Could not start DB transaction: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not start DB transaction: trouble maker", func() {
+		connector.init()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestDoInitCannotCreateMigratorSchema(t *testing.T) {
+func TestInitCannotCreateMigratorSchema(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("create schema").WillReturnError(errors.New("trouble maker"))
 
-	err = connector.doInit(db)
-	assert.Equal(t, "Could not create migrator schema: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not create migrator schema: trouble maker", func() {
+		connector.init()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestDoInitCannotCreateMigratorMigrationsTable(t *testing.T) {
+func TestInitCannotCreateMigratorMigrationsTable(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("create schema").WillReturnRows()
 	mock.ExpectQuery("create table").WillReturnError(errors.New("trouble maker"))
 
-	err = connector.doInit(db)
-	assert.Equal(t, "Could not create migrations table: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not create migrations table: trouble maker", func() {
+		connector.init()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestDoInitCannotCreateMigratorTenantsTable(t *testing.T) {
+func TestInitCannotCreateMigratorTenantsTable(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -91,54 +91,76 @@ func TestDoInitCannotCreateMigratorTenantsTable(t *testing.T) {
 	mock.ExpectQuery("create table").WillReturnRows()
 	mock.ExpectQuery("create table").WillReturnError(errors.New("trouble maker"))
 
-	err = connector.doInit(db)
-	assert.Equal(t, "Could not create default tenants table: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not create default tenants table: trouble maker", func() {
+		connector.init()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestDBGetTenantsError(t *testing.T) {
+func TestInitCannotCommitTransaction(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
+	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+	mock.ExpectQuery("create schema").WillReturnRows()
+	mock.ExpectQuery("create table").WillReturnRows()
+	mock.ExpectQuery("create table").WillReturnRows()
+	mock.ExpectCommit().WillReturnError(errors.New("trouble maker"))
 
-	connector.db = db
-
-	_, err = connector.GetTenants()
-	assert.Equal(t, "Could not query tenants: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not commit transaction: trouble maker", func() {
+		connector.init()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestDBGetMigrationsError(t *testing.T) {
+func TestGetTenantsError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
 
-	connector.db = db
+	assert.PanicsWithValue(t, "Could not query tenants: trouble maker", func() {
+		connector.GetTenants()
+	})
 
-	_, err = connector.GetDBMigrations()
-	assert.Equal(t, "Could not query DB migrations: trouble maker", err.Error())
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetAppliedMigrationsError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	// don't have to provide full SQL here - patterns at work
+	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not query DB migrations: trouble maker", func() {
+		connector.GetAppliedMigrations()
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -151,23 +173,20 @@ func TestApplyTransactionBeginError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	rows := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(rows)
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.NotNil(t, err)
-	assert.Equal(t, "trouble maker tx.Begin()", err.Error())
+	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
+		connector.ApplyMigrations(migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -180,9 +199,8 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -190,14 +208,13 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
+		connector.ApplyMigrations(migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -210,9 +227,8 @@ func TestApplyMigrationSQLError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -221,14 +237,13 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.Equal(t, "SQL migration failed: trouble maker", err.Error())
+	assert.PanicsWithValue(t, fmt.Sprintf("SQL migration %v failed with error: trouble maker", tenant1.File), func() {
+		connector.ApplyMigrations(migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -241,9 +256,8 @@ func TestApplyInsertMigrationError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	time := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -258,10 +272,40 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
+	assert.PanicsWithValue(t, "Failed to add migration entry: trouble maker", func() {
+		connector.ApplyMigrations(migrationsToApply)
+	})
 
-	_, err = connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestApplyMigrationsCommitError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	time := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
+	mock.ExpectQuery("select").WillReturnRows(tenants)
+	mock.ExpectBegin()
+	mock.ExpectPrepare("insert into")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
+		connector.ApplyMigrations(migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -274,21 +318,18 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
-
-	connector.db = db
 
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
-	assert.NotNil(t, err)
-	assert.Equal(t, "trouble maker tx.Begin()", err.Error())
+	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
+		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -301,22 +342,20 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
-	assert.Equal(t, "Create schema failed, transaction rollback was called: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Create schema failed: trouble maker", func() {
+		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -329,23 +368,21 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{tenant1}
 
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), "newtenant", migrationsToApply)
-	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
+		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -358,9 +395,8 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
 	tenant := "tenant"
 
@@ -370,115 +406,45 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
-	connector.db = db
-
 	t1 := time.Now().UnixNano()
 	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m1}
 
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
-	assert.Equal(t, "Failed to add tenant entry: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Failed to add tenant entry: trouble maker", func() {
+		connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestAddTenantAndApplyMigrationInsertMigrationPreparedStatementError(t *testing.T) {
+func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
 	config := &config.Config{}
 	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	tenant := "tenant"
-
-	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").WillReturnError(errors.New("trouble maker"))
-	mock.ExpectRollback()
-
-	connector.db = db
-
-	t1 := time.Now().UnixNano()
-	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
-	migrationsToApply := []types.Migration{m1}
-
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
-	assert.Equal(t, "Could not create prepared statement: trouble maker", err.Error())
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
-}
-
-func TestAddTenantAndApplyMigrationMigrationSQLError(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	assert.Nil(t, err)
-
-	config := &config.Config{}
-	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
-
-	tenant := "tenant"
-
-	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
-	mock.ExpectRollback()
-
-	connector.db = db
-
-	t1 := time.Now().UnixNano()
-	m1 := types.Migration{Name: fmt.Sprintf("%v.sql", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
-	migrationsToApply := []types.Migration{m1}
-
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
-	assert.Equal(t, "SQL migration failed: trouble maker", err.Error())
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
-}
-
-func TestAddTenantAndApplyMigrationInsertMigrationError(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	assert.Nil(t, err)
-
-	config := &config.Config{}
-	config.Driver = "postgres"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
-
-	tenant := "tenant"
 	time := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
+	tenant := "tenantname"
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectPrepare("insert into")
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectPrepare("insert into")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnError(errors.New("trouble maker"))
-	mock.ExpectRollback()
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
-	connector.db = db
-
-	_, err = connector.AddTenantAndApplyMigrations(newTestContext(), tenant, migrationsToApply)
-	assert.Equal(t, "Failed to add migration entry: trouble maker", err.Error())
+	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
+		connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
