@@ -105,6 +105,41 @@ func TestMigrationsPostRoute(t *testing.T) {
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
+func TestMigrationsPostRouteBadRequest(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	// response is invalid
+	json := []byte(`{"mode": "apply", "response": "abc"}`)
+	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestMigrationsPostRouteCheckSumError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedErrorCoordinator(0))
+
+	json := []byte(`{"mode": "apply", "response": "full"}`)
+	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusFailedDependency, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"error":"Checksum verification failed. Please review offending migrations."`)
+}
+
 // section /tenants
 
 func TestTenantsGetRoute(t *testing.T) {
@@ -139,13 +174,13 @@ func TestTenantsPostRoute(t *testing.T) {
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
-func TestTenantsPostRouteRequestError(t *testing.T) {
+func TestTenantsPostRouteBadRequestError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
 	router := SetupRouter(config, newMockedCoordinator)
 
-	json := []byte(`{"tenant": "new_tenant"}`)
+	json := []byte(`{"a": "new_tenant"}`)
 	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
@@ -156,23 +191,22 @@ func TestTenantsPostRouteRequestError(t *testing.T) {
 	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
 }
 
-// func TestTenantsPostRouteVerifyCheckSumError(t *testing.T) {
-// 	config, err := config.FromFile(configFile)
-// 	assert.Nil(t, err)
-//
-// 	router := SetupRouter(config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
-//
-// 	json := []byte(`{"name": "new_tenant"}`)
-// 	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
-//
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, req)
-//
-// 	assert.Equal(t, http.StatusFailedDependency, w.Code)
-// 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-// 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"error":"Checksum verification failed. Please review offending migrations."`)
-// }
-//
+func TestTenantsPostRouteCheckSumError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedErrorCoordinator(0))
+
+	json := []byte(`{"name": "new_tenant", "response": "full", "mode":"dry-run"}`)
+	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusFailedDependency, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"error":"Checksum verification failed. Please review offending migrations."`)
+}
 
 func TestRouteError(t *testing.T) {
 	config, err := config.FromFile(configFile)

@@ -2,6 +2,8 @@ package types
 
 import (
 	"time"
+
+	"github.com/go-playground/validator"
 )
 
 // MigrationType stores information about type of migration
@@ -33,8 +35,22 @@ const (
 	ModeTypeDryRun MigrationsModeType = "dry-run"
 )
 
-func ValidateMigrationsMode(mode MigrationsModeType) bool {
-	return mode == ModeTypeApply || mode == ModeTypeSync || mode == ModeTypeDryRun
+// ValidateMigrationsModeType validates MigrationsModeType used by binding package
+func ValidateMigrationsModeType(fl validator.FieldLevel) bool {
+	mode, ok := fl.Field().Interface().(MigrationsModeType)
+	if ok {
+		return mode == ModeTypeApply || mode == ModeTypeSync || mode == ModeTypeDryRun
+	}
+	return false
+}
+
+// ValidateMigrationsResponseType validates MigrationsResponseType used by binding package
+func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
+	response, ok := fl.Field().Interface().(MigrationsResponseType)
+	if ok {
+		return response == ResponseTypeSummary || response == ResponseTypeFull
+	}
+	return false
 }
 
 // Migration contains basic information about migration

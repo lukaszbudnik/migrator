@@ -6,15 +6,15 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/validator.v2"
+	"github.com/go-playground/validator"
 	"gopkg.in/yaml.v2"
 )
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	BaseDir           string   `yaml:"baseDir" validate:"nonzero"`
-	Driver            string   `yaml:"driver" validate:"nonzero"`
-	DataSource        string   `yaml:"dataSource" validate:"nonzero"`
+	BaseDir           string   `yaml:"baseDir" validate:"required"`
+	Driver            string   `yaml:"driver" validate:"required"`
+	DataSource        string   `yaml:"dataSource" validate:"required"`
 	TenantSelectSQL   string   `yaml:"tenantSelectSQL,omitempty"`
 	TenantInsertSQL   string   `yaml:"tenantInsertSQL,omitempty"`
 	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder,omitempty"`
@@ -52,7 +52,8 @@ func FromBytes(contents []byte) (*Config, error) {
 		return nil, err
 	}
 
-	if err := validator.Validate(config); err != nil {
+	validate := validator.New()
+	if err := validate.Struct(config); err != nil {
 		return nil, err
 	}
 
