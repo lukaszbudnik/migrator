@@ -12,7 +12,7 @@ type Loader interface {
 	GetSourceMigrations() []types.Migration
 }
 
-// LoaderFactory is a factory method for creating Loader instance
+// Factory is a factory method for creating Loader instance
 type Factory func(context.Context, *config.Config) Loader
 
 // New returns new instance of Loader, currently DiskLoader is available

@@ -78,20 +78,16 @@ func recovery() gin.HandlerFunc {
 					}
 				}
 
+				// If the connection is dead, we can't write a status to it.
 				if brokenPipe {
 					common.LogPanic(c.Request.Context(), "Broken pipe: %v", err)
+					c.Error(err.(error)) // nolint: errcheck
+					c.Abort()
 				} else {
 					common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
 					if gin.IsDebugging() {
 						debug.PrintStack()
 					}
-				}
-
-				// If the connection is dead, we can't write a status to it.
-				if brokenPipe {
-					c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
-				} else {
 					c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
 				}
 			}
