@@ -1,16 +1,21 @@
 package loader
 
 import (
+	"context"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
 // Loader interface abstracts all loading operations performed by migrator
 type Loader interface {
-	GetDiskMigrations() ([]types.Migration, error)
+	GetSourceMigrations() []types.Migration
 }
 
-// NewLoader returns new instance of Loader, currently DiskLoader is available
-func NewLoader(config *config.Config) Loader {
-	return &diskLoader{config}
+// Factory is a factory method for creating Loader instance
+type Factory func(context.Context, *config.Config) Loader
+
+// New returns new instance of Loader, currently DiskLoader is available
+func New(ctx context.Context, config *config.Config) Loader {
+	return &diskLoader{ctx, config}
 }

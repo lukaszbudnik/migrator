@@ -13,8 +13,7 @@ func TestBaseDialectGetCreateTenantsTableSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
@@ -35,8 +34,7 @@ func TestBaseDialectGetCreateMigrationsTableSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
@@ -63,8 +61,7 @@ func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 
 	config.Driver = "postgres"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createSchemaSQL := dialect.GetCreateSchemaSQL("abc")
 

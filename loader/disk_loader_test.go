@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
@@ -12,10 +13,23 @@ func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 	config.BaseDir = "xyzabc"
 	config.SingleMigrations = []string{"migrations/config"}
 
-	loader := NewLoader(&config)
+	loader := New(context.TODO(), &config)
 
-	_, err := loader.GetDiskMigrations()
-	assert.Contains(t, err.Error(), "xyzabc/migrations/config: no such file or directory")
+	didPanic := false
+	var message interface{}
+	func() {
+
+		defer func() {
+			if message = recover(); message != nil {
+				didPanic = true
+			}
+		}()
+
+		loader.GetSourceMigrations()
+
+	}()
+	assert.True(t, didPanic)
+	assert.Contains(t, message, "xyzabc/migrations/config: no such file or directory")
 }
 
 func TestDiskReadDiskMigrationsNonExistingMigrationsDirError(t *testing.T) {
@@ -23,10 +37,23 @@ func TestDiskReadDiskMigrationsNonExistingMigrationsDirError(t *testing.T) {
 	config.BaseDir = "../test"
 	config.SingleMigrations = []string{"migrations/abcdef"}
 
-	loader := NewLoader(&config)
+	loader := New(context.TODO(), &config)
 
-	_, err := loader.GetDiskMigrations()
-	assert.Contains(t, err.Error(), "test/migrations/abcdef: no such file or directory")
+	didPanic := false
+	var message interface{}
+	func() {
+
+		defer func() {
+			if message = recover(); message != nil {
+				didPanic = true
+			}
+		}()
+
+		loader.GetSourceMigrations()
+
+	}()
+	assert.True(t, didPanic)
+	assert.Contains(t, message, "test/migrations/abcdef: no such file or directory")
 }
 
 func TestDiskGetDiskMigrations(t *testing.T) {
@@ -37,9 +64,8 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	config.SingleScripts = []string{"migrations/config-scripts"}
 	config.TenantScripts = []string{"migrations/tenants-scripts"}
 
-	loader := NewLoader(&config)
-	migrations, err := loader.GetDiskMigrations()
-	assert.Nil(t, err)
+	loader := New(context.TODO(), &config)
+	migrations := loader.GetSourceMigrations()
 
 	assert.Len(t, migrations, 10)
 

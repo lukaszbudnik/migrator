@@ -2,35 +2,33 @@ package common
 
 import (
 	"context"
-	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func newTestContext() context.Context {
-	pc, _, _, _ := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-
 	ctx := context.TODO()
 	ctx = context.WithValue(ctx, RequestIDKey{}, "123")
-	ctx = context.WithValue(ctx, ActionKey{}, strings.Replace(details.Name(), "github.com/lukaszbudnik/migrator/common.", "", -1))
 	return ctx
 }
 
 func TestLogInfo(t *testing.T) {
-	message := LogInfo(newTestContext(), "format no params")
-	assert.Equal(t, "format no params", message)
+	message := LogInfo(newTestContext(), "success")
+	assert.Equal(t, "success", message)
 }
 
 func TestLogError(t *testing.T) {
-	message := LogError(newTestContext(), "format no params: %v", 123)
-	assert.Equal(t, "format no params: 123", message)
+	message := LogError(newTestContext(), "param=%v", 123)
+	assert.Equal(t, "param=123", message)
 }
 
 func TestLogPanic(t *testing.T) {
-	assert.Panics(t, func() {
-		LogPanic(newTestContext(), "format no params: %v", 123)
-	})
+	message := LogPanic(newTestContext(), "param=%v", 123456)
+	assert.Equal(t, "param=123456", message)
+}
+
+func TestLog(t *testing.T) {
+	message := Log("INFO", "param=%v", 456)
+	assert.Equal(t, "param=456", message)
 }

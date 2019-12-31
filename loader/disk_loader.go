@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
@@ -16,26 +17,17 @@ import (
 
 // diskLoader is struct used for implementing Loader interface for loading migrations from disk
 type diskLoader struct {
+	ctx    context.Context
 	config *config.Config
 }
 
-// GetDiskMigrations returns all migrations from disk
-func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			var ok bool
-			err, ok = r.(error)
-			if !ok {
-				err = fmt.Errorf("%v", r)
-			}
-		}
-	}()
-
-	migrations = []types.Migration{}
+// GetSourceMigrations returns all migrations from disk
+func (dl *diskLoader) GetSourceMigrations() []types.Migration {
+	migrations := []types.Migration{}
 
 	absBaseDir, err := filepath.Abs(dl.config.BaseDir)
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Could not convert baseDir to absolute path: %v", err.Error()))
 	}
 
 	singleMigrationsDirs := dl.getDirs(absBaseDir, dl.config.SingleMigrations)
@@ -63,7 +55,7 @@ func (dl *diskLoader) GetDiskMigrations() (migrations []types.Migration, err err
 		}
 	}
 
-	return
+	return migrations
 }
 
 func (dl *diskLoader) getDirs(baseDir string, migrationsDirs []string) []string {
@@ -78,13 +70,14 @@ func (dl *diskLoader) readFromDirs(migrations map[string][]types.Migration, sour
 	for _, sourceDir := range sourceDirs {
 		files, err := ioutil.ReadDir(sourceDir)
 		if err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("Could not read source dir %v: %v", sourceDir, err.Error()))
 		}
 		for _, file := range files {
 			if !file.IsDir() {
-				contents, err := ioutil.ReadFile(filepath.Join(sourceDir, file.Name()))
+				fullPath := filepath.Join(sourceDir, file.Name())
+				contents, err := ioutil.ReadFile(fullPath)
 				if err != nil {
-					panic(err.Error())
+					panic(fmt.Sprintf("Could not read file %v: %v", fullPath, err.Error()))
 				}
 				hasher := sha256.New()
 				hasher.Write([]byte(contents))

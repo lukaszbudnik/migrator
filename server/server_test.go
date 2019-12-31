@@ -2,19 +2,13 @@ package server
 
 import (
 	"bytes"
-	"context"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,317 +18,173 @@ var (
 )
 
 func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return req, err
-	}
-	ctx := req.Context()
-	ctx = context.WithValue(ctx, common.RequestIDKey{}, "123")
-	action := fmt.Sprintf("%v %v", method, strings.Replace(url, "http://example.com", "", -1))
-	ctx = context.WithValue(ctx, common.ActionKey{}, action)
-	return req.WithContext(ctx), err
+	versionURL := "/v1" + url
+	return http.NewRequest(method, versionURL, body)
 }
 
 func TestGetDefaultPort(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
-	assert.Equal(t, "8080", getPort(config))
+	assert.Equal(t, "8080", GetPort(config))
 }
 
 func TestGetDefaultPortOverrides(t *testing.T) {
 	config, err := config.FromFile(configFileOverrides)
 	assert.Nil(t, err)
-	assert.Equal(t, "8811", getPort(config))
+	assert.Equal(t, "8811", GetPort(config))
 }
 
-func TestRegisterHandlers(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-	router := registerHandlers(config, nil, nil)
-	assert.NotNil(t, router)
-}
+// section /config
 
-// section: /config
-func TestServerConfig(t *testing.T) {
+func TestConfigRoute(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := newTestRequest(http.MethodGet, "http://example.com/config", nil)
+	router := SetupRouter(config, nil)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(configHandler, config, nil, nil)
-	handler(w, req)
+	req, _ := newTestRequest("GET", "/config", nil)
+	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/x-yaml", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/x-yaml; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, config.String(), strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerConfigMethodNotAllowed(t *testing.T) {
+// section /migrations/source
+
+func TestDiskMigrationsRoute(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	httpMethods := []string{http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-
-	for _, httpMethod := range httpMethods {
-
-		req, _ := newTestRequest(httpMethod, "http://example.com/config", nil)
-
-		w := httptest.NewRecorder()
-		handler := makeHandler(configHandler, config, newMockedConnector, newMockedDiskLoader)
-		handler(w, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
-	}
-}
-
-// section: /tenants
-func TestServerTenantsGet(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	req, _ := newTestRequest(http.MethodGet, "http://example.com/tenants", nil)
+	router := SetupRouter(config, newMockedCoordinator)
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, newMockedConnector, nil)
-	handler(w, req)
+	req, _ := newTestRequest("GET", "/migrations/source", nil)
+	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`, strings.TrimSpace(w.Body.String()))
+}
+
+// section /migrations/applied
+
+func TestAppliedMigrationsRoute(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	req, _ := newTestRequest(http.MethodGet, "/migrations/applied", nil)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"","checkSum":"","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+}
+
+// section /migrations
+
+func TestMigrationsPostRoute(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"mode": "apply", "response": "full"}`)
+	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+}
+
+// section /tenants
+
+func TestTenantsGetRoute(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequest("GET", "/tenants", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Equal(t, `["a","b","c"]`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerTenantsPost(t *testing.T) {
+func TestTenantsPostRoute(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	json := []byte(`{"name": "new_tenant"}`)
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
-	req.Header.Set("Content-Type", "application/json")
+	router := SetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"name": "new_tenant", "response": "full", "mode":"dry-run"}`)
+	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
-	handler(w, req)
+	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
-type errReader int
-
-func (errReader) Read(p []byte) (n int, err error) {
-	return 0, errors.New("trouble maker")
-}
-
-func TestServerTenantsPostIOError(t *testing.T) {
+func TestTenantsPostRouteRequestError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", errReader(0))
-	req.Header.Set("Content-Type", "application/json")
+	router := SetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"tenant": "new_tenant"}`)
+	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
-	handler(w, req)
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"ErrorMessage":"trouble maker"}`, strings.TrimSpace(w.Body.String()))
-}
-
-func TestServerTenantsPostBadRequest(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	// empty JSON payload
-	json := []byte("")
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
-
-	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
-	handler(w, req)
+	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
 }
 
-func TestServerTenantsPostFailedDependency(t *testing.T) {
+// func TestTenantsPostRouteVerifyCheckSumError(t *testing.T) {
+// 	config, err := config.FromFile(configFile)
+// 	assert.Nil(t, err)
+//
+// 	router := SetupRouter(config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
+//
+// 	json := []byte(`{"name": "new_tenant"}`)
+// 	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+//
+// 	w := httptest.NewRecorder()
+// 	router.ServeHTTP(w, req)
+//
+// 	assert.Equal(t, http.StatusFailedDependency, w.Code)
+// 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+// 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"error":"Checksum verification failed. Please review offending migrations."`)
+// }
+//
+
+func TestRouteError(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	json := []byte(`{"name": "new_tenant"}`)
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/tenants", bytes.NewBuffer(json))
+	router := SetupRouter(config, newMockedErrorCoordinator(0))
 
 	w := httptest.NewRecorder()
-	handler := makeHandler(tenantsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
-	handler(w, req)
+	req, _ := newTestRequest("GET", "/migrations/source", nil)
+	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusFailedDependency, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"ErrorMessage":"Checksum verification failed. Please review offending migrations.","OffendingMigrations":[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":"xxx"}]}`, strings.TrimSpace(w.Body.String()))
-}
-
-func TestServerTenantMethodNotAllowed(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-
-	for _, httpMethod := range httpMethods {
-		req, _ := newTestRequest(httpMethod, "http://example.com/tenants", nil)
-
-		w := httptest.NewRecorder()
-		handler := makeHandler(tenantsHandler, config, newMockedConnector, newMockedDiskLoader)
-		handler(w, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
-	}
-
-}
-
-// section: /diskMigrations
-
-func TestServerDiskMigrationsGet(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	req, _ := newTestRequest(http.MethodGet, "http://example.com/diskMigrations", nil)
-
-	w := httptest.NewRecorder()
-	handler := makeHandler(diskMigrationsHandler, config, nil, newMockedDiskLoader)
-	handler(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":""},{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`, strings.TrimSpace(w.Body.String()))
-}
-
-func TestServerDiskMigrationsMethodNotAllowed(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	httpMethods := []string{http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-
-	for _, httpMethod := range httpMethods {
-
-		req, _ := newTestRequest(httpMethod, "http://example.com/diskMigrations", nil)
-
-		w := httptest.NewRecorder()
-		handler := makeHandler(diskMigrationsHandler, config, newMockedConnector, newMockedDiskLoader)
-		handler(w, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
-	}
-
-}
-
-// section: /migrations
-
-func TestServerMigrationsGet(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	req, _ := newTestRequest(http.MethodGet, "http://example.com/migrations", nil)
-
-	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, newMockedConnector, nil)
-	handler(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"","CheckSum":"","Schema":"source","Created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
-}
-
-func TestServerMigrationsPost(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/migrations", nil)
-
-	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
-	handler(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"Name":"201602220001.sql","SourceDir":"source","File":"source/201602220001.sql","MigrationType":2,"Contents":"select def","CheckSum":""}]`)
-}
-
-func TestServerMigrationsPostFailedDependency(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	req, _ := newTestRequest(http.MethodPost, "http://example.com/migrations", nil)
-
-	w := httptest.NewRecorder()
-	handler := makeHandler(migrationsHandler, config, newMockedConnector, newBrokenCheckSumMockedDiskLoader)
-	handler(w, req)
-
-	assert.Equal(t, http.StatusFailedDependency, w.Code)
-	assert.Equal(t, "application/json", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"ErrorMessage":"Checksum verification failed. Please review offending migrations.","OffendingMigrations":[{"Name":"201602220000.sql","SourceDir":"source","File":"source/201602220000.sql","MigrationType":1,"Contents":"select abc","CheckSum":"xxx"}]}`, strings.TrimSpace(w.Body.String()))
-}
-
-func TestServerMigrationsMethodNotAllowed(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	httpMethods := []string{http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-
-	for _, httpMethod := range httpMethods {
-		req, _ := newTestRequest(httpMethod, "http://example.com/migrations", nil)
-
-		w := httptest.NewRecorder()
-		handler := makeHandler(migrationsHandler, config, newMockedConnector, newMockedDiskLoader)
-		handler(w, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
-	}
-
-}
-
-func TestServerInternalServerErrors(t *testing.T) {
-	c, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-
-	requests := []struct {
-		method          string
-		path            string
-		handler         func(http.ResponseWriter, *http.Request, *config.Config, func(*config.Config) (db.Connector, error), func(*config.Config) loader.Loader)
-		createConnector func(config *config.Config) (db.Connector, error)
-		createLoader    func(config *config.Config) loader.Loader
-		payload         io.Reader
-	}{{http.MethodGet, "tenants", tenantsHandler, newConnectorReturnError, newMockedDiskLoader, nil},
-		{http.MethodGet, "tenants", tenantsHandler, newMockedErrorConnector(0), newMockedDiskLoader, nil},
-		{http.MethodGet, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
-		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(0), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(1), newMockedErrorDiskLoader(0), bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodPost, "tenants", tenantsHandler, newMockedErrorConnector(2), newMockedDiskLoader, bytes.NewBuffer([]byte(`{"name": "new_tenant"}`))},
-		{http.MethodGet, "migrations", migrationsHandler, newConnectorReturnError, newMockedDiskLoader, nil},
-		{http.MethodGet, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(0), newMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedDiskLoader, nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(1), newMockedErrorDiskLoader(0), nil},
-		{http.MethodPost, "migrations", migrationsHandler, newMockedErrorConnector(2), newMockedDiskLoader, nil},
-		{http.MethodGet, "diskMigrations", diskMigrationsHandler, newMockedConnector, newMockedErrorDiskLoader(0), nil}}
-
-	for _, r := range requests {
-		req, _ := newTestRequest(r.method, fmt.Sprintf("http://example.com/%v", r.path), r.payload)
-
-		w := httptest.NewRecorder()
-		handler := makeHandler(r.handler, c, r.createConnector, r.createLoader)
-		handler(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	}
-}
-
-func TestTracing(t *testing.T) {
-	r, _ := newTestRequest(http.MethodGet, "http://example.com/sdsdf", nil)
-
-	w := httptest.NewRecorder()
-	handler := tracing()(http.NotFoundHandler())
-	handler.ServeHTTP(w, r)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"error":"Mocked Error Disk Loader: threshold 0 reached"}`, strings.TrimSpace(w.Body.String()))
 }

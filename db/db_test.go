@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -15,12 +14,8 @@ import (
 )
 
 func newTestContext() context.Context {
-	pc, _, _, _ := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-
 	ctx := context.TODO()
-	ctx = context.WithValue(ctx, common.RequestIDKey{}, "123")
-	ctx = context.WithValue(ctx, common.ActionKey{}, strings.Replace(details.Name(), "github.com/lukaszbudnik/migrator/db.", "", -1))
+	ctx = context.WithValue(ctx, common.RequestIDKey{}, time.Now().Nanosecond())
 	return ctx
 }
 
@@ -28,67 +23,60 @@ func TestDBCreateConnectorPanicUnknownDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "abcxyz"
 
-	_, err := NewConnector(config)
-	assert.Contains(t, err.Error(), "unknown driver")
+	assert.PanicsWithValue(t, "Failed to create Connector unknown driver: abcxyz", func() {
+		New(newTestContext(), config)
+	})
 }
 
-func TestBaseConnectorPanicUnknownDriver(t *testing.T) {
-	config := &config.Config{}
-	config.Driver = "sfsdf"
-	connector := baseConnector{config, nil, nil}
-	err := connector.Init()
-	assert.Contains(t, err.Error(), "unknown driver")
-}
-
-func TestDBConnectorInitPanicConnectionError(t *testing.T) {
+func TestConnectorInitPanicConnectionError(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
 	config.DataSource = strings.Replace(config.DataSource, "127.0.0.1", "1.0.0.1", -1)
 
-	connector, err := NewConnector(config)
-	assert.Nil(t, err)
-	err = connector.Init()
-	assert.Contains(t, err.Error(), "Failed to connect to database")
+	didPanic := false
+	var message interface{}
+	func() {
+
+		defer func() {
+			if message = recover(); message != nil {
+				didPanic = true
+			}
+		}()
+
+		New(newTestContext(), config)
+
+	}()
+	assert.True(t, didPanic)
+	assert.Contains(t, message, "Failed to connect to database")
 }
 
-func TestDBGetTenants(t *testing.T) {
+func TestGetTenants(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector, err := NewConnector(config)
-	assert.Nil(t, err)
-
-	err = connector.Init()
-	assert.Nil(t, err)
+	connector := New(newTestContext(), config)
 	defer connector.Dispose()
 
-	tenants, err := connector.GetTenants()
+	tenants := connector.GetTenants()
 
-	assert.Nil(t, err)
 	assert.True(t, len(tenants) >= 3)
 	assert.Contains(t, tenants, "abc")
 	assert.Contains(t, tenants, "def")
 	assert.Contains(t, tenants, "xyz")
 }
 
-func TestDBApplyMigrations(t *testing.T) {
+func TestApplyMigrations(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector, err := NewConnector(config)
-	assert.Nil(t, err)
-	connector.Init()
+	connector := New(newTestContext(), config)
 	defer connector.Dispose()
 
-	tenants, err := connector.GetTenants()
-	assert.Nil(t, err)
-
+	tenants := connector.GetTenants()
 	noOfTenants := len(tenants)
 
-	dbMigrationsBefore, err := connector.GetDBMigrations()
-	assert.Nil(t, err)
-
+	dbMigrationsBefore := connector.GetAppliedMigrations()
 	lenBefore := len(dbMigrationsBefore)
 
 	p1 := time.Now().UnixNano()
@@ -120,8 +108,8 @@ func TestDBApplyMigrations(t *testing.T) {
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3, public4, public5, tenant4}
 
-	results, err := connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.Nil(t, err)
+	results := connector.ApplyMigrations(migrationsToApply)
+
 	assert.Equal(t, noOfTenants, results.Tenants)
 	assert.Equal(t, 3, results.SingleMigrations)
 	assert.Equal(t, 2, results.SingleScripts)
@@ -132,9 +120,7 @@ func TestDBApplyMigrations(t *testing.T) {
 	assert.Equal(t, noOfTenants*3+3, results.MigrationsGrandTotal)
 	assert.Equal(t, noOfTenants*1+2, results.ScriptsGrandTotal)
 
-	dbMigrationsAfter, err := connector.GetDBMigrations()
-	assert.Nil(t, err)
-
+	dbMigrationsAfter := connector.GetAppliedMigrations()
 	lenAfter := len(dbMigrationsAfter)
 
 	// 3 tenant migrations * no of tenants + 3 public
@@ -143,19 +129,16 @@ func TestDBApplyMigrations(t *testing.T) {
 	assert.Equal(t, expected, lenAfter-lenBefore)
 }
 
-func TestDBApplyMigrationsEmptyMigrationArray(t *testing.T) {
+func TestApplyMigrationsEmptyMigrationArray(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	connector, err := NewConnector(config)
-	assert.Nil(t, err)
-	connector.Init()
+	connector := New(newTestContext(), config)
 	defer connector.Dispose()
 
 	migrationsToApply := []types.Migration{}
 
-	results, err := connector.ApplyMigrations(newTestContext(), migrationsToApply)
-	assert.Nil(t, err)
+	results := connector.ApplyMigrations(migrationsToApply)
 
 	assert.Equal(t, 0, results.MigrationsGrandTotal)
 	assert.Equal(t, 0, results.ScriptsGrandTotal)
@@ -165,9 +148,8 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -179,9 +161,8 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -193,9 +174,8 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -207,9 +187,8 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -221,10 +200,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
-	connector.Init()
+	connector := New(newTestContext(), config)
 	defer connector.Dispose()
 
 	t1 := time.Now().UnixNano()
@@ -239,8 +215,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 
 	uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-	results, err := connector.AddTenantAndApplyMigrations(newTestContext(), uniqueTenant, migrationsToApply)
-	assert.Nil(t, err)
+	results := connector.AddTenantAndApplyMigrations(uniqueTenant, migrationsToApply)
 
 	// applied only for one tenant - the newly added one
 	assert.Equal(t, 1, results.Tenants)
@@ -253,9 +228,8 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	config, err := config.FromFile("../test/migrator-overrides.yaml")
 	assert.Nil(t, err)
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()

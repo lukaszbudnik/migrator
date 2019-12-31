@@ -10,8 +10,7 @@ import (
 func TestDBCreateDialectMSSQLDriver(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "sqlserver"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 	assert.IsType(t, &msSQLDialect{}, dialect)
 }
 
@@ -21,8 +20,7 @@ func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	insertMigrationSQL := dialect.GetMigrationInsertSQL()
 
@@ -34,9 +32,8 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
-	connector := baseConnector{config, dialect, nil}
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, nil}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
@@ -50,8 +47,7 @@ func TestMSSQLDialectGetCreateTenantsTableSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createTenantsTableSQL := dialect.GetCreateTenantsTableSQL()
 
@@ -75,8 +71,7 @@ func TestMSSQLDialectGetCreateMigrationsTableSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createMigrationsTableSQL := dialect.GetCreateMigrationsTableSQL()
 
@@ -106,8 +101,7 @@ func TestMSSQLDialectGetCreateSchemaSQL(t *testing.T) {
 
 	config.Driver = "sqlserver"
 
-	dialect, err := newDialect(config)
-	assert.Nil(t, err)
+	dialect := newDialect(config)
 
 	createSchemaSQL := dialect.GetCreateSchemaSQL("def")
 
