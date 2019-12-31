@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-playground/validator"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -75,7 +75,7 @@ webHookTemplate: '{json: text}'`
 func TestConfigReadFromEmptyFileError(t *testing.T) {
 	config, err := FromFile("../test/empty.yaml")
 	assert.Nil(t, config)
-	assert.IsType(t, (validator.ErrorMap)(nil), err, "Should error because of validation errors")
+	assert.IsType(t, (validator.ValidationErrors)(nil), err, "Should error because of validation errors")
 }
 
 func TestConfigReadFromNonExistingFileError(t *testing.T) {

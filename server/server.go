@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator"
 
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
@@ -24,8 +26,8 @@ const (
 )
 
 type migrationsPostRequest struct {
-	Response types.MigrationsResponseType `json:"response" binding:"required"`
-	Mode     types.MigrationsModeType     `json:"mode" binding:"required"`
+	Response types.MigrationsResponseType `json:"response" binding:"required,response"`
+	Mode     types.MigrationsModeType     `json:"mode" binding:"required,mode"`
 }
 
 type tenantsPostRequest struct {
@@ -134,16 +136,9 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		common.LogError(c.Request.Context(), "Error reading request: %v", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
 		return
 	}
-
-	if types.ValidateMigrationsMode(request.Mode) == false {
-		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{fmt.Sprintf("Valid mode parameters are: %v, %v, %v", types.ModeTypeApply, types.ModeTypeSync, types.ModeTypeDryRun), nil})
-		return
-	}
-
-	// TODO validate results param
 
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
@@ -180,6 +175,13 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
+
+	if ok, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums(); !ok {
+		common.LogError(c.Request.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
+		c.AbortWithStatusJSON(http.StatusFailedDependency, errorResponse{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
+		return
+	}
+
 	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(tenant.Name)
 
 	text := fmt.Sprintf("Tenant %v added, migrations applied: %v", tenant.Name, len(appliedMigrations))
@@ -193,6 +195,11 @@ func SetupRouter(config *config.Config, newCoordinator func(ctx context.Context,
 	r := gin.New()
 	r.HandleMethodNotAllowed = true
 	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("response", types.ValidateMigrationsResponseType)
+		v.RegisterValidation("mode", types.ValidateMigrationsModeType)
+	}
 
 	v1 := r.Group("/v1")
 

@@ -50,6 +50,11 @@ func (m *mockedCoordinator) GetTenants() []string {
 }
 
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
+	if m.errorThreshold == m.counter {
+		m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "123"}
+		return false, []types.Migration{m1}
+	}
+	m.counter++
 	return true, nil
 }
 
