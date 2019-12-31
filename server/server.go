@@ -26,8 +26,8 @@ const (
 )
 
 type migrationsPostRequest struct {
-	Response types.MigrationsResponseType `json:"response" binding:"required,response" validate:"response"`
-	Mode     types.MigrationsModeType     `json:"mode" binding:"required" validate:"mode"`
+	Response types.MigrationsResponseType `json:"response" binding:"required,response"`
+	Mode     types.MigrationsModeType     `json:"mode" binding:"required,mode"`
 }
 
 type tenantsPostRequest struct {
