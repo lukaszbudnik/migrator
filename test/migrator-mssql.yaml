@@ -2,7 +2,6 @@ baseDir: test/migrations
 driver: sqlserver
 dataSource: "A"
 singleMigrations:
-  - public
   - ref
   - config
 tenantMigrations:

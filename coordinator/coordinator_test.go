@@ -164,7 +164,10 @@ func TestFilterTenantMigrations(t *testing.T) {
 	dev2 := types.Migration{Name: "20181120", SourceDir: "tenants", File: "tenants/20181120", MigrationType: types.MigrationTypeTenantMigration}
 	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleMigration}
 
-	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
+	script := types.Migration{Name: "20181120", SourceDir: "tenants-script", File: "tenants/20181120", MigrationType: types.MigrationTypeTenantScript}
+	scriptp := types.Migration{Name: "20181120", SourceDir: "public-script", File: "public/20181120", MigrationType: types.MigrationTypeSingleScript}
+
+	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p, script, scriptp}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -174,7 +177,7 @@ func TestFilterTenantMigrations(t *testing.T) {
 	}
 	migrations := coordinator.filterTenantMigrations(diskMigrations)
 
-	assert.Len(t, migrations, 3)
+	assert.Len(t, migrations, 4)
 
 	assert.Equal(t, mdef1.File, migrations[0].File)
 	assert.Equal(t, types.MigrationTypeTenantMigration, migrations[0].MigrationType)
@@ -182,6 +185,8 @@ func TestFilterTenantMigrations(t *testing.T) {
 	assert.Equal(t, types.MigrationTypeTenantMigration, migrations[1].MigrationType)
 	assert.Equal(t, dev2.File, migrations[2].File)
 	assert.Equal(t, types.MigrationTypeTenantMigration, migrations[2].MigrationType)
+	assert.Equal(t, script.File, migrations[3].File)
+	assert.Equal(t, types.MigrationTypeTenantScript, migrations[3].MigrationType)
 }
 
 func TestIntersect(t *testing.T) {

@@ -38,6 +38,9 @@ type coordinator struct {
 	connectorLock     sync.Mutex
 }
 
+// Factory creates new Coordinator instance
+type Factory func(context.Context, *config.Config) Coordinator
+
 // New creates instance of Coordinator
 func New(ctx context.Context, config *config.Config, newConnector db.Factory, newLoader loader.Factory, newNotifier notifications.Factory) Coordinator {
 	connector := newConnector(ctx, config)
@@ -209,7 +212,7 @@ func (c *coordinator) computeMigrationsToApply(sourceMigrations []types.Migratio
 func (c *coordinator) filterTenantMigrations(sourceMigrations []types.Migration) []types.Migration {
 	filteredTenantMigrations := []types.Migration{}
 	for _, m := range sourceMigrations {
-		if m.MigrationType == types.MigrationTypeTenantMigration {
+		if m.MigrationType == types.MigrationTypeTenantMigration || m.MigrationType == types.MigrationTypeTenantScript {
 			filteredTenantMigrations = append(filteredTenantMigrations, m)
 		}
 	}
