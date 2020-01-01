@@ -24,7 +24,6 @@ type Config struct {
 	TenantScripts     []string `yaml:"tenantScripts,omitempty"`
 	Port              string   `yaml:"port,omitempty"`
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
-	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
 }
 

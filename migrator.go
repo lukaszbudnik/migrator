@@ -59,7 +59,7 @@ func main() {
 
 	gin.SetMode(gin.ReleaseMode)
 	g := server.SetupRouter(cfg, createCoordinator)
-	if err := g.Run(server.GetPort(cfg)); err != nil {
+	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)
 	}
 

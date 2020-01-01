@@ -14,6 +14,5 @@ singleMigrations:
 tenantMigrations:
   - tenants
 webHookURL: ${SHLVL}
-webHookTemplate: ${TERM}
 webHookHeaders:
   - "X-Security-Token: ${USER}"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -286,7 +287,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migra
 		if m.MigrationType == types.MigrationTypeTenantMigration || m.MigrationType == types.MigrationTypeTenantScript {
 			schemas = tenants
 		} else {
-			schemas = []string{m.SourceDir}
+			schemas = []string{filepath.Base(m.SourceDir)}
 		}
 
 		for _, s := range schemas {

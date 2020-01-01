@@ -2,7 +2,6 @@ baseDir: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=A host=B port=C sslmode=disable connect_timeout=1"
 singleMigrations:
-  - public
   - ref
   - config
 tenantMigrations:

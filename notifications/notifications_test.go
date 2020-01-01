@@ -65,7 +65,6 @@ func TestWebHookNotifierCustomHeaders(t *testing.T) {
 	}())
 
 	config := config.Config{}
-	config.WebHookTemplate = `{"text": "{text}","icon_emoji": ":white_check_mark:"}`
 	config.WebHookURL = server.URL
 	config.WebHookHeaders = []string{"Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l", "Content-Type: application/x-yaml", "X-CustomHeader: value1,value2"}
 
@@ -83,7 +82,6 @@ func TestWebHookNotifierCustomHeaders(t *testing.T) {
 func TestWebHookURLError(t *testing.T) {
 	config := config.Config{}
 	config.WebHookURL = "xczxcvv"
-	config.WebHookTemplate = "not imporant for this test"
 	notifier := New(context.TODO(), &config)
 	result, err := notifier.Notify("abc")
 
