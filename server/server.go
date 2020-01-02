@@ -22,7 +22,7 @@ import (
 
 const (
 	defaultPort     string = "8080"
-	requestIDHeader string = "X-Request-Id"
+	requestIDHeader string = "X-Request-ID"
 )
 
 type migrationsPostRequest struct {

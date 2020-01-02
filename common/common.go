@@ -7,7 +7,7 @@ import (
 	"runtime"
 )
 
-// RequestIDKey is used together with context for setting/getting X-Request-Id
+// RequestIDKey is used together with context for setting/getting X-Request-ID
 type RequestIDKey struct{}
 
 // LogError logs error message
