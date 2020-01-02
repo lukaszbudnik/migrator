@@ -4,11 +4,9 @@ Super fast and lightweight DB migration & evolution tool written in go.
 
 migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
 
-migrator run as a HTTP REST service.
+migrator runs as a HTTP REST service.
 
-Further, there is an official docker image available on docker hub. migrator docker image is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
-
-To find out more about migrator docker container see [DOCKER.md](DOCKER.md) for more details.
+Further, there is an official docker image available on docker hub. [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
 
 # Usage
 
@@ -264,7 +262,6 @@ Sample HTTP response:
 ["abc","def","xyz","new_test_tenant_1577793069634018000"]
 ```
 
-
 ## POST /v1/tenants
 
 Adds a new tenant and applies all tenant migrations and scripts for newly created tenant. Returns summary results and a list of applied migrations.
@@ -272,8 +269,8 @@ Adds a new tenant and applies all tenant migrations and scripts for newly create
 This operation requires as an input the following JSON payload:
 
 * `name` - the name of the new tenant
-* `mode` - same as `mode` for POST /v1/migrations (see above)
-* `response` - same as `response` for POST /v1/migrations (see above)
+* `mode` - same as `mode` for [POST /v1/migrations](#post-v1migrations)
+* `response` - same as `response` for [POST /v1/migrations](#post-v1migrations)
 
 Sample request:
 
@@ -316,7 +313,11 @@ Sample HTTP response.
 }
 ```
 
-The response is identical to the one of POST /v1/migrations (see above). When adding new tenant only tenant migrations and scripts are applied and only for the newly created tenant. That is why `singleMigrations` and `singleScripts` are always 0 and `tenants` is always 1.
+The response is identical to the one of [POST /v1/migrations](#post-v1migrations). When adding new tenant only tenant migrations and scripts are applied and only for the newly created tenant. That is why `singleMigrations` and `singleScripts` are always 0 and `tenants` is always 1.
+
+## Request tracing
+
+migrator uses request tracing via `X-Request-ID` header. This header can be used with all requests for tracing and/or auditing purposes. If this header is absent migrator will generate one for you.
 
 # Configuration
 
@@ -370,46 +371,9 @@ webHookHeaders:
   - "X-Security-Token: ${SECURITY_TOKEN}"
 ```
 
-# migrator under the hood
-
-migrator scans all directories under `baseDir` directory. Migrations listed under `singleSchemas` directories will be applied once. Migrations listed under `tenantSchemas` directories will be applied for all tenants fetched using `tenantSelectSQL`.
-
-SQL migrations in both `singleSchemas` and `tenantsSchemas` can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
-
-```sql
-create schema if not exists {schema};
-create table if not exists {schema}.modules ( k int, v text );
-insert into {schema}.modules values ( 123, '123' );
-```
-
-When using migrator please remember about these:
-
-* migrator creates `migrator` schema (where `migrator_migrations` and `migrator_tenants` tables reside) automatically
-* when adding a new tenant migrator creates a new schema automatically
-* single schemas are not created automatically, for this you must add initial migration with `create schema` SQL statement (see example above)
-
-# Supported databases
-
-Currently migrator supports the following databases and their flavours:
-
-* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
-  * PostgreSQL - original PostgreSQL server
-  * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
-  * MySQL - original MySQL server
-  * MariaDB - enhanced near linearly scalable multi-master MySQL
-  * Percona - an enhanced drop-in replacement for MySQL
-  * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
-  * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
-  * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
-  * Microsoft SQL Server - original Microsoft SQL Server
-
 # Quick Start Guide
 
-You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are placed in `test/migrations` directory as well as some docker scripts for setting up test databases.
+You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are located in `test` directory as well as some docker scripts for setting up test databases.
 
 The quick start guide shows you how to either build the migrator locally or use the official docker image.
 
@@ -454,12 +418,21 @@ go build
 
 ## 4. Run migrator from official docker image
 
+The official migrator docker image is available on docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator).
+
+All migrator releases are automatically available as docker images on docker hub [lukasz/migrator/tags](https://hub.docker.com/r/lukasz/migrator/tags).
+
+To start a migrator container you need to:
+
+1. mount a volume with migrations, for example: `/data`
+2. specify location of migrator configuration file, for convenience it is usually located under `/data` directory; it defaults to `/data/migrator.yaml` and can be overridden by setting environment variable `MIGRATOR_YAML`
+
 When running migrator from docker we need to update `migrator.yaml` (generated in step 2) as well as provide a link to `migrator-postgres` container:
 
 ```
 sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
 sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
-docker run -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
+docker run --name migrator-test -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
 ```
 
 ## 5. Play around with migrator
@@ -469,29 +442,32 @@ Happy path:
 ```
 curl -v http://localhost:8080/v1/config
 curl -v http://localhost:8080/v1/migrations/source
-curl -v http://localhost:8080/tenants
-curl -v http://localhost:8080/migrations
-curl -v -X POST http://localhost:8080/migrations
-curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant"}' http://localhost:8080/tenants
+curl -v http://localhost:8080/v1/tenants
+curl -v http://localhost:8080/v1/migrations/applied
+curl -v -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "response": "full"}' http://localhost:8080/v1/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "mode": "apply", "response": "full"}' http://localhost:8080/v1/tenants
+curl -v http://localhost:8080/v1/migrations/applied
 ```
 
 And some errors. For example let's break a checksum of the first migration and try to apply migrations or add new tenant.
 
 ```
 echo " " >> test/migrations/config/201602160001.sql
-curl -v -X POST -H "X-Request-Id: xyzpoi098654" http://localhost:8080/migrations
-curl -v -X POST -H "Content-Type: application/json" -H "X-Request-Id: abcdef123456" -d '{"name": "new_tenant2"}' http://localhost:8080/tenants
+curl -v -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "response": "full"}' http://localhost:8080/v1/migrations
+curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "mode": "apply", "response": "full"}' http://localhost:8080/v1/tenants
 ```
 
-In above error requests I used optional `X-Request-Id` header. This header can be used with all requests for tracing and/or auditing purposes.
+# Customisation and legacy frameworks support
 
-# Customisation
+migrator can be used with an already existing legacy DB migration framework.
+
+## Custom tenants support
 
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
-In the config file you need to provide 2 parameters:
+In the config file you need to provide 2 configuration properties:
 
 * `tenantSelectSQL` - a select statement which returns names of the tenants
-* `tenantInsertSQL` - an insert statement which creates a new tenant entry, this is called as a prepared statement and is called with the name of the tenant as a parameter; should your table require additional columns you need to provide default values for them
+* `tenantInsertSQL` - an insert statement which creates a new tenant entry, the insert statement should be a valid prepared statement for the SQL driver/database you use, it must accept the name of the new tenant as a parameter; finally should your table require additional columns you need to provide default values for them too
 
 Here is an example:
 
@@ -499,6 +475,67 @@ Here is an example:
 tenantSelectSQL: select name from global.customers
 tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
 ```
+
+## Custom schema placeholder
+
+SQL migrations and scripts can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
+
+```sql
+create schema if not exists {schema};
+create table if not exists {schema}.modules ( k int, v text );
+insert into {schema}.modules values ( 123, '123' );
+```
+
+If you have an existing DB migrations legacy framework which uses different schema placeholder you can override the default one.
+In the config file you need to provide `schemaPlaceHolder` configuration property:
+
+For example:
+
+```yaml
+schemaPlaceHolder: :tenant
+```
+
+## Synchonising legacy migrations to migrator
+
+Before switching from a legacy framework to migrator you need to synchronise source migrations to migrator.
+
+This can be done using the POST /v1/migrations endpoint and setting the `mode` param to `sync`:
+
+```
+curl -v -X POST -H "Content-Type: application/json" -d '{"mode": "sync", "response": "full"}' http://localhost:8080/v1/migrations
+```
+
+migrator will load and synchronise all source migrations with internal migrator's table, this action loads and marks all source migrations as applied but does not apply them.
+
+Once the initial sync is done you can move to migrator for all the consecutive DB migrations.
+
+## Final comments
+
+When using migrator please remember that:
+
+* migrator creates `migrator` schema together with `migrator_migrations` table automatically
+* if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically; just like `migrator_migrations` this table is created inside the `migrator` schema too
+* when adding a new tenant migrator creates a new DB schema and applies all tenant migrations and scripts - no need to apply them manually
+* single schemas are not created automatically, you must add initial migration with `create schema {schema}` SQL statement (see examples above)
+
+# Supported databases
+
+Currently migrator supports the following databases and their flavours:
+
+* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+  * PostgreSQL - original PostgreSQL server
+  * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+  * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+  * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
+  * MySQL - original MySQL server
+  * MariaDB - enhanced near linearly scalable multi-master MySQL
+  * Percona - an enhanced drop-in replacement for MySQL
+  * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
+  * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
+  * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
+* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+  * Microsoft SQL Server - original Microsoft SQL Server
 
 # Performance
 
@@ -526,7 +563,7 @@ The other thing to consider is the fact that migrator is written in go which is 
 
 # Change log
 
-Please navigate to https://github.com/lukaszbudnik/migrator/releases for a complete list of versions, features, and change log.
+Please navigate to [migrator/releases](https://github.com/lukaszbudnik/migrator/releases) for a complete list of versions, features, and change log.
 
 # Contributing, code style, running unit & integration tests
 
