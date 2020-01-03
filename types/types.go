@@ -20,19 +20,26 @@ const (
 	MigrationTypeTenantScript MigrationType = 4
 )
 
+// MigrationsResponseType represents type of response either full or summary
 type MigrationsResponseType string
 
 const (
+	// ResponseTypeSummary instructs migrator to only return JSON representation of Results struct
 	ResponseTypeSummary MigrationsResponseType = "summary"
-	ResponseTypeFull    MigrationsResponseType = "full"
+	// ResponseTypeFull instructs migrator to return JSON representation of both Results struct and all applied migrations
+	ResponseTypeFull MigrationsResponseType = "full"
 )
 
+// MigrationsModeType represents mode in which migrations should be applied
 type MigrationsModeType string
 
 const (
-	ModeTypeApply  MigrationsModeType = "apply"
-	ModeTypeSync   MigrationsModeType = "sync"
+	// ModeTypeApply instructs migrator to apply migrations
+	ModeTypeApply MigrationsModeType = "apply"
+	// ModeTypeDryRun instructs migrator to perform apply operation in dry-run mode, instead of committing transaction it is rollbacked
 	ModeTypeDryRun MigrationsModeType = "dry-run"
+	// ModeTypeSync instructs migrator to only synchronise migrations
+	ModeTypeSync MigrationsModeType = "sync"
 )
 
 // ValidateMigrationsModeType validates MigrationsModeType used by binding package
