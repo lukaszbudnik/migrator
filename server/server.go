@@ -153,7 +153,14 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 
 	common.LogInfo(c.Request.Context(), "Returning applied migrations: %v", len(appliedMigrations))
 
-	c.JSON(http.StatusOK, migrationsSuccessResponse{results, appliedMigrations})
+	var response *migrationsSuccessResponse
+	if request.Response == types.ResponseTypeFull {
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	} else {
+		response = &migrationsSuccessResponse{results, nil}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func tenantsGetHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
@@ -165,8 +172,8 @@ func tenantsGetHandler(c *gin.Context, config *config.Config, newCoordinator fun
 }
 
 func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
-	var tenant tenantsPostRequest
-	err := c.ShouldBindJSON(&tenant)
+	var request tenantsPostRequest
+	err := c.ShouldBindJSON(&request)
 	if err != nil {
 		common.LogError(c.Request.Context(), "Bad request: %v", err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
@@ -182,12 +189,18 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 		return
 	}
 
-	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(tenant.Name)
+	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(request.Name)
 
-	text := fmt.Sprintf("Tenant %v added, migrations applied: %v", tenant.Name, len(appliedMigrations))
+	common.LogInfo(c.Request.Context(), "Tenant %v added, migrations applied: %v", request.Name, len(appliedMigrations))
 
-	common.LogInfo(c.Request.Context(), text)
-	c.JSON(http.StatusOK, migrationsSuccessResponse{results, appliedMigrations})
+	var response *migrationsSuccessResponse
+	if request.Response == types.ResponseTypeFull {
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	} else {
+		response = &migrationsSuccessResponse{results, nil}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // SetupRouter setups router

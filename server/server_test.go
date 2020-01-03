@@ -105,6 +105,24 @@ func TestMigrationsPostRoute(t *testing.T) {
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
+func TestMigrationsPostRouteSummaryResponse(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"mode": "apply", "response": "summary"}`)
+	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
+	assert.NotContains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+}
+
 func TestMigrationsPostRouteBadRequest(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
@@ -172,6 +190,24 @@ func TestTenantsPostRoute(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+}
+
+func TestTenantsPostRouteSummaryResponse(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := SetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"name": "new_tenant", "response": "summary", "mode":"dry-run"}`)
+	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
+	assert.NotContains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
 func TestTenantsPostRouteBadRequestError(t *testing.T) {
