@@ -17,8 +17,8 @@ import (
 type Connector interface {
 	GetTenants() []string
 	GetAppliedMigrations() []types.MigrationDB
-	ApplyMigrations([]types.Migration) *types.MigrationResults
-	AddTenantAndApplyMigrations(string, []types.Migration) *types.MigrationResults
+	ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults
+	AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults
 	Dispose()
 }
 
@@ -166,9 +166,12 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 }
 
 // ApplyMigrations applies passed migrations
-func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) ApplyMigrations(mode types.MigrationsModeType, migrations []types.Migration) *types.MigrationResults {
 	if len(migrations) == 0 {
-		return &types.MigrationResults{}
+		return &types.MigrationResults{
+			StartedAt: time.Now(),
+			Duration:  0,
+		}
 	}
 
 	tenants := bc.GetTenants()
@@ -181,8 +184,14 @@ func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) *types.Mi
 	defer func() {
 		r := recover()
 		if r == nil {
-			if err := tx.Commit(); err != nil {
-				panic(fmt.Sprintf("Could not commit transaction: %v", err.Error()))
+			if mode == types.ModeTypeDryRun {
+				common.LogInfo(bc.ctx, "Running in dry-run mode, calling rollback")
+				tx.Rollback()
+			} else {
+				common.LogInfo(bc.ctx, "Running in %v mode, committing transaction", mode)
+				if err := tx.Commit(); err != nil {
+					panic(fmt.Sprintf("Could not commit transaction: %v", err.Error()))
+				}
 			}
 		} else {
 			common.LogInfo(bc.ctx, "Recovered in ApplyMigrations. Transaction rollback.")
@@ -191,11 +200,11 @@ func (bc *baseConnector) ApplyMigrations(migrations []types.Migration) *types.Mi
 		}
 	}()
 
-	return bc.applyMigrationsInTx(tx, tenants, migrations)
+	return bc.applyMigrationsInTx(tx, mode, tenants, migrations)
 }
 
 // AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
-func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string, migrations []types.Migration) *types.MigrationResults {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -206,8 +215,14 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 	defer func() {
 		r := recover()
 		if r == nil {
-			if err := tx.Commit(); err != nil {
-				panic(fmt.Sprintf("Could not commit transaction: %v", err))
+			if mode == types.ModeTypeDryRun {
+				common.LogInfo(bc.ctx, "Running in dry-run mode, calling rollback")
+				tx.Rollback()
+			} else {
+				common.LogInfo(bc.ctx, "Running in %v mode, committing transaction", mode)
+				if err := tx.Commit(); err != nil {
+					panic(fmt.Sprintf("Could not commit transaction: %v", err.Error()))
+				}
 			}
 		} else {
 			common.LogInfo(bc.ctx, "Recovered in AddTenantAndApplyMigrations. Transaction rollback.")
@@ -231,7 +246,7 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(tenant string, migrations [
 		panic(fmt.Sprintf("Failed to add tenant entry: %v", err))
 	}
 
-	results := bc.applyMigrationsInTx(tx, []string{tenant}, migrations)
+	results := bc.applyMigrationsInTx(tx, mode, []string{tenant}, migrations)
 
 	return results
 }
@@ -262,11 +277,12 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsModeType, tenants []string, migrations []types.Migration) *types.MigrationResults {
 
-	results := &types.MigrationResults{}
-	results.StartedAt = time.Now()
-	results.Tenants = len(tenants)
+	results := &types.MigrationResults{
+		StartedAt: time.Now(),
+		Tenants:   len(tenants),
+	}
 
 	defer func() {
 		results.Duration = time.Now().Sub(results.StartedAt)
@@ -293,10 +309,11 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, tenants []string, migra
 		for _, s := range schemas {
 			common.LogInfo(bc.ctx, "Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
 
-			contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
-
-			if _, err = tx.Exec(contents); err != nil {
-				panic(fmt.Sprintf("SQL migration %v failed with error: %v", m.File, err.Error()))
+			if mode != types.ModeTypeSync {
+				contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
+				if _, err = tx.Exec(contents); err != nil {
+					panic(fmt.Sprintf("SQL migration %v failed with error: %v", m.File, err.Error()))
+				}
 			}
 
 			if _, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum); err != nil {

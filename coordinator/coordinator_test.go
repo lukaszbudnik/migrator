@@ -232,7 +232,7 @@ func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
 func TestApplyMigrations(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
-	_, appliedMigrations := coordinator.ApplyMigrations()
+	_, appliedMigrations := coordinator.ApplyMigrations(types.ModeTypeApply)
 	assert.Len(t, appliedMigrations, 1)
 	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
 }
@@ -240,7 +240,7 @@ func TestApplyMigrations(t *testing.T) {
 func TestAddTenantAndApplyMigrations(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
-	_, appliedMigrations := coordinator.AddTenantAndApplyMigrations("new")
+	_, appliedMigrations := coordinator.AddTenantAndApplyMigrations(types.ModeTypeApply, "new")
 	assert.Len(t, appliedMigrations, 1)
 	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
 }

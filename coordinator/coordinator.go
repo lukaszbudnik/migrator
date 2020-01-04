@@ -19,8 +19,8 @@ type Coordinator interface {
 	GetSourceMigrations() []types.Migration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
-	ApplyMigrations() (*types.MigrationResults, []types.Migration)
-	AddTenantAndApplyMigrations(string) (*types.MigrationResults, []types.Migration)
+	ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration)
+	AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration)
 	Dispose()
 }
 
@@ -109,28 +109,28 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 	return result, offendingMigrations
 }
 
-func (c *coordinator) ApplyMigrations() (*types.MigrationResults, []types.Migration) {
+func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
 	sourceMigrations := c.GetSourceMigrations()
 	appliedMigrations := c.GetAppliedMigrations()
 
 	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
 	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
 
-	results := c.connector.ApplyMigrations(migrationsToApply)
+	results := c.connector.ApplyMigrations(mode, migrationsToApply)
 
 	c.sendNotification(results)
 
 	return results, migrationsToApply
 }
 
-func (c *coordinator) AddTenantAndApplyMigrations(tenant string) (*types.MigrationResults, []types.Migration) {
+func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string) (*types.MigrationResults, []types.Migration) {
 	sourceMigrations := c.GetSourceMigrations()
 
 	// filter only tenant schemas
 	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
 	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
 
-	results := c.connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+	results := c.connector.AddTenantAndApplyMigrations(mode, tenant, migrationsToApply)
 
 	c.sendNotification(results)
 

@@ -58,10 +58,10 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 	return true, nil
 }
 
-func (m *mockedCoordinator) ApplyMigrations() (*types.MigrationResults, []types.Migration) {
+func (m *mockedCoordinator) ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
 	return &types.MigrationResults{}, m.GetSourceMigrations()
 }
 
-func (m *mockedCoordinator) AddTenantAndApplyMigrations(_ string) (*types.MigrationResults, []types.Migration) {
+func (m *mockedCoordinator) AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration) {
 	return &types.MigrationResults{}, m.GetSourceMigrations()[1:]
 }

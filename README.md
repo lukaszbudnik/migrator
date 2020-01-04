@@ -8,6 +8,34 @@ migrator runs as a HTTP REST service.
 
 Further, there is an official docker image available on docker hub. [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
 
+# Table of contents
+
+* [Usage](#usage)
+  * [GET /v1/config](#get-v1config)
+  * [GET /v1/migrations/source](#get-v1migrationssource)
+  * [GET /v1/migrations/applied](#get-v1migrationsapplied)
+  * [POST /v1/migrations](#post-v1migrations)
+  * [GET /v1/tenants](#get-v1tenants)
+  * [POST /v1/tenants](#post-v1tenants)
+  * [Request tracing](#request-tracing)
+* [Configuration](#configuration)
+* [Quick Start Guide](#quick-start-guide)
+  * [1. Get the migrator project](#1-get-the-migrator-project)
+  * [2. Setup test DB container](#2-setup-test-db-container)
+  * [3. Build and run migrator](#3-build-and-run-migrator)
+  * [4. Run migrator from official docker image](#4-run-migrator-from-official-docker-image)
+  * [5. Play around with migrator](#5-play-around-with-migrator)
+* [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
+  * [Custom tenants support](#custom-tenants-support)
+  * [Custom schema placeholder](#custom-schema-placeholder)
+  * [Synchonising legacy migrations to migrator](#synchonising-legacy-migrations-to-migrator)
+  * [Final comments](#final-comments)
+* [Supported databases](#supported-databases)
+* [Performance](#performance)
+* [Change log](#change-log)
+* [Contributing, code style, running unit & integration tests](#contributing-code-style-running-unit--integration-tests)
+* [License](#license)
+
 # Usage
 
 migrator exposes a simple REST API described below.

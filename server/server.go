@@ -149,7 +149,7 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 		return
 	}
 
-	results, appliedMigrations := coordinator.ApplyMigrations()
+	results, appliedMigrations := coordinator.ApplyMigrations(request.Mode)
 
 	common.LogInfo(c.Request.Context(), "Returning applied migrations: %v", len(appliedMigrations))
 
@@ -189,7 +189,7 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 		return
 	}
 
-	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(request.Name)
+	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(request.Mode, request.Name)
 
 	common.LogInfo(c.Request.Context(), "Tenant %v added, migrations applied: %v", request.Name, len(appliedMigrations))
 

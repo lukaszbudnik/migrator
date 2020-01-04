@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
@@ -108,7 +109,7 @@ func TestApplyMigrations(t *testing.T) {
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3, public4, public5, tenant4}
 
-	results := connector.ApplyMigrations(migrationsToApply)
+	results := connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 
 	assert.Equal(t, noOfTenants, results.Tenants)
 	assert.Equal(t, 3, results.SingleMigrations)
@@ -138,10 +139,75 @@ func TestApplyMigrationsEmptyMigrationArray(t *testing.T) {
 
 	migrationsToApply := []types.Migration{}
 
-	results := connector.ApplyMigrations(migrationsToApply)
+	results := connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 
 	assert.Equal(t, 0, results.MigrationsGrandTotal)
 	assert.Equal(t, 0, results.ScriptsGrandTotal)
+}
+
+func TestApplyMigrationsDryRunMode(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	time := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
+	mock.ExpectQuery("select").WillReturnRows(tenants)
+	mock.ExpectBegin()
+	mock.ExpectPrepare("insert into")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	// dry-run mode calls rollback instead of commit
+	mock.ExpectRollback()
+
+	// however the results contain correct dry-run data like number of applied migrations/scripts
+	results := connector.ApplyMigrations(types.ModeTypeDryRun, migrationsToApply)
+
+	assert.Equal(t, 1, results.MigrationsGrandTotal)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestApplyMigrationsSyncMode(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	time := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
+	mock.ExpectQuery("select").WillReturnRows(tenants)
+	mock.ExpectBegin()
+	mock.ExpectPrepare("insert into")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// sync the results contain correct data like number of applied migrations/scripts
+	results := connector.ApplyMigrations(types.ModeTypeSync, migrationsToApply)
+
+	assert.Equal(t, 1, results.MigrationsGrandTotal)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
 
 func TestGetTenantsSQLDefault(t *testing.T) {
@@ -215,13 +281,80 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 
 	uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-	results := connector.AddTenantAndApplyMigrations(uniqueTenant, migrationsToApply)
+	results := connector.AddTenantAndApplyMigrations(types.ModeTypeApply, uniqueTenant, migrationsToApply)
 
 	// applied only for one tenant - the newly added one
 	assert.Equal(t, 1, results.Tenants)
 	// just one tenant so total number of tenant migrations is equal to tenant migrations
 	assert.Equal(t, 3, results.TenantMigrations)
 	assert.Equal(t, 3, results.TenantMigrationsTotal)
+}
+
+func TestAddTenantAndApplyMigrationsDryRunMode(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	time := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	mock.ExpectBegin()
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	// dry-run mode calls rollback instead of commit
+	mock.ExpectRollback()
+
+	// however the results contain correct dry-run data like number of applied migrations/scripts
+	results := connector.AddTenantAndApplyMigrations(types.ModeTypeDryRun, tenant, migrationsToApply)
+
+	assert.Equal(t, 1, results.MigrationsGrandTotal)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestAddTenantAndApplyMigrationsSyncMode(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	time := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	mock.ExpectBegin()
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// sync results contain correct data like number of applied migrations/scripts
+	results := connector.AddTenantAndApplyMigrations(types.ModeTypeSync, tenant, migrationsToApply)
+
+	assert.Equal(t, 1, results.MigrationsGrandTotal)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
 
 func TestGetTenantInsertSQLOverride(t *testing.T) {

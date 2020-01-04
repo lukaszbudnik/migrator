@@ -52,7 +52,7 @@ type mockedConnector struct {
 func (m *mockedConnector) Dispose() {
 }
 
-func (m *mockedConnector) AddTenantAndApplyMigrations(string, []types.Migration) *types.MigrationResults {
+func (m *mockedConnector) AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults {
 	return &types.MigrationResults{}
 }
 
@@ -67,10 +67,10 @@ func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
 	return ms
 }
 
-func (m *mockedConnector) ApplyMigrations(migrations []types.Migration) *types.MigrationResults {
+func (m *mockedConnector) ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults {
 	return &types.MigrationResults{}
 }
 
-func newMockedConnector(_ context.Context, _ *config.Config) db.Connector {
+func newMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedConnector{}
 }

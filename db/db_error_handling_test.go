@@ -185,7 +185,7 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.ApplyMigrations(migrationsToApply)
+		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -213,7 +213,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
-		connector.ApplyMigrations(migrationsToApply)
+		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -242,7 +242,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, fmt.Sprintf("SQL migration %v failed with error: trouble maker", tenant1.File), func() {
-		connector.ApplyMigrations(migrationsToApply)
+		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -273,7 +273,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectRollback()
 
 	assert.PanicsWithValue(t, "Failed to add migration entry: trouble maker", func() {
-		connector.ApplyMigrations(migrationsToApply)
+		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -304,7 +304,7 @@ func TestApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.ApplyMigrations(migrationsToApply)
+		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -328,7 +328,7 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -354,7 +354,7 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Create schema failed: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -381,7 +381,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations("newtenant", migrationsToApply)
+		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -411,7 +411,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	migrationsToApply := []types.Migration{m1}
 
 	assert.PanicsWithValue(t, "Failed to add tenant entry: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, tenant, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -443,7 +443,7 @@ func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(tenant, migrationsToApply)
+		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, tenant, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
