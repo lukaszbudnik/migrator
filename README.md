@@ -1,12 +1,40 @@
 # migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration & evolution tool written in go.
+Super fast and lightweight DB migration tool written in go.
 
-migrator manages all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
+migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
 
-migrator runs as a HTTP REST service.
+migrator runs as a HTTP REST service and can be easily integrated into your continuous integration and continuous delivery pipeline.
 
 Further, there is an official docker image available on docker hub. [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+
+# Table of contents
+
+* [Usage](#usage)
+  * [GET /v1/config](#get-v1config)
+  * [GET /v1/migrations/source](#get-v1migrationssource)
+  * [GET /v1/migrations/applied](#get-v1migrationsapplied)
+  * [POST /v1/migrations](#post-v1migrations)
+  * [GET /v1/tenants](#get-v1tenants)
+  * [POST /v1/tenants](#post-v1tenants)
+  * [Request tracing](#request-tracing)
+* [Quick Start Guide](#quick-start-guide)
+  * [1. Get the migrator project](#1-get-the-migrator-project)
+  * [2. Setup test DB container](#2-setup-test-db-container)
+  * [3. Build and run migrator](#3-build-and-run-migrator)
+  * [4. Run migrator from official docker image](#4-run-migrator-from-official-docker-image)
+  * [5. Play around with migrator](#5-play-around-with-migrator)
+* [Configuration](#configuration)
+* [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
+  * [Custom tenants support](#custom-tenants-support)
+  * [Custom schema placeholder](#custom-schema-placeholder)
+  * [Synchonising legacy migrations to migrator](#synchonising-legacy-migrations-to-migrator)
+  * [Final comments](#final-comments)
+* [Supported databases](#supported-databases)
+* [Performance](#performance)
+* [Change log](#change-log)
+* [Contributing, code style, running unit & integration tests](#contributing-code-style-running-unit--integration-tests)
+* [License](#license)
 
 # Usage
 
@@ -319,58 +347,6 @@ The response is identical to the one of [POST /v1/migrations](#post-v1migrations
 
 migrator uses request tracing via `X-Request-ID` header. This header can be used with all requests for tracing and/or auditing purposes. If this header is absent migrator will generate one for you.
 
-# Configuration
-
-migrator requires a simple `migrator.yaml` file:
-
-```yaml
-# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
-baseDir: test/migrations
-# required, SQL go driver implementation used, see section "Supported databases"
-driver: postgres
-# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
-dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# optional, override only if you have a specific way of determining tenants, default is:
-tenantSelectSQL: "select name from migrator.migrator_tenants"
-# optional, override only if you have a specific way of creating tenants, default is:
-tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
-# optional, override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: {schema}
-# required, directories of single schema SQL migrations, these are subdirectories of baseDir
-singleMigrations:
-  - public
-  - ref
-  - config
-# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
-tenantMigrations:
-  - tenants
-# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
-singleScripts:
-  - config-scripts
-# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
-tenantScripts:
-  - tenants-scripts
-# optional, default is:
-port: 8080
-# the webhook configuration section is optional
-# URL and template are required if at least one of them is empty noop notifier is used
-# the default content type header sent is application/json (can be overridden via webHookHeaders below)
-webHookURL: https://your.server.com/services/TTT/BBB/XXX
-# should you need more control over HTTP headers use below
-webHookHeaders:
-  - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
-  - "Content-Type: application/json"
-  - "X-CustomHeader: value1,value2"
-```
-
-migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
-
-```yaml
-dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB_HOST} port=${DB_PORT}"
-webHookHeaders:
-  - "X-Security-Token: ${SECURITY_TOKEN}"
-```
-
 # Quick Start Guide
 
 You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are located in `test` directory as well as some docker scripts for setting up test databases.
@@ -457,6 +433,58 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "respo
 curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "mode": "apply", "response": "full"}' http://localhost:8080/v1/tenants
 ```
 
+# Configuration
+
+migrator requires a simple `migrator.yaml` file:
+
+```yaml
+# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
+baseDir: test/migrations
+# required, SQL go driver implementation used, see section "Supported databases"
+driver: postgres
+# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
+dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
+# optional, override only if you have a specific way of determining tenants, default is:
+tenantSelectSQL: "select name from migrator.migrator_tenants"
+# optional, override only if you have a specific way of creating tenants, default is:
+tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
+# optional, override only if you have a specific schema placeholder, default is:
+schemaPlaceHolder: {schema}
+# required, directories of single schema SQL migrations, these are subdirectories of baseDir
+singleMigrations:
+  - public
+  - ref
+  - config
+# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
+tenantMigrations:
+  - tenants
+# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
+singleScripts:
+  - config-scripts
+# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
+tenantScripts:
+  - tenants-scripts
+# optional, default is:
+port: 8080
+# the webhook configuration section is optional
+# URL and template are required if at least one of them is empty noop notifier is used
+# the default content type header sent is application/json (can be overridden via webHookHeaders below)
+webHookURL: https://your.server.com/services/TTT/BBB/XXX
+# should you need more control over HTTP headers use below
+webHookHeaders:
+  - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
+  - "Content-Type: application/json"
+  - "X-CustomHeader: value1,value2"
+```
+
+migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
+
+```yaml
+dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB_HOST} port=${DB_PORT}"
+webHookHeaders:
+  - "X-Security-Token: ${SECURITY_TOKEN}"
+```
+
 # Customisation and legacy frameworks support
 
 migrator can be used with an already existing legacy DB migration framework.
@@ -514,7 +542,7 @@ Once the initial sync is done you can move to migrator for all the consecutive D
 When using migrator please remember that:
 
 * migrator creates `migrator` schema together with `migrator_migrations` table automatically
-* if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically; just like `migrator_migrations` this table is created inside the `migrator` schema too
+* if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically; just like `migrator_migrations` this table is created inside the `migrator` schema
 * when adding a new tenant migrator creates a new DB schema and applies all tenant migrations and scripts - no need to apply them manually
 * single schemas are not created automatically, you must add initial migration with `create schema {schema}` SQL statement (see examples above)
 

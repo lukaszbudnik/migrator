@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -11,11 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
-
-func noopLogger() *log.Logger {
-	log := log.New(ioutil.Discard, "", 0)
-	return log
-}
 
 func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
@@ -82,7 +75,7 @@ func TestConfigReadFromNonExistingFileError(t *testing.T) {
 }
 
 func TestConfigFromWrongSyntaxFile(t *testing.T) {
-	config, err := FromFile("../README.md")
+	config, err := FromFile("../Dockerfile")
 	assert.Nil(t, config)
-	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should panic because of wrong yaml syntax")
+	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should error because of wrong yaml syntax")
 }
