@@ -2,350 +2,228 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"net"
 	"net/http"
+	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator"
+
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
-	"github.com/lukaszbudnik/migrator/db"
-	"github.com/lukaszbudnik/migrator/loader"
-	"github.com/lukaszbudnik/migrator/migrations"
-	"github.com/lukaszbudnik/migrator/notifications"
+	"github.com/lukaszbudnik/migrator/coordinator"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
 const (
 	defaultPort     string = "8080"
-	requestIDHeader string = "X-Request-Id"
+	requestIDHeader string = "X-Request-ID"
 )
 
-func getPort(config *config.Config) string {
+type migrationsPostRequest struct {
+	Response types.MigrationsResponseType `json:"response" binding:"required,response"`
+	Mode     types.MigrationsModeType     `json:"mode" binding:"required,mode"`
+}
+
+type tenantsPostRequest struct {
+	Name string `json:"name" binding:"required"`
+	migrationsPostRequest
+}
+
+type migrationsSuccessResponse struct {
+	Results           *types.MigrationResults `json:"results"`
+	AppliedMigrations []types.Migration       `json:"appliedMigrations,omitempty"`
+}
+
+type errorResponse struct {
+	ErrorMessage string      `json:"error"`
+	Details      interface{} `json:"details,omitempty"`
+}
+
+// GetPort gets the port from config or defaultPort
+func GetPort(config *config.Config) string {
 	if len(strings.TrimSpace(config.Port)) == 0 {
 		return defaultPort
 	}
 	return config.Port
 }
 
-func sendNotification(ctx context.Context, config *config.Config, text string) {
-	notifier := notifications.NewNotifier(config)
-	resp, err := notifier.Notify(text)
-
-	if err != nil {
-		common.LogError(ctx, "Notifier err: %v", err)
-	} else {
-		common.LogInfo(ctx, "Notifier response: %v", resp)
+func requestIDHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		requestID := c.Request.Header.Get(requestIDHeader)
+		if requestID == "" {
+			requestID = fmt.Sprintf("%d", time.Now().UnixNano())
+		}
+		ctx := context.WithValue(c.Request.Context(), common.RequestIDKey{}, requestID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
 	}
 }
 
-func createAndInitLoader(config *config.Config, newLoader func(*config.Config) loader.Loader) loader.Loader {
-	loader := newLoader(config)
-	return loader
-}
+func recovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				// Check for a broken connection, as it is not really a
+				// condition that warrants a panic stack trace.
+				var brokenPipe bool
+				if ne, ok := err.(*net.OpError); ok {
+					if se, ok := ne.Err.(*os.SyscallError); ok {
+						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
+							brokenPipe = true
+						}
+					}
+				}
 
-func createAndInitConnector(config *config.Config, newConnector func(*config.Config) (db.Connector, error)) (db.Connector, error) {
-	connector, err := newConnector(config)
-	if err != nil {
-		return nil, err
-	}
-	if err := connector.Init(); err != nil {
-		return nil, err
-	}
-	return connector, nil
-}
-
-func errorResponse(w http.ResponseWriter, errorStatus int, response interface{}) {
-	w.WriteHeader(errorStatus)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func errorResponseStatusErrorMessage(w http.ResponseWriter, errorStatus int, errorMessage string) {
-	errorResponse(w, errorStatus, struct{ ErrorMessage string }{errorMessage})
-}
-
-func errorDefaultResponse(w http.ResponseWriter, errorStatus int) {
-	errorResponseStatusErrorMessage(w, errorStatus, http.StatusText(errorStatus))
-}
-
-func errorInternalServerErrorResponse(w http.ResponseWriter, err error) {
-	errorResponseStatusErrorMessage(w, http.StatusInternalServerError, err.Error())
-}
-
-func jsonResponse(w http.ResponseWriter, response interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func tracing() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// requestID
-			requestID := r.Header.Get(requestIDHeader)
-			if requestID == "" {
-				requestID = fmt.Sprintf("%d", time.Now().UnixNano())
+				// If the connection is dead, we can't write a status to it.
+				if brokenPipe {
+					common.LogPanic(c.Request.Context(), "Broken pipe: %v", err)
+					c.Error(err.(error)) // nolint: errcheck
+					c.Abort()
+				} else {
+					common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
+					if gin.IsDebugging() {
+						debug.PrintStack()
+					}
+					c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
+				}
 			}
-			ctx := context.WithValue(r.Context(), common.RequestIDKey{}, requestID)
-			// action
-			action := fmt.Sprintf("%v %v", r.Method, r.RequestURI)
-			ctx = context.WithValue(ctx, common.ActionKey{}, action)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+		}()
+		c.Next()
 	}
 }
 
-func makeHandler(handler func(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader), config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, config, newConnector, newLoader)
+func requestLoggerHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		common.LogInfo(c.Request.Context(), "clientIP=%v method=%v request=%v", c.ClientIP(), c.Request.Method, c.Request.URL.RequestURI())
+		c.Next()
 	}
 }
 
-func configHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	if r.Method != http.MethodGet {
-		common.LogError(r.Context(), "Wrong method")
-		errorDefaultResponse(w, http.StatusMethodNotAllowed)
-		return
-	}
-	common.LogInfo(r.Context(), "returning config file")
-	w.Header().Set("Content-Type", "application/x-yaml")
-	fmt.Fprintf(w, "%v", config)
-}
-
-func diskMigrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	if r.Method != http.MethodGet {
-		common.LogError(r.Context(), "Wrong method")
-		errorDefaultResponse(w, http.StatusMethodNotAllowed)
-		return
-	}
-	common.LogInfo(r.Context(), "Start")
-	loader := createAndInitLoader(config, newLoader)
-	diskMigrations, err := loader.GetDiskMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	common.LogInfo(r.Context(), "Returning disk migrations: %v", len(diskMigrations))
-	jsonResponse(w, diskMigrations)
-}
-
-func migrationsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		common.LogError(r.Context(), "Wrong method: %v", r.Method)
-		errorDefaultResponse(w, http.StatusMethodNotAllowed)
-		return
-	}
-	common.LogInfo(r.Context(), "Start")
-	if r.Method == http.MethodGet {
-		migrationsGetHandler(w, r, config, newConnector, newLoader)
-	}
-	if r.Method == http.MethodPost {
-		migrationsPostHandler(w, r, config, newConnector, newLoader)
+func makeHandler(config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator, handler func(*gin.Context, *config.Config, func(context.Context, *config.Config) coordinator.Coordinator)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		handler(c, config, newCoordinator)
 	}
 }
 
-func migrationsGetHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	connector, err := createAndInitConnector(config, newConnector)
-	if err != nil {
-		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	defer connector.Dispose()
-	dbMigrations, err := connector.GetDBMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	common.LogInfo(r.Context(), "Returning DB migrations: %v", len(dbMigrations))
-	jsonResponse(w, dbMigrations)
+func configHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	c.YAML(200, config)
 }
 
-func migrationsPostHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	loader := createAndInitLoader(config, newLoader)
-	connector, err := createAndInitConnector(config, newConnector)
-	if err != nil {
-		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	defer connector.Dispose()
-
-	diskMigrations, err := loader.GetDiskMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	dbMigrations, err := connector.GetDBMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	verified, offendingMigrations := migrations.VerifyCheckSums(diskMigrations, dbMigrations)
-
-	if !verified {
-		common.LogError(r.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
-		errorResponse(w, http.StatusFailedDependency, struct {
-			ErrorMessage        string
-			OffendingMigrations []types.Migration
-		}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
-		return
-	}
-
-	migrationsToApply := migrations.ComputeMigrationsToApply(r.Context(), diskMigrations, dbMigrations)
-	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
-
-	err = connector.ApplyMigrations(r.Context(), migrationsToApply)
-	if err != nil {
-		common.LogError(r.Context(), "Error applying migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	text := fmt.Sprintf("Applied migrations: %v", len(migrationsToApply))
-	sendNotification(r.Context(), config, text)
-
-	common.LogInfo(r.Context(), "Returning applied migrations: %v", len(migrationsToApply))
-	jsonResponse(w, migrationsToApply)
+func migrationsSourceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+	migrations := coordinator.GetSourceMigrations()
+	common.LogInfo(c.Request.Context(), "Returning source migrations: %v", len(migrations))
+	c.JSON(http.StatusOK, migrations)
 }
 
-func tenantsHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		common.LogError(r.Context(), "Wrong method")
-		errorDefaultResponse(w, http.StatusMethodNotAllowed)
-		return
-	}
-	common.LogInfo(r.Context(), "Start")
-
-	if r.Method == http.MethodGet {
-		tenantsGetHandler(w, r, config, newConnector, newLoader)
-	}
-	if r.Method == http.MethodPost {
-		tenantsPostHandler(w, r, config, newConnector, newLoader)
-	}
+func migrationsAppliedHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+	dbMigrations := coordinator.GetAppliedMigrations()
+	common.LogInfo(c.Request.Context(), "Returning applied migrations: %v", len(dbMigrations))
+	c.JSON(http.StatusOK, dbMigrations)
 }
 
-func tenantsGetHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	connector, err := createAndInitConnector(config, newConnector)
-	if err != nil {
-		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
+func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	var request migrationsPostRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		common.LogError(c.Request.Context(), "Error reading request: %v", err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
 		return
 	}
-	defer connector.Dispose()
-	tenants, err := connector.GetTenants()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting tenants: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
+
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+
+	if ok, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums(); !ok {
+		common.LogError(c.Request.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
+		c.AbortWithStatusJSON(http.StatusFailedDependency, errorResponse{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
 		return
 	}
-	common.LogInfo(r.Context(), "Returning tenants: %v", len(tenants))
-	jsonResponse(w, tenants)
+
+	results, appliedMigrations := coordinator.ApplyMigrations(request.Mode)
+
+	common.LogInfo(c.Request.Context(), "Returning applied migrations: %v", len(appliedMigrations))
+
+	var response *migrationsSuccessResponse
+	if request.Response == types.ResponseTypeFull {
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	} else {
+		response = &migrationsSuccessResponse{results, nil}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
-func tenantsPostHandler(w http.ResponseWriter, r *http.Request, config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) {
-	loader := createAndInitLoader(config, newLoader)
-	connector, err := createAndInitConnector(config, newConnector)
-	if err != nil {
-		common.LogError(r.Context(), "Error creating connector: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	defer connector.Dispose()
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		common.LogError(r.Context(), "Error reading request: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-	var tenant struct {
-		Name string `json:"name"`
-	}
-	err = json.Unmarshal(body, &tenant)
-	if err != nil || tenant.Name == "" {
-		common.LogError(r.Context(), "Bad request: %v", err.Error())
-		errorResponseStatusErrorMessage(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	diskMigrations, err := loader.GetDiskMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting disk migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	dbMigrations, err := connector.GetDBMigrations()
-	if err != nil {
-		common.LogError(r.Context(), "Error getting DB migrations: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	verified, offendingMigrations := migrations.VerifyCheckSums(diskMigrations, dbMigrations)
-
-	if !verified {
-		common.LogError(r.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
-		errorResponse(w, http.StatusFailedDependency, struct {
-			ErrorMessage        string
-			OffendingMigrations []types.Migration
-		}{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
-		return
-	}
-
-	// filter only tenant schemas
-	migrationsToApply := migrations.FilterTenantMigrations(r.Context(), diskMigrations)
-	common.LogInfo(r.Context(), "Found migrations to apply: %d", len(migrationsToApply))
-
-	err = connector.AddTenantAndApplyMigrations(r.Context(), tenant.Name, migrationsToApply)
-	if err != nil {
-		common.LogError(r.Context(), "Error adding new tenant: %v", err.Error())
-		errorInternalServerErrorResponse(w, err)
-		return
-	}
-
-	text := fmt.Sprintf("Tenant %q added, migrations applied: %v", tenant.Name, len(migrationsToApply))
-	sendNotification(r.Context(), config, text)
-
-	common.LogInfo(r.Context(), text)
-	jsonResponse(w, migrationsToApply)
+func tenantsGetHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+	tenants := coordinator.GetTenants()
+	common.LogInfo(c.Request.Context(), "Returning tenants: %v", len(tenants))
+	c.JSON(http.StatusOK, tenants)
 }
 
-func registerHandlers(config *config.Config, newConnector func(*config.Config) (db.Connector, error), newLoader func(*config.Config) loader.Loader) *http.ServeMux {
-	router := http.NewServeMux()
-	router.Handle("/", http.NotFoundHandler())
-	router.Handle("/config", makeHandler(configHandler, config, nil, nil))
-	router.Handle("/diskMigrations", makeHandler(diskMigrationsHandler, config, nil, newLoader))
-	router.Handle("/migrations", makeHandler(migrationsHandler, config, newConnector, newLoader))
-	router.Handle("/tenants", makeHandler(tenantsHandler, config, newConnector, newLoader))
-
-	return router
-}
-
-// Start starts simple Migrator API endpoint using config passed as first argument
-// and using connector created by a function passed as second argument and disk loader created by a function passed as third argument
-func Start(config *config.Config) (*http.Server, error) {
-	port := getPort(config)
-	log.Printf("INFO migrator starting on http://0.0.0.0:%s", port)
-
-	router := registerHandlers(config, db.NewConnector, loader.NewLoader)
-
-	server := &http.Server{
-		Addr:    ":" + port,
-		Handler: tracing()(router),
+func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	var request tenantsPostRequest
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		common.LogError(c.Request.Context(), "Bad request: %v", err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
+		return
 	}
 
-	err := server.ListenAndServe()
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
 
-	return server, err
+	if ok, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums(); !ok {
+		common.LogError(c.Request.Context(), "Checksum verification failed for migrations: %v", len(offendingMigrations))
+		c.AbortWithStatusJSON(http.StatusFailedDependency, errorResponse{"Checksum verification failed. Please review offending migrations.", offendingMigrations})
+		return
+	}
+
+	results, appliedMigrations := coordinator.AddTenantAndApplyMigrations(request.Mode, request.Name)
+
+	common.LogInfo(c.Request.Context(), "Tenant %v added, migrations applied: %v", request.Name, len(appliedMigrations))
+
+	var response *migrationsSuccessResponse
+	if request.Response == types.ResponseTypeFull {
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	} else {
+		response = &migrationsSuccessResponse{results, nil}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SetupRouter setups router
+func SetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
+	r := gin.New()
+	r.HandleMethodNotAllowed = true
+	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("response", types.ValidateMigrationsResponseType)
+		v.RegisterValidation("mode", types.ValidateMigrationsModeType)
+	}
+
+	v1 := r.Group("/v1")
+
+	v1.GET("/config", makeHandler(config, newCoordinator, configHandler))
+
+	v1.GET("/tenants", makeHandler(config, newCoordinator, tenantsGetHandler))
+	v1.POST("/tenants", makeHandler(config, newCoordinator, tenantsPostHandler))
+
+	v1.GET("/migrations/source", makeHandler(config, newCoordinator, migrationsSourceHandler))
+	v1.GET("/migrations/applied", makeHandler(config, newCoordinator, migrationsAppliedHandler))
+	v1.POST("/migrations", makeHandler(config, newCoordinator, migrationsPostHandler))
+
+	return r
 }

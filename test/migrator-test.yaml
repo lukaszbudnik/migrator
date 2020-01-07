@@ -13,7 +13,6 @@ singleMigrations:
 tenantMigrations:
   - tenants
 webHookURL: https://slack.com/api/api.test
-webHookTemplate: "{\"text\": \"{text}\",\"icon_emoji\": \":white_check_mark:\"}"
 webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
   - "Content-Type: application/json"

@@ -78,7 +78,7 @@ func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 }
 
 // newDialect constructs dialect instance based on the passed Config
-func newDialect(config *config.Config) (dialect, error) {
+func newDialect(config *config.Config) dialect {
 
 	var dialect dialect
 
@@ -90,8 +90,8 @@ func newDialect(config *config.Config) (dialect, error) {
 	case "postgres":
 		dialect = &postgreSQLDialect{}
 	default:
-		return nil, fmt.Errorf("Failed to create Connector: %q is an unknown driver", config.Driver)
+		panic(fmt.Sprintf("Failed to create Connector unknown driver: %v", config.Driver))
 	}
 
-	return dialect, nil
+	return dialect
 }

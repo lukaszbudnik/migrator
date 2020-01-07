@@ -2,20 +2,13 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
+	"github.com/go-playground/validator"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 )
-
-func noopLogger() *log.Logger {
-	log := log.New(ioutil.Discard, "", 0)
-	return log
-}
 
 func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
@@ -29,7 +22,6 @@ func TestFromFile(t *testing.T) {
 	assert.Equal(t, "8811", config.Port)
 	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
 	assert.Equal(t, "https://slack.com/api/api.test", config.WebHookURL)
-	assert.Equal(t, `{"text": "{text}","icon_emoji": ":white_check_mark:"}`, config.WebHookTemplate)
 	assert.Equal(t, []string{"Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l", "Content-Type: application/json", "X-CustomHeader: value1,value2"}, config.WebHookHeaders)
 }
 
@@ -46,12 +38,11 @@ func TestWithEnvFromFile(t *testing.T) {
 	assert.Equal(t, []string{"tenants"}, config.TenantMigrations)
 	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleMigrations)
 	assert.Equal(t, os.Getenv("SHLVL"), config.WebHookURL)
-	assert.Equal(t, os.Getenv("TERM"), config.WebHookTemplate)
 	assert.Equal(t, fmt.Sprintf("X-Security-Token: %v", os.Getenv("USER")), config.WebHookHeaders[0])
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX", "{json: text}", []string{}}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}}
 	// check if go naming convention applies
 	expected := `baseDir: /opt/app/migrations
 driver: postgres
@@ -66,8 +57,7 @@ tenantMigrations:
 singleScripts:
 - procedures
 port: "8181"
-webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
-webHookTemplate: '{json: text}'`
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX`
 	actual := fmt.Sprintf("%v", config)
 	assert.Equal(t, expected, actual)
 }
@@ -75,7 +65,7 @@ webHookTemplate: '{json: text}'`
 func TestConfigReadFromEmptyFileError(t *testing.T) {
 	config, err := FromFile("../test/empty.yaml")
 	assert.Nil(t, config)
-	assert.IsType(t, (validator.ErrorMap)(nil), err, "Should error because of validation errors")
+	assert.IsType(t, (validator.ValidationErrors)(nil), err, "Should error because of validation errors")
 }
 
 func TestConfigReadFromNonExistingFileError(t *testing.T) {
@@ -85,7 +75,7 @@ func TestConfigReadFromNonExistingFileError(t *testing.T) {
 }
 
 func TestConfigFromWrongSyntaxFile(t *testing.T) {
-	config, err := FromFile("../README.md")
+	config, err := FromFile("../Dockerfile")
 	assert.Nil(t, config)
-	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should panic because of wrong yaml syntax")
+	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should error because of wrong yaml syntax")
 }
