@@ -6,6 +6,7 @@ ARG SOURCE_BRANCH
 
 # build migrator
 RUN apk add git
+RUN go get -v github.com/gin-gonic/gin
 RUN go get -d -v github.com/lukaszbudnik/migrator
 RUN cd /go/src/github.com/lukaszbudnik/migrator && git checkout $SOURCE_BRANCH && ./setup.sh
 RUN cd /go/src/github.com/lukaszbudnik/migrator && \
