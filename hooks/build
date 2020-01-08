@@ -13,9 +13,9 @@ echo "IMAGE_NAME: $IMAGE_NAME"
 # if that's the case use the last tag rather than 'master'
 # this is because SOURCE_BRANCH is later injected into migrator.go and used as a version identifier
 # a little bit more user friendly than master and commit sha/date
-if [[ "$SOURCE_BRANCH" == "master" ]]; then
+if [ "$SOURCE_BRANCH" = "master" ]; then
   TAGS=$(git tag --contains $SOURCE_COMMIT 2> /dev/null)
-  if [[ $? -eq 0 ]]; then
+  if [ $? -eq 0 ]; then
     SOURCE_BRANCH=$(echo "$TAGS" | tail -1)
     echo "Changed master to $SOURCE_BRANCH"
   fi
