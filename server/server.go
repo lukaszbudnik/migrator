@@ -204,7 +204,7 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 }
 
 // SetupRouter setups router
-func SetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
+func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
 	r := gin.New()
 	r.HandleMethodNotAllowed = true
 	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
@@ -213,6 +213,10 @@ func SetupRouter(config *config.Config, newCoordinator func(ctx context.Context,
 		v.RegisterValidation("response", types.ValidateMigrationsResponseType)
 		v.RegisterValidation("mode", types.ValidateMigrationsModeType)
 	}
+
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, versionInfo)
+	})
 
 	v1 := r.Group("/v1")
 

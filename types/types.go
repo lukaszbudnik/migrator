@@ -91,3 +91,11 @@ type MigrationResults struct {
 	TenantScriptsTotal    int           `json:"tenantScriptsTotal"` // tenant scripts for all tenants
 	ScriptsGrandTotal     int           `json:"scriptsGrandTotal"`  // total number of all scripts applied
 }
+
+// VersionInfo contains build information and supported API versions
+type VersionInfo struct {
+	Release     string   `json:"release"`
+	CommitSha   string   `json:"commitSha"`
+	CommitDate  string   `json:"commitDate"`
+	APIVersions []string `json:"apiVersions"`
+}
