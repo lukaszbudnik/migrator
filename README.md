@@ -11,6 +11,7 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 # Table of contents
 
 * [Usage](#usage)
+  * [GET /](#get-)
   * [GET /v1/config](#get-v1config)
   * [GET /v1/migrations/source](#get-v1migrationssource)
   * [GET /v1/migrations/applied](#get-v1migrationsapplied)
@@ -39,6 +40,34 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 # Usage
 
 migrator exposes a simple REST API described below.
+
+# GET /
+
+Migrator returns build information together with supported API versions.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/
+```
+
+Sample HTTP response:
+
+```
+< HTTP/1.1 200 OK
+< Content-Type: application/json; charset=utf-8
+< Date: Wed, 08 Jan 2020 09:13:58 GMT
+< Content-Length: 142
+
+{
+  "release": "dev-v4.0.1",
+  "commitSha": "300ee8b98f4d6a4725d38b3676accd5a361d7a04",
+  "commitDate": "2020-01-07T14:52:00+01:00",
+  "apiVersions": [
+    "v1"
+  ]
+}
+```
 
 ## GET /v1/config
 

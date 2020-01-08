@@ -14,6 +14,7 @@ import (
 	"github.com/lukaszbudnik/migrator/loader"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/server"
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 const (
@@ -58,7 +59,8 @@ func main() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	g := server.SetupRouter(cfg, createCoordinator)
+	versionInfo := &types.VersionInfo{Release: GitBranch, CommitSha: GitCommitSha, CommitDate: GitCommitDate, APIVersions: []string{"v1"}}
+	g := server.SetupRouter(versionInfo, cfg, createCoordinator)
 	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)
 	}
