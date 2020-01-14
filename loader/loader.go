@@ -2,6 +2,8 @@ package loader
 
 import (
 	"context"
+	"sort"
+	"strings"
 
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
@@ -17,5 +19,29 @@ type Factory func(context.Context, *config.Config) Loader
 
 // New returns new instance of Loader, currently DiskLoader is available
 func New(ctx context.Context, config *config.Config) Loader {
-	return &diskLoader{ctx, config}
+	if strings.HasPrefix(config.BaseDir, "s3://") {
+		return &s3Loader{baseLoader{ctx, config}}
+	}
+	return &diskLoader{baseLoader{ctx, config}}
+}
+
+// baseLoader is the base struct for implementing Loader interface
+type baseLoader struct {
+	ctx    context.Context
+	config *config.Config
+}
+
+func (bl *baseLoader) sortMigrations(migrationsMap map[string][]types.Migration, migrations *[]types.Migration) {
+	keys := make([]string, 0, len(migrationsMap))
+	for key := range migrationsMap {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		ms := migrationsMap[key]
+		for _, m := range ms {
+			*migrations = append(*migrations, m)
+		}
+	}
 }

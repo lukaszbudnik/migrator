@@ -67,7 +67,7 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	loader := New(context.TODO(), &config)
 	migrations := loader.GetSourceMigrations()
 
-	assert.Len(t, migrations, 10)
+	assert.Len(t, migrations, 12)
 
 	assert.Contains(t, migrations[0].File, "test/migrations/config/201602160001.sql")
 	assert.Contains(t, migrations[1].File, "test/migrations/config/201602160002.sql")
@@ -77,6 +77,10 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	assert.Contains(t, migrations[5].File, "test/migrations/ref/201602160004.sql")
 	assert.Contains(t, migrations[6].File, "test/migrations/tenants/201602160004.sql")
 	assert.Contains(t, migrations[7].File, "test/migrations/tenants/201602160005.sql")
-	assert.Contains(t, migrations[8].File, "test/migrations/config-scripts/201912181227.sql")
-	assert.Contains(t, migrations[9].File, "test/migrations/tenants-scripts/201912181228.sql")
+	// SingleScripts are second to last
+	assert.Contains(t, migrations[8].File, "test/migrations/config-scripts/200012181227.sql")
+	// TenantScripts are last
+	assert.Contains(t, migrations[9].File, "test/migrations/tenants-scripts/200001181228.sql")
+	assert.Contains(t, migrations[10].File, "test/migrations/tenants-scripts/a.sql")
+	assert.Contains(t, migrations[11].File, "test/migrations/tenants-scripts/b.sql")
 }

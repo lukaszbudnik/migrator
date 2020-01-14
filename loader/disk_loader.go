@@ -1,24 +1,20 @@
 package loader
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io/ioutil"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"fmt"
 
-	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
 // diskLoader is struct used for implementing Loader interface for loading migrations from disk
 type diskLoader struct {
-	ctx    context.Context
-	config *config.Config
+	baseLoader
 }
 
 // GetSourceMigrations returns all migrations from disk
@@ -36,24 +32,17 @@ func (dl *diskLoader) GetSourceMigrations() []types.Migration {
 	tenantScriptsDirs := dl.getDirs(absBaseDir, dl.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
-
 	dl.readFromDirs(migrationsMap, singleMigrationsDirs, types.MigrationTypeSingleMigration)
 	dl.readFromDirs(migrationsMap, tenantMigrationsDirs, types.MigrationTypeTenantMigration)
+	dl.sortMigrations(migrationsMap, &migrations)
+
+	migrationsMap = make(map[string][]types.Migration)
 	dl.readFromDirs(migrationsMap, singleScriptsDirs, types.MigrationTypeSingleScript)
+	dl.sortMigrations(migrationsMap, &migrations)
+
+	migrationsMap = make(map[string][]types.Migration)
 	dl.readFromDirs(migrationsMap, tenantScriptsDirs, types.MigrationTypeTenantScript)
-
-	keys := make([]string, 0, len(migrationsMap))
-	for key := range migrationsMap {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		ms := migrationsMap[key]
-		for _, m := range ms {
-			migrations = append(migrations, m)
-		}
-	}
+	dl.sortMigrations(migrationsMap, &migrations)
 
 	return migrations
 }
