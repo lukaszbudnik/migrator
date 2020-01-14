@@ -26,12 +26,17 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
   * [4. Run migrator from official docker image](#4-run-migrator-from-official-docker-image)
   * [5. Play around with migrator](#5-play-around-with-migrator)
 * [Configuration](#configuration)
+  * [migrator.yaml](#migratoryaml)
+  * [Env variables substitution](#env-variables-substitution)
+  * [Source migrations](#source-migrations)
+    * [Local storage](#local-storage)
+    * [AWS S3](#aws-s3)
+  * [Supported databases](#supported-databases)
 * [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
   * [Custom tenants support](#custom-tenants-support)
   * [Custom schema placeholder](#custom-schema-placeholder)
   * [Synchonising legacy migrations to migrator](#synchonising-legacy-migrations-to-migrator)
   * [Final comments](#final-comments)
-* [Supported databases](#supported-databases)
 * [Performance](#performance)
 * [Change log](#change-log)
 * [Contributing, code style, running unit & integration tests](#contributing-code-style-running-unit--integration-tests)
@@ -41,7 +46,7 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 
 migrator exposes a simple REST API described below.
 
-# GET /
+## GET /
 
 Migrator returns build information together with supported API versions.
 
@@ -464,7 +469,11 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "
 
 # Configuration
 
-migrator requires a simple `migrator.yaml` file:
+Let's see how to configure migrator.
+
+## migrator.yaml
+
+migrator configuration file is a simple YAML file. Take a look at a sample `migrator.yaml` configuration file which contains the description, correct syntax, and sample values for all available properties.
 
 ```yaml
 # required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
@@ -506,6 +515,8 @@ webHookHeaders:
   - "X-CustomHeader: value1,value2"
 ```
 
+## Env variables substitution
+
 migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
 
 ```yaml
@@ -513,6 +524,51 @@ dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB
 webHookHeaders:
   - "X-Security-Token: ${SECURITY_TOKEN}"
 ```
+
+## Source migrations
+
+Migrations can be read either from local disk or from S3 (I'm open to contributions to add more cloud storage options).
+
+### Local storage
+
+If `baseDir` property is a path (either relative or absolute) local storage implementation is used:
+
+```
+# relative path
+baseDir: test/migrations
+# absolute path
+baseDir: /project/migrations
+```
+
+### AWS S3
+
+If `baseDir` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseDir` property is treated as a bucket name:
+
+```
+# S3 bucket
+baseDir: s3://lukasz-budnik-migrator-us-east-1
+```
+
+migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
+
+## Supported databases
+
+Currently migrator supports the following databases and their flavours. Please review the Go driver implementation for information about supported features and how `dataSource` configuration property should look like:
+
+* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
+  * PostgreSQL
+  * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+  * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+  * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
+  * MySQL
+  * MariaDB - enhanced near linearly scalable multi-master MySQL
+  * Percona - an enhanced drop-in replacement for MySQL
+  * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
+  * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
+  * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
+* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+  * Microsoft SQL Server
 
 # Customisation and legacy frameworks support
 
@@ -574,25 +630,6 @@ When using migrator please remember that:
 * if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically; just like `migrator_migrations` this table is created inside the `migrator` schema
 * when adding a new tenant migrator creates a new DB schema and applies all tenant migrations and scripts - no need to apply them manually
 * single schemas are not created automatically, you must add initial migration with `create schema {schema}` SQL statement (see examples above)
-
-# Supported databases
-
-Currently migrator supports the following databases and their flavours:
-
-* PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
-  * PostgreSQL - original PostgreSQL server
-  * Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  * Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  * Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-* MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
-  * MySQL - original MySQL server
-  * MariaDB - enhanced near linearly scalable multi-master MySQL
-  * Percona - an enhanced drop-in replacement for MySQL
-  * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
-  * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
-  * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
-  * Microsoft SQL Server - original Microsoft SQL Server
 
 # Performance
 
