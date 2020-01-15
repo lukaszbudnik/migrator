@@ -86,7 +86,8 @@ func (c *coordinator) GetAppliedMigrations() []types.MigrationDB {
 	return c.appliedMigrations
 }
 
-// VerifySourceMigrationsCheckSums verifies if CheckSum of disk and flattened DB migrations match
+// VerifySourceMigrationsCheckSums verifies if CheckSum of source and applied DB migrations match
+// VerifySourceMigrationsCheckSums allows CheckSum of scripts to be different (they are applied every time and are often updated)
 // returns bool indicating if offending (i.e., modified) disk migrations were found
 // if bool is false the function returns a slice of offending migrations
 // if bool is true the slice of effending migrations is empty
@@ -101,6 +102,9 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 	var offendingMigrations []types.Migration
 	var result = true
 	for _, t := range intersect {
+		if t.source.MigrationType == types.MigrationTypeSingleScript || t.source.MigrationType == types.MigrationTypeTenantScript {
+			continue
+		}
 		if t.source.CheckSum != t.applied.CheckSum {
 			offendingMigrations = append(offendingMigrations, t.source)
 			result = false

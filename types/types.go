@@ -26,8 +26,10 @@ type MigrationsResponseType string
 const (
 	// ResponseTypeSummary instructs migrator to only return JSON representation of Results struct
 	ResponseTypeSummary MigrationsResponseType = "summary"
-	// ResponseTypeFull instructs migrator to return JSON representation of both Results struct and all applied migrations
+	// ResponseTypeFull instructs migrator to return JSON representation of both Results struct and all applied migrations/scripts
 	ResponseTypeFull MigrationsResponseType = "full"
+	// ResponseTypeList instructs migrator to return JSON representation of both Results struct and all applied migrations/scripts but without their contents
+	ResponseTypeList MigrationsResponseType = "list"
 )
 
 // MigrationsModeType represents mode in which migrations should be applied
@@ -55,7 +57,7 @@ func ValidateMigrationsModeType(fl validator.FieldLevel) bool {
 func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
 	response, ok := fl.Field().Interface().(MigrationsResponseType)
 	if ok {
-		return response == ResponseTypeSummary || response == ResponseTypeFull
+		return response == ResponseTypeSummary || response == ResponseTypeFull || response == ResponseTypeList
 	}
 	return false
 }
@@ -66,7 +68,7 @@ type Migration struct {
 	SourceDir     string        `json:"sourceDir"`
 	File          string        `json:"file"`
 	MigrationType MigrationType `json:"migrationType"`
-	Contents      string        `json:"contents"`
+	Contents      string        `json:"contents,omitempty"`
 	CheckSum      string        `json:"checkSum"`
 }
 
