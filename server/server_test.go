@@ -28,6 +28,7 @@ func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
 
 func testSetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
 	versionInfo := &types.VersionInfo{Release: "GitBranch", CommitSha: "GitCommitSha", CommitDate: "2020-01-08T09:56:41+01:00", APIVersions: []string{"v1"}}
+	gin.SetMode(gin.ReleaseMode)
 	return SetupRouter(versionInfo, config, newCoordinator)
 }
 
@@ -109,7 +110,7 @@ func TestAppliedMigrationsRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"","checkSum":"","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":"sha256","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
 }
 
 // section /migrations
@@ -147,6 +148,24 @@ func TestMigrationsPostRouteSummaryResponse(t *testing.T) {
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
 	assert.NotContains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+}
+
+func TestMigrationsPostRouteListResponse(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"mode": "apply", "response": "list"}`)
+	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestMigrationsPostRouteBadRequest(t *testing.T) {
@@ -234,6 +253,24 @@ func TestTenantsPostRouteSummaryResponse(t *testing.T) {
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
 	assert.NotContains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+}
+
+func TestTenantsPostRouteListResponse(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	json := []byte(`{"name": "new_tenant", "response": "list", "mode":"dry-run"}`)
+	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestTenantsPostRouteBadRequestError(t *testing.T) {

@@ -74,6 +74,8 @@ Sample HTTP response:
 }
 ```
 
+API v1 was introduced in migrator v4.0. Any non API-breaking changes will be added to v1. Any significant change or an API-breaking change will be added to API v2.
+
 ## GET /v1/config
 
 Returns migrator's config as `application/x-yaml`.
@@ -246,7 +248,8 @@ This operation requires as an input the following JSON payload:
   * `sync` - synchronises all source migrations with internal migrator's table, this action loads and marks all source migrations as applied but does not apply them
   * `dry-run` - instead of calling commit, calls rollback at the end of the operation
 * `response` - controls how much information is returned by migrator, valid values are:
-  * `full` - the response will contain both summary results and a list of applied migrations
+  * `full` - the response will contain both summary results and a list of applied migrations/scripts
+  * `list` - the response will contain both summary results and a list of applied migrations/scripts but without their contents (introduced in migrator `v4.1.1` and a part of API v1; does not break API v1 contract - existing integrations will continue to work)
   * `summary` - the response will contain only summary results
 
 Sample request:

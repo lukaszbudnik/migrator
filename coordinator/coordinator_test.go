@@ -229,6 +229,14 @@ func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
 	assert.Equal(t, coordinator.GetSourceMigrations()[0], offendingMigrations[0])
 }
 
+func TestVerifySourceMigrationsAndScriptsCheckSumsOK(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newDifferentScriptCheckSumMockedConnector, newDifferentScriptCheckSumMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
+	assert.True(t, verified)
+	assert.Empty(t, offendingMigrations)
+}
+
 func TestApplyMigrations(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()

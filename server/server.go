@@ -154,9 +154,15 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 	common.LogInfo(c.Request.Context(), "Returning applied migrations: %v", len(appliedMigrations))
 
 	var response *migrationsSuccessResponse
-	if request.Response == types.ResponseTypeFull {
+	switch request.Response {
+	case types.ResponseTypeFull:
 		response = &migrationsSuccessResponse{results, appliedMigrations}
-	} else {
+	case types.ResponseTypeList:
+		for i := range appliedMigrations {
+			appliedMigrations[i].Contents = ""
+		}
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	default:
 		response = &migrationsSuccessResponse{results, nil}
 	}
 
@@ -194,9 +200,15 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 	common.LogInfo(c.Request.Context(), "Tenant %v added, migrations applied: %v", request.Name, len(appliedMigrations))
 
 	var response *migrationsSuccessResponse
-	if request.Response == types.ResponseTypeFull {
+	switch request.Response {
+	case types.ResponseTypeFull:
 		response = &migrationsSuccessResponse{results, appliedMigrations}
-	} else {
+	case types.ResponseTypeList:
+		for i := range appliedMigrations {
+			appliedMigrations[i].Contents = ""
+		}
+		response = &migrationsSuccessResponse{results, appliedMigrations}
+	default:
 		response = &migrationsSuccessResponse{results, nil}
 	}
 

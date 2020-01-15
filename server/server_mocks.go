@@ -39,7 +39,7 @@ func (m *mockedCoordinator) GetSourceMigrations() []types.Migration {
 }
 
 func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
-	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration}
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "sha256"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: d1}}
 	return ms
