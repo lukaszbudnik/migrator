@@ -61,6 +61,23 @@ func TestRoot(t *testing.T) {
 	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v1"]}`, strings.TrimSpace(w.Body.String()))
 }
 
+func TestRootWithPathPrefix(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	config.PathPrefix = "/migrator"
+
+	router := testSetupRouter(config, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/migrator/", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v1"]}`, strings.TrimSpace(w.Body.String()))
+}
+
 // section /config
 
 func TestConfigRoute(t *testing.T) {

@@ -23,6 +23,7 @@ type Config struct {
 	SingleScripts     []string `yaml:"singleScripts,omitempty"`
 	TenantScripts     []string `yaml:"tenantScripts,omitempty"`
 	Port              string   `yaml:"port,omitempty"`
+	PathPrefix        string   `yaml:"pathPrefix,omitempty"`
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
 }
