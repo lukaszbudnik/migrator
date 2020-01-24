@@ -47,7 +47,7 @@ type errorResponse struct {
 
 // GetPort gets the port from config or defaultPort
 func GetPort(config *config.Config) string {
-	if len(strings.TrimSpace(config.Port)) == 0 {
+	if strings.TrimSpace(config.Port) == "" {
 		return defaultPort
 	}
 	return config.Port
@@ -226,11 +226,15 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 		v.RegisterValidation("mode", types.ValidateMigrationsModeType)
 	}
 
-	r.GET("/", func(c *gin.Context) {
+	if strings.TrimSpace(config.PathPrefix) == "" {
+		config.PathPrefix = "/"
+	}
+
+	r.GET(config.PathPrefix+"/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, versionInfo)
 	})
 
-	v1 := r.Group("/v1")
+	v1 := r.Group(config.PathPrefix + "/v1")
 
 	v1.GET("/config", makeHandler(config, newCoordinator, configHandler))
 

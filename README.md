@@ -25,6 +25,8 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
   * [3. Build and run migrator](#3-build-and-run-migrator)
   * [4. Run migrator from official docker image](#4-run-migrator-from-official-docker-image)
   * [5. Play around with migrator](#5-play-around-with-migrator)
+* [Tutorials](#tutorials)
+  * [Deploying Migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
 * [Configuration](#configuration)
   * [migrator.yaml](#migratoryaml)
   * [Env variables substitution](#env-variables-substitution)
@@ -470,6 +472,16 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "respo
 curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "mode": "apply", "response": "full"}' http://localhost:8080/v1/tenants
 ```
 
+# Tutorials
+
+In this section I provide links to more in-depth migrator tutorials.
+
+## Deploying Migrator to AWS ECS
+
+The goal of this tutorial is to deploy migrator on AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
+
+You can find it in [contrib/aws-ecs-ecr-secretsmanager-rds-s3](contrib/aws-ecs-ecr-secretsmanager-rds-s3).
+
 # Configuration
 
 Let's see how to configure migrator.
@@ -507,6 +519,11 @@ tenantScripts:
   - tenants-scripts
 # optional, default is:
 port: 8080
+# path prefix is optional and defaults to '/'
+# path prefix is used for application HTTP request routing by Application Load Balancers/Application Gateways
+# for example when deploying to AWS ECS and using AWS ALB the path prefix could set as below
+# then all HTTP requests should be prefixed with that path, for example: /migrator/v1/config, /migrator/v1/migrations/source, etc.
+pathPrefix: /migrator
 # the webhook configuration section is optional
 # URL and template are required if at least one of them is empty noop notifier is used
 # the default content type header sent is application/json (can be overridden via webHookHeaders below)
