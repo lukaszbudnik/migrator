@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migrator
+  labels:
+    app: migrator
+spec:
+  selector:
+    matchLabels:
+      app: migrator
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: migrator
+        tier: frontend
+    spec:
+      serviceAccountName: migrator-serviceaccount
+      containers:
+      - image: {aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/migrator:v4.1.2
+        name: migrator
+        env:
+        - name: AWS_REGION
+          value: ap-northeast-1
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-gdm5t4mt9h
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-gdm5t4mt9h
+              key: password
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-gdm5t4mt9h
+              key: database
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-gdm5t4mt9h
+              key: host
+        ports:
+        - containerPort: 8080
+          name: migrator
