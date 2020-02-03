@@ -11,7 +11,7 @@ In this tutorial I'm using AWS Fargate with IAM. This is a new feature and as of
 I tried to used the following helm charts to simplify the whole deployment but I couldn't get it working with Fargate and IAM. I will try to revisit them in the future, so before you start the below tutorial be sure to check out their latest versions as they may ease your life (and if you do this don't forget to send me a pull with amended tutorial):
 
 * https://github.com/helm/charts/tree/master/incubator/aws-alb-ingress-controller
-* https://godaddy.github.io/kubernetes-external-secrets/
+* https://github.com/godaddy/kubernetes-external-secrets (issue to watch: [Fargate Support](https://github.com/godaddy/kubernetes-external-secrets/issues/254)
 
 ## S3 - upload test migrations
 
@@ -77,7 +77,7 @@ If not, proceed with the below instructions.
 We need to create Kubernetes service account for the ALB ingress controller. Code is available at kubernetes-sigs/aws-alb-ingress-controller:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.4/docs/examples/rbac-role.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/rbac-role.yaml
 ```
 
 Next, we need to create IAM policy allowing the ingress controller to provision the Application Load Balancer for us. Again, we will use code available at kubernetes-sigs/aws-alb-ingress-controller:
@@ -85,7 +85,7 @@ Next, we need to create IAM policy allowing the ingress controller to provision 
 ```
 aws iam create-policy \
     --policy-name ALBIngressControllerIAMPolicy \
-    --policy-document https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.4/docs/examples/iam-policy.json
+    --policy-document https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/iam-policy.json
 ```
 
 Next, we need to create the service account. Please change the policy ARN to the one created above (if you used same policy name then just update {aws_account_id}).
@@ -202,4 +202,6 @@ kubectl delete -k .
 kubectl delete -f migrator-ingress.yaml
 kubectl delete -f migrator-service.yaml
 kubectl delete -f migrator-deployment.yaml
+kubectl delete -f alb-ingress-controller.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/rbac-role.yaml
 ```
