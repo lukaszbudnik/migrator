@@ -477,13 +477,13 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "
 
 In this section I provide links to more in-depth migrator tutorials.
 
-## Deploying Migrator to AWS ECS
+## Deploying migrator to AWS ECS
 
 The goal of this tutorial is to deploy migrator to AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
 
 You can find it in [contrib/aws-ecs-ecr-secretsmanager-rds-s3](contrib/aws-ecs-ecr-secretsmanager-rds-s3).
 
-## Deploying Migrator to AWS EKS
+## Deploying migrator to AWS EKS
 
 The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from AWS S3 and apply them to AWS RDS DB. The list of AWS services used is: IAM, EKS, ECR, RDS, and S3.
 
