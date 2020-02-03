@@ -8,10 +8,10 @@ In all below commands I use a cluster name of `awesome-product` and `ap-northeas
 
 In this tutorial I'm using AWS Fargate with IAM. This is a new feature and as of the time of writing this tutorial there were only 4 AWS regions supported.
 
-I tried to used the following helm charts to simplify the whole deployment but I couldn't get it working with Fargate and IAM. I will try to revisit them in the future, so before you start the below tutorial be sure to check out their latest versions as they may ease your life (and if you do this don't forget to send me a pull with amended tutorial):
+I tried to used the following helm charts to simplify the whole deployment but I couldn't get it working with Fargate and IAM Roles for Service Accounts (IRSA). I will try to revisit them in the future, so before you start the below tutorial be sure to check out their latest versions as they may ease your life (and if you do this don't forget to send me a pull with amended tutorial):
 
-* https://github.com/helm/charts/tree/master/incubator/aws-alb-ingress-controller
-* https://github.com/godaddy/kubernetes-external-secrets (issue to watch: [Fargate Support](https://github.com/godaddy/kubernetes-external-secrets/issues/254)
+* https://github.com/helm/charts/tree/master/incubator/aws-alb-ingress-controller - issue to watch: [[incubator/aws-alb-ingress-controller] Fargate and IRSA: Not authorized to perform sts:AssumeRoleWithWebIdentity](https://github.com/helm/charts/issues/20504)
+* https://github.com/godaddy/kubernetes-external-secrets - issue to watch: [Fargate Support](https://github.com/godaddy/kubernetes-external-secrets/issues/254)
 
 ## S3 - upload test migrations
 
