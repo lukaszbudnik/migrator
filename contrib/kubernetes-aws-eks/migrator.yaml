@@ -1,0 +1,10 @@
+baseDir: s3://your-bucket-migrator
+driver: postgres
+dataSource: "user=${DATABASE_USERNAME} password=${DATABASE_PASSWORD} dbname=${DATABASE_NAME} host=${DATABASE_HOST}"
+singleMigrations:
+  - migrations/ref
+  - migrations/config
+tenantMigrations:
+  - migrations/tenants
+port: 8080
+pathPrefix: /migrator

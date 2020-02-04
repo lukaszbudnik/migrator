@@ -74,7 +74,7 @@ If you take a look at the provided migrator config file it requires the followin
 * DATABASE_NAME
 * DATABASE_HOST
 
-All above can be stored in AWS Secrets Manager DB credentials type of secret. It is a JSON which contains all of the above information. However, AWS ECS cannot at present parse & inject JSON secrets (see: ([ECS] [secrets]: support parameter name from AWS Secrets Manager #385)[https://github.com/aws/containers-roadmap/issues/385]).
+All above can be stored in AWS Secrets Manager DB credentials type of secret. It is a JSON which contains all of the above information. However, AWS ECS cannot at present parse & inject JSON secrets: [[ECS] [secrets]: support parameter name from AWS Secrets Manager #385](https://github.com/aws/containers-roadmap/issues/385).
 
 Instead we will create 4 plain text secrets (important to click on the plain text tab not the default key/value JSON one). Navigate to AWS Secrets Manager starting page. Click "Store a new secret" and then "Other type of secrets". Then create 4 plaintext secrets call them: `migrator/test/DATABASE_USERNAME`, `migrator/test/DATABASE_PASSWORD`, etc.
 

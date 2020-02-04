@@ -26,7 +26,8 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
   * [4. Run migrator from official docker image](#4-run-migrator-from-official-docker-image)
   * [5. Play around with migrator](#5-play-around-with-migrator)
 * [Tutorials](#tutorials)
-  * [Deploying Migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
+  * [Deploying migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
+  * [Deploying migrator to AWS EKS](#deploying-migrator-to-aws-eks)
 * [Configuration](#configuration)
   * [migrator.yaml](#migratoryaml)
   * [Env variables substitution](#env-variables-substitution)
@@ -476,11 +477,17 @@ curl -v -X POST -H "Content-Type: application/json" -d '{"name": "new_tenant", "
 
 In this section I provide links to more in-depth migrator tutorials.
 
-## Deploying Migrator to AWS ECS
+## Deploying migrator to AWS ECS
 
-The goal of this tutorial is to deploy migrator on AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
+The goal of this tutorial is to deploy migrator to AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
 
 You can find it in [contrib/aws-ecs-ecr-secretsmanager-rds-s3](contrib/aws-ecs-ecr-secretsmanager-rds-s3).
+
+## Deploying migrator to AWS EKS
+
+The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from AWS S3 and apply them to AWS RDS DB. The list of AWS services used is: IAM, EKS, ECR, RDS, and S3.
+
+You can find it in [contrib/kubernetes-aws-eks](contrib/kubernetes-aws-eks).
 
 # Configuration
 

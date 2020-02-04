@@ -1,0 +1,7 @@
+secretGenerator:
+- name: database-credentials
+  literals:
+  - password=abc
+  - username=def
+  - host=ghi
+  - database=jkl
