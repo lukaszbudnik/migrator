@@ -20,10 +20,10 @@ type Factory func(context.Context, *config.Config) Loader
 
 // New returns new instance of Loader, currently DiskLoader is available
 func New(ctx context.Context, config *config.Config) Loader {
-	if strings.HasPrefix(config.BaseDir, "s3://") {
+	if strings.HasPrefix(config.BaseLocation, "s3://") {
 		return &s3Loader{baseLoader{ctx, config}}
 	}
-	if matched, _ := regexp.Match(`^https://.*\.blob\.core\.windows\.net/.*`, []byte(config.BaseDir)); matched {
+	if matched, _ := regexp.Match(`^https://.*\.blob\.core\.windows\.net/.*`, []byte(config.BaseLocation)); matched {
 		return &azureBlobLoader{baseLoader{ctx, config}}
 	}
 	return &diskLoader{baseLoader{ctx, config}}

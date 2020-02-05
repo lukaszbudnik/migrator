@@ -12,7 +12,7 @@ import (
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	BaseDir           string   `yaml:"baseDir" validate:"required"`
+	BaseLocation      string   `yaml:"baseLocation" validate:"required"`
 	Driver            string   `yaml:"driver" validate:"required"`
 	DataSource        string   `yaml:"dataSource" validate:"required"`
 	TenantSelectSQL   string   `yaml:"tenantSelectSQL,omitempty"`

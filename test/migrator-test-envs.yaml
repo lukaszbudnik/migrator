@@ -1,5 +1,5 @@
 # migrator configuration
-baseDir: ${TERM}
+baseLocation: ${TERM}
 driver: ${PWD}
 dataSource: "lets_assume_password=${HOME}&and_something_else=${USER}&param=value"
 # override only if you have own specific way of determining tenants

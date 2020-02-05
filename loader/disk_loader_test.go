@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
+func TestDiskReadDiskMigrationsNonExistingBaseLocationError(t *testing.T) {
 	var config config.Config
-	config.BaseDir = "xyzabc"
+	config.BaseLocation = "xyzabc"
 	config.SingleMigrations = []string{"migrations/config"}
 
 	loader := New(context.TODO(), &config)
@@ -34,7 +34,7 @@ func TestDiskReadDiskMigrationsNonExistingBaseDirError(t *testing.T) {
 
 func TestDiskReadDiskMigrationsNonExistingMigrationsDirError(t *testing.T) {
 	var config config.Config
-	config.BaseDir = "../test"
+	config.BaseLocation = "../test"
 	config.SingleMigrations = []string{"migrations/abcdef"}
 
 	loader := New(context.TODO(), &config)
@@ -58,7 +58,7 @@ func TestDiskReadDiskMigrationsNonExistingMigrationsDirError(t *testing.T) {
 
 func TestDiskGetDiskMigrations(t *testing.T) {
 	var config config.Config
-	config.BaseDir = "../test"
+	config.BaseLocation = "../test"
 	config.SingleMigrations = []string{"migrations/config", "migrations/ref"}
 	config.TenantMigrations = []string{"migrations/tenants"}
 	config.SingleScripts = []string{"migrations/config-scripts"}
