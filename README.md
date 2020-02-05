@@ -34,6 +34,7 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
   * [Source migrations](#source-migrations)
     * [Local storage](#local-storage)
     * [AWS S3](#aws-s3)
+    * [Azure Blob](#azure-blob)
   * [Supported databases](#supported-databases)
 * [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
   * [Custom tenants support](#custom-tenants-support)
@@ -577,6 +578,17 @@ baseDir: s3://lukasz-budnik-migrator-us-east-1
 ```
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
+
+### Azure Blob
+
+If `baseDir` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseDir` property is treated as a container URL:
+
+```
+# Azure Blob container URL
+baseDir: https://lukaszbudniktest.blob.core.windows.net/mycontainer
+```
+
+migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.
 
 ## Supported databases
 
