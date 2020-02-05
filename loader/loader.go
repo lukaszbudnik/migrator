@@ -2,6 +2,7 @@ package loader
 
 import (
 	"context"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -21,6 +22,9 @@ type Factory func(context.Context, *config.Config) Loader
 func New(ctx context.Context, config *config.Config) Loader {
 	if strings.HasPrefix(config.BaseDir, "s3://") {
 		return &s3Loader{baseLoader{ctx, config}}
+	}
+	if matched, _ := regexp.Match(`^https://.*\.blob\.core\.windows\.net/.*`, []byte(config.BaseDir)); matched {
+		return &azureBlobLoader{baseLoader{ctx, config}}
 	}
 	return &diskLoader{baseLoader{ctx, config}}
 }
