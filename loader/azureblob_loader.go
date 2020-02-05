@@ -31,7 +31,7 @@ func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
 
 	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 
-	u, err := url.Parse(abl.config.BaseDir)
+	u, err := url.Parse(abl.config.BaseLocation)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -109,7 +109,7 @@ func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrati
 
 		hasher := sha256.New()
 		hasher.Write([]byte(contents))
-		file := fmt.Sprintf("%s/%s", abl.config.BaseDir, o)
+		file := fmt.Sprintf("%s/%s", abl.config.BaseLocation, o)
 		from := strings.LastIndex(file, "/")
 		sourceDir := file[0:from]
 		name := file[from+1:]

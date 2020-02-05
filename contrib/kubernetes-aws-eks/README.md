@@ -15,7 +15,7 @@ Further, the support of this new feature was limited as of the time of writing t
 
 ## S3 - upload test migrations
 
-Create S3 bucket in same region you will be deploying AWS EKS. Update `baseDir` property in `migrator.yaml`.
+Create S3 bucket in same region you will be deploying AWS EKS. Update `baseDir` (v4.0 and earlier versions) or `baseLocation` (v5.0+) property in `migrator.yaml`.
 
 You can also use test migrations to play around with migrator:
 

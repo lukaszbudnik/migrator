@@ -10,7 +10,7 @@ import (
 
 func TestNewDiskLoader(t *testing.T) {
 	config := &config.Config{
-		BaseDir: "/path/to/baseDir",
+		BaseLocation: "/path/to/baseDir",
 	}
 	loader := New(context.TODO(), config)
 	assert.IsType(t, &diskLoader{}, loader)
@@ -18,7 +18,7 @@ func TestNewDiskLoader(t *testing.T) {
 
 func TestNewAzureBlobLoader(t *testing.T) {
 	config := &config.Config{
-		BaseDir: "https://lukaszbudniktest.blob.core.windows.net/mycontainer",
+		BaseLocation: "https://lukaszbudniktest.blob.core.windows.net/mycontainer",
 	}
 	loader := New(context.TODO(), config)
 	assert.IsType(t, &azureBlobLoader{}, loader)
@@ -26,7 +26,7 @@ func TestNewAzureBlobLoader(t *testing.T) {
 
 func TestNewS3Loader(t *testing.T) {
 	config := &config.Config{
-		BaseDir: "s3://lukaszbudniktest-bucket",
+		BaseLocation: "s3://lukaszbudniktest-bucket",
 	}
 	loader := New(context.TODO(), config)
 	assert.IsType(t, &s3Loader{}, loader)
