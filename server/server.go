@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator"
+	"gopkg.in/go-playground/validator.v9"
 
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
@@ -221,6 +221,8 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 	r.HandleMethodNotAllowed = true
 	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
 
+	// there is something seriously wrong with validator and its gin integration
+	binding.Validator = new(defaultValidator)
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("response", types.ValidateMigrationsResponseType)
 		v.RegisterValidation("mode", types.ValidateMigrationsModeType)

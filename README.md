@@ -424,15 +424,14 @@ Further, apart of starting test DB container, the script also generates a ready-
 
 ## 3. Build and run migrator
 
-When building & running migrator from source code execute:
+migrator uses go modules to manage dependencies. When building & running migrator from source code simply execute:
 
 ```
-./setup.sh
 go build
 ./migrator -configFile test/migrator.yaml
 ```
 
-> Note: There are 3 git variables injected into the production build (branch/tag together with commit sha & commit date). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+> Note: There are 3 git variables injected into the production build (branch/tag together with commit sha & commit date). When migrator is built like above it prints empty branch/tag, commit sha and date. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
 
 ## 4. Run migrator from official docker image
 
