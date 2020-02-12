@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/go-playground/validator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // MigrationType stores information about type of migration

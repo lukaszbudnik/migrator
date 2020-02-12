@@ -2,3 +2,4 @@ migrator
 test/migrator.yaml
 coverage-*.txt
 coverage.txt
+debug.test

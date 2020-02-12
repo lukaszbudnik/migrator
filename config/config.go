@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-playground/validator"
 	"github.com/lukaszbudnik/migrator/common"
+	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
 )
 

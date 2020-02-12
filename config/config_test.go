@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-playground/validator"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
 )
 
