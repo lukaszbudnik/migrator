@@ -11,7 +11,7 @@ cp test/migrator.yaml test/performance
 
 cd test/performance
 cat migrator.yaml
-sed -i "s/baseDir: [^ ]*/baseDir: migrations/g" migrator.yaml
+sed -i "s/baseLocation: [^ ]*/baseLocation: migrations/g" migrator.yaml
 echo 'schemaPlaceHolder: ":tenant"' >> migrator.yaml
 
 # generate test migrtations

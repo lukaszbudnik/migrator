@@ -1,4 +1,4 @@
-baseDir: test/migrations
+baseLocation: test/migrations
 driver: postgres
 dataSource: "user=postgres dbname=A host=B port=C sslmode=disable"
 tenantSelectSQL: select somename from someschema.sometable

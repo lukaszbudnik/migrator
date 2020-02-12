@@ -56,7 +56,7 @@ func (s3l *s3Loader) doGetSourceMigrations(client s3iface.S3API) []types.Migrati
 func (s3l *s3Loader) getObjectList(client s3iface.S3API, prefixes []string) []*string {
 	objects := []*string{}
 
-	bucket := strings.Replace(s3l.config.BaseDir, "s3://", "", 1)
+	bucket := strings.Replace(s3l.config.BaseLocation, "s3://", "", 1)
 
 	for _, prefix := range prefixes {
 
@@ -86,7 +86,7 @@ func (s3l *s3Loader) getObjectList(client s3iface.S3API, prefixes []string) []*s
 }
 
 func (s3l *s3Loader) getObjects(client s3iface.S3API, migrationsMap map[string][]types.Migration, objects []*string, migrationType types.MigrationType) {
-	bucket := strings.Replace(s3l.config.BaseDir, "s3://", "", 1)
+	bucket := strings.Replace(s3l.config.BaseLocation, "s3://", "", 1)
 
 	objectInput := &s3.GetObjectInput{Bucket: aws.String(bucket)}
 	for _, o := range objects {
@@ -101,7 +101,7 @@ func (s3l *s3Loader) getObjects(client s3iface.S3API, migrationsMap map[string][
 
 		hasher := sha256.New()
 		hasher.Write([]byte(contents))
-		file := fmt.Sprintf("%s/%s", s3l.config.BaseDir, *o)
+		file := fmt.Sprintf("%s/%s", s3l.config.BaseLocation, *o)
 		from := strings.LastIndex(file, "/")
 		sourceDir := file[0:from]
 		name := file[from+1:]

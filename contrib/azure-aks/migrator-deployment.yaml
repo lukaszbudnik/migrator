@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migrator
+  labels:
+    app: migrator
+spec:
+  selector:
+    matchLabels:
+      app: migrator
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: migrator
+        tier: frontend
+    spec:
+      containers:
+      - image: migrator.azurecr.io/migrator:v4.2-azure
+        name: migrator
+        env:
+        - name: AZURE_STORAGE_ACCOUNT
+          valueFrom:
+            secretKeyRef:
+              name: storage-account-1ghhhkcfmf
+              key: name
+        - name: AZURE_STORAGE_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: storage-account-1ghhhkcfmf
+              key: accessKey
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-8mc6566290
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-8mc6566290
+              key: password
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-8mc6566290
+              key: database
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-8mc6566290
+              key: host
+        ports:
+        - containerPort: 8080
+          name: migrator

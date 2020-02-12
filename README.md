@@ -28,12 +28,14 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 * [Tutorials](#tutorials)
   * [Deploying migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
   * [Deploying migrator to AWS EKS](#deploying-migrator-to-aws-eks)
+  * [Deploying migrator to Azure AKS](#deploying-migrator-to-azure-aks)
 * [Configuration](#configuration)
   * [migrator.yaml](#migratoryaml)
   * [Env variables substitution](#env-variables-substitution)
   * [Source migrations](#source-migrations)
     * [Local storage](#local-storage)
     * [AWS S3](#aws-s3)
+    * [Azure Blob](#azure-blob)
   * [Supported databases](#supported-databases)
 * [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
   * [Custom tenants support](#custom-tenants-support)
@@ -97,7 +99,7 @@ Sample HTTP response:
 < Date: Wed, 01 Jan 2020 17:31:57 GMT
 < Content-Length: 277
 
-baseDir: test/migrations
+baseLocation: test/migrations
 driver: postgres
 dataSource: user=postgres dbname=migrator_test host=127.0.0.1 port=32776 sslmode=disable
   connect_timeout=1
@@ -422,15 +424,14 @@ Further, apart of starting test DB container, the script also generates a ready-
 
 ## 3. Build and run migrator
 
-When building & running migrator from source code execute:
+migrator uses go modules to manage dependencies. When building & running migrator from source code simply execute:
 
 ```
-./setup.sh
 go build
 ./migrator -configFile test/migrator.yaml
 ```
 
-> Note: There are 3 git variables injected into the production build (branch/tag together with commit sha & commit date). When migrator is built like above it prints empty branch/tag and commit sha. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
+> Note: There are 3 git variables injected into the production build (branch/tag together with commit sha & commit date). When migrator is built like above it prints empty branch/tag, commit sha and date. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
 
 ## 4. Run migrator from official docker image
 
@@ -447,7 +448,7 @@ When running migrator from docker we need to update `migrator.yaml` (generated i
 
 ```
 sed -i "s/host=[^ ]* port=[^ ]*/host=migrator-postgres port=5432/g" test/migrator.yaml
-sed -i "s/baseDir: .*/baseDir: \/data\/migrations/g" test/migrator.yaml
+sed -i "s/baseLocation: .*/baseLocation: \/data\/migrations/g" test/migrator.yaml
 docker run --name migrator-test -p 8080:8080 -v $PWD/test:/data -e MIGRATOR_YAML=/data/migrator.yaml -d --link migrator-postgres lukasz/migrator
 ```
 
@@ -489,6 +490,12 @@ The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from
 
 You can find it in [contrib/kubernetes-aws-eks](contrib/kubernetes-aws-eks).
 
+## Deploying migrator to Azure AKS
+
+The goal of this tutorial is to publish migrator image to Azure ACR private container repository, deploy migrator to Azure AKS, load migrations from Azure Blob Container and apply them to Azure Database for PostgreSQL. The list of Azure services used is: AKS, ACR, Blob Storage, and Azure Database for PostgreSQL.
+
+You can find it in [contrib/azure-aks](contrib/azure-aks).
+
 # Configuration
 
 Let's see how to configure migrator.
@@ -498,8 +505,8 @@ Let's see how to configure migrator.
 migrator configuration file is a simple YAML file. Take a look at a sample `migrator.yaml` configuration file which contains the description, correct syntax, and sample values for all available properties.
 
 ```yaml
-# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
-baseDir: test/migrations
+# required, location where all migrations are stored, see singleSchemas and tenantSchemas below
+baseLocation: test/migrations
 # required, SQL go driver implementation used, see section "Supported databases"
 driver: postgres
 # required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
@@ -510,18 +517,18 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: {schema}
-# required, directories of single schema SQL migrations, these are subdirectories of baseDir
+# required, directories of single schema SQL migrations, these are subdirectories of baseLocation
 singleMigrations:
   - public
   - ref
   - config
-# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseDir
+# optional, directories of tenant schemas SQL migrations, these are subdirectories of baseLocation
 tenantMigrations:
   - tenants
-# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseDir
+# optional, directories of single SQL scripts which are applied always, these are subdirectories of baseLocation
 singleScripts:
   - config-scripts
-# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseDir
+# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseLocation
 tenantScripts:
   - tenants-scripts
 # optional, default is:
@@ -558,25 +565,36 @@ Migrations can be read either from local disk or from S3 (I'm open to contributi
 
 ### Local storage
 
-If `baseDir` property is a path (either relative or absolute) local storage implementation is used:
+If `baseLocation` property is a path (either relative or absolute) local storage implementation is used:
 
 ```
 # relative path
-baseDir: test/migrations
+baseLocation: test/migrations
 # absolute path
-baseDir: /project/migrations
+baseLocation: /project/migrations
 ```
 
 ### AWS S3
 
-If `baseDir` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseDir` property is treated as a bucket name:
+If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseLocation` property is treated as a bucket name:
 
 ```
 # S3 bucket
-baseDir: s3://lukasz-budnik-migrator-us-east-1
+baseLocation: s3://your-bucket-migrator
 ```
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
+
+### Azure Blob Containers
+
+If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL:
+
+```
+# Azure Blob container URL
+baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
+```
+
+migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of the Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.
 
 ## Supported databases
 

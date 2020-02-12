@@ -1,0 +1,11 @@
+secretGenerator:
+- name: database-credentials
+  literals:
+  - password=how-are-you!1
+  - username=lukasz@mytestserver.postgres.database.azure.com
+  - host=mytestserver.postgres.database.azure.com
+  - database=postgres
+- name: storage-account
+  literals:
+  - name=storageaccountname
+  - accessKey=storageaccesskey

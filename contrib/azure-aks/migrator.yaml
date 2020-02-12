@@ -1,4 +1,4 @@
-baseLocation: s3://your-bucket-migrator
+baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
 driver: postgres
 dataSource: "user=${DATABASE_USERNAME} password=${DATABASE_PASSWORD} dbname=${DATABASE_NAME} host=${DATABASE_HOST}"
 singleMigrations:

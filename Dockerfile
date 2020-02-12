@@ -6,17 +6,15 @@ ARG SOURCE_BRANCH
 
 # build migrator
 RUN apk add git
-RUN go get -v github.com/gin-gonic/gin
-RUN go get -d -v github.com/lukaszbudnik/migrator
-RUN cd /go/src/github.com/lukaszbudnik/migrator && git checkout $SOURCE_BRANCH && ./setup.sh
-RUN cd /go/src/github.com/lukaszbudnik/migrator && \
+RUN git clone https://github.com/lukaszbudnik/migrator.git
+RUN cd /go/migrator && git checkout $SOURCE_BRANCH && \
   GIT_BRANCH=$(git branch | awk -v FS=' ' '/\*/{print $NF}' | sed 's|[()]||g') && \
   GIT_COMMIT_DATE=$(git log -n1 --date=iso-strict | grep 'Date:' | sed 's|Date:\s*||g') && \
   GIT_COMMIT_SHA=$(git rev-list -1 HEAD) && \
   go build -ldflags "-X main.GitCommitDate=$GIT_COMMIT_DATE -X main.GitCommitSha=$GIT_COMMIT_SHA -X main.GitBranch=$GIT_BRANCH"
 
 FROM alpine:3.10
-COPY --from=builder /go/src/github.com/lukaszbudnik/migrator/migrator /bin
+COPY --from=builder /go/migrator/migrator /bin
 
 VOLUME ["/data"]
 

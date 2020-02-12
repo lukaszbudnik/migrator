@@ -21,9 +21,9 @@ type diskLoader struct {
 func (dl *diskLoader) GetSourceMigrations() []types.Migration {
 	migrations := []types.Migration{}
 
-	absBaseDir, err := filepath.Abs(dl.config.BaseDir)
+	absBaseDir, err := filepath.Abs(dl.config.BaseLocation)
 	if err != nil {
-		panic(fmt.Sprintf("Could not convert baseDir to absolute path: %v", err.Error()))
+		panic(fmt.Sprintf("Could not convert baseLocation to absolute path: %v", err.Error()))
 	}
 
 	singleMigrationsDirs := dl.getDirs(absBaseDir, dl.config.SingleMigrations)
@@ -70,7 +70,7 @@ func (dl *diskLoader) readFromDirs(migrations map[string][]types.Migration, sour
 				}
 				hasher := sha256.New()
 				hasher.Write([]byte(contents))
-				name := strings.Replace(file.Name(), dl.config.BaseDir, "", 1)
+				name := strings.Replace(file.Name(), dl.config.BaseLocation, "", 1)
 				m := types.Migration{Name: name, SourceDir: sourceDir, File: filepath.Join(sourceDir, file.Name()), MigrationType: migrationType, Contents: string(contents), CheckSum: hex.EncodeToString(hasher.Sum(nil))}
 
 				e, ok := migrations[m.Name]
