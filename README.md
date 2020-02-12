@@ -28,6 +28,7 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 * [Tutorials](#tutorials)
   * [Deploying migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
   * [Deploying migrator to AWS EKS](#deploying-migrator-to-aws-eks)
+  * [Deploying migrator to Azure AKS](#deploying-migrator-to-azure-aks)
 * [Configuration](#configuration)
   * [migrator.yaml](#migratoryaml)
   * [Env variables substitution](#env-variables-substitution)
@@ -490,6 +491,12 @@ The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from
 
 You can find it in [contrib/kubernetes-aws-eks](contrib/kubernetes-aws-eks).
 
+## Deploying migrator to Azure AKS
+
+The goal of this tutorial is to publish migrator image to Azure ACR private container repository, deploy migrator to Azure AKS, load migrations from Azure Blob Container and apply them to Azure Database for PostgreSQL. The list of Azure services used is: AKS, ACR, Blob Storage, and Azure Database for PostgreSQL.
+
+You can find it in [contrib/azure-aks](contrib/azure-aks).
+
 # Configuration
 
 Let's see how to configure migrator.
@@ -499,7 +506,7 @@ Let's see how to configure migrator.
 migrator configuration file is a simple YAML file. Take a look at a sample `migrator.yaml` configuration file which contains the description, correct syntax, and sample values for all available properties.
 
 ```yaml
-# required, base directory where all migrations are stored, see singleSchemas and tenantSchemas below
+# required, location where all migrations are stored, see singleSchemas and tenantSchemas below
 baseLocation: test/migrations
 # required, SQL go driver implementation used, see section "Supported databases"
 driver: postgres
@@ -574,21 +581,21 @@ If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In 
 
 ```
 # S3 bucket
-baseLocation: s3://lukasz-budnik-migrator-us-east-1
+baseLocation: s3://your-bucket-migrator
 ```
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
 
-### Azure Blob
+### Azure Blob Containers
 
 If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL:
 
 ```
 # Azure Blob container URL
-baseLocation: https://lukaszbudniktest.blob.core.windows.net/mycontainer
+baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
 ```
 
-migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.
+migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of the Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.
 
 ## Supported databases
 

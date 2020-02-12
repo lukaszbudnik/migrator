@@ -17,7 +17,7 @@ func TestAzureGetSourceMigrations(t *testing.T) {
 	}
 
 	config := &config.Config{
-		BaseLocation:     "https://lukaszbudniktest.blob.core.windows.net/mycontainer",
+		BaseLocation:     "https://storageaccountname.blob.core.windows.net/mycontainer",
 		SingleMigrations: []string{"migrations/config", "migrations/ref"},
 		TenantMigrations: []string{"migrations/tenants"},
 		SingleScripts:    []string{"migrations/config-scripts"},
