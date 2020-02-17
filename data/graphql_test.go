@@ -46,7 +46,7 @@ func TestSourceMigrationsTypeFilter(t *testing.T) {
 	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
 
 	opName := "SourceMigrations"
-	query := `query SourceMigrations($migrationType: MigrationTypeOptional) {
+	query := `query SourceMigrations($migrationType: MigrationType) {
 	    sourceMigrations(migrationType: $migrationType) {
 	      name,
 	      migrationType,
@@ -57,7 +57,7 @@ func TestSourceMigrationsTypeFilter(t *testing.T) {
 	    }
   }`
 	variables := map[string]interface{}{
-		"migrationType": 1,
+		"migrationType": "SingleMigration",
 	}
 
 	resp := schema.Exec(ctx, query, opName, variables)
@@ -75,7 +75,7 @@ func TestSourceMigrationsTypeSourceDirFilter(t *testing.T) {
 	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
 
 	opName := "SourceMigrations"
-	query := `query SourceMigrations($sourceDir: String, $migrationType: MigrationTypeOptional) {
+	query := `query SourceMigrations($sourceDir: String, $migrationType: MigrationType) {
 	    sourceMigrations(sourceDir: $sourceDir, migrationType: $migrationType) {
 	      name,
 	      migrationType,
@@ -86,7 +86,7 @@ func TestSourceMigrationsTypeSourceDirFilter(t *testing.T) {
 	    }
   }`
 	variables := map[string]interface{}{
-		"migrationType": 1,
+		"migrationType": "SingleMigration",
 		"sourceDir":     "source",
 	}
 
@@ -105,7 +105,7 @@ func TestSourceMigrationsTypeSourceDirNameFilter(t *testing.T) {
 	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
 
 	opName := "SourceMigrations"
-	query := `query SourceMigrations($name: String, $migrationType: MigrationTypeOptional) {
+	query := `query SourceMigrations($name: String, $migrationType: MigrationType) {
 	    sourceMigrations(name: $name, migrationType: $migrationType) {
 	      name,
 	      migrationType,
@@ -116,7 +116,7 @@ func TestSourceMigrationsTypeSourceDirNameFilter(t *testing.T) {
 	    }
   }`
 	variables := map[string]interface{}{
-		"migrationType": 1,
+		"migrationType": "SingleMigration",
 		"name":          "201602220001.sql",
 	}
 
@@ -193,7 +193,7 @@ func TestSourceMigrations2Queries(t *testing.T) {
 	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
 
 	opName := "SourceMigrations"
-	query := `query SourceMigrations($singleMigrationType: MigrationTypeOptional, $tenantMigrationType: MigrationTypeOptional) {
+	query := `query SourceMigrations($singleMigrationType: MigrationType, $tenantMigrationType: MigrationType) {
 	    singleTenantMigrations: sourceMigrations(migrationType: $singleMigrationType) {
 	      name,
 	      migrationType,
@@ -212,8 +212,8 @@ func TestSourceMigrations2Queries(t *testing.T) {
 	    }
   }`
 	variables := map[string]interface{}{
-		"singleMigrationType": 1,
-		"tenantMigrationType": 2,
+		"singleMigrationType": "SingleMigration",
+		"tenantMigrationType": "TenantMigration",
 	}
 
 	resp := schema.Exec(ctx, query, opName, variables)

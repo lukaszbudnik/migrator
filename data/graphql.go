@@ -28,10 +28,17 @@ const schemaString = `
   	contents: String!
     checkSum: String!
   }
-  scalar MigrationType
-  scalar MigrationTypeOptional
+  enum MigrationType {
+    SingleMigration
+    TenantMigration
+    SingleScript
+    TenantScript
+  }
+  type Tenant {
+    name: String!
+  }
 	type Query {
-    sourceMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationTypeOptional): [SourceMigration!]!
+    sourceMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType): [SourceMigration!]!
     sourceMigration(file: String!): SourceMigration!
 	}
 `
@@ -40,7 +47,7 @@ type sourceMigrationsFilters struct {
 	Name          *string
 	SourceDir     *string
 	File          *string
-	MigrationType *types.MigrationTypeOptional
+	MigrationType *types.MigrationType
 }
 
 type RootResolver struct {
