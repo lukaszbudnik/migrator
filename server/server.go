@@ -12,11 +12,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/graph-gophers/graphql-go"
 	"gopkg.in/go-playground/validator.v9"
 
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/coordinator"
+	"github.com/lukaszbudnik/migrator/data"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -172,9 +174,15 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 func tenantsGetHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
+	// starting v2019.1.0 GetTenants returns a slice of Tenant struct
+	// /v1 API returns a slice of strings and we must maintain backward compatibility
 	tenants := coordinator.GetTenants()
+	tenantNames := []string{}
+	for _, t := range tenants {
+		tenantNames = append(tenantNames, t.Name)
+	}
 	common.LogInfo(c.Request.Context(), "Returning tenants: %v", len(tenants))
-	c.JSON(http.StatusOK, tenants)
+	c.JSON(http.StatusOK, tenantNames)
 }
 
 func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
@@ -215,6 +223,28 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 	c.JSON(http.StatusOK, response)
 }
 
+// GraphQL endpoint
+func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	var params struct {
+		Query         string                 `json:"query"`
+		OperationName string                 `json:"operationName"`
+		Variables     map[string]interface{} `json:"variables"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		common.LogError(c.Request.Context(), "Bad request: %v", err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
+		return
+	}
+
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(data.SchemaDefinition, &data.RootResolver{Coordinator: coordinator}, opts...)
+
+	response := schema.Exec(c.Request.Context(), params.Query, params.OperationName, params.Variables)
+	c.JSON(http.StatusOK, response)
+}
+
 // SetupRouter setups router
 func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
 	r := gin.New()
@@ -246,6 +276,10 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 	v1.GET("/migrations/source", makeHandler(config, newCoordinator, migrationsSourceHandler))
 	v1.GET("/migrations/applied", makeHandler(config, newCoordinator, migrationsAppliedHandler))
 	v1.POST("/migrations", makeHandler(config, newCoordinator, migrationsPostHandler))
+
+	v2 := r.Group(config.PathPrefix + "/v2")
+	v2.GET("/config", makeHandler(config, newCoordinator, configHandler))
+	v2.POST("/service", makeHandler(config, newCoordinator, serviceHandler))
 
 	return r
 }

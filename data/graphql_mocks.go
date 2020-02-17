@@ -1,13 +1,15 @@
 package data
 
 import (
+	"time"
+
 	"github.com/lukaszbudnik/migrator/types"
 )
 
-type mockedLoader struct {
+type mockedCoordinator struct {
 }
 
-func (m *mockedLoader) GetSourceMigrations() []types.Migration {
+func (m *mockedCoordinator) GetSourceMigrations() []types.Migration {
 
 	// 5 migrations in total
 	// 4 migrations with type MigrationTypeSingleMigration
@@ -23,12 +25,31 @@ func (m *mockedLoader) GetSourceMigrations() []types.Migration {
 	return []types.Migration{m1, m2, m3, m4, m5}
 }
 
-// func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
-// 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "sha256"}
-// 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-// 	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: d1}}
-// 	return ms
-// }
-// func (m *mockedCoordinator) GetTenants() []string {
-// 	return []string{"a", "b", "c"}
-// }
+func (m *mockedCoordinator) Dispose() {
+}
+
+func (m *mockedCoordinator) GetTenants() []types.Tenant {
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	return []types.Tenant{a, b, c}
+}
+
+func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
+	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
+	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: d1}}
+	return ms
+}
+
+func (m *mockedCoordinator) ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
+	return &types.MigrationResults{}, []types.Migration{}
+}
+
+func (m *mockedCoordinator) AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration) {
+	return &types.MigrationResults{}, []types.Migration{}
+}
+
+func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
+	return true, nil
+}

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/lukaszbudnik/migrator/loader"
+	"github.com/lukaszbudnik/migrator/coordinator"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
-const schemaString = `
+// SchemaDefinition contains GraphQL migrator schema
+const SchemaDefinition = `
 	schema {
 		query: Query
 	}
@@ -40,6 +41,7 @@ const schemaString = `
 	type Query {
     sourceMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType): [SourceMigration!]!
     sourceMigration(file: String!): SourceMigration!
+    tenants(): [Tenant!]!
 	}
 `
 
@@ -50,12 +52,18 @@ type sourceMigrationsFilters struct {
 	MigrationType *types.MigrationType
 }
 
+// RootResolver is resolver for all the migrator data
 type RootResolver struct {
-	loader loader.Loader
+	Coordinator coordinator.Coordinator
+}
+
+func (r *RootResolver) Tenants() ([]types.Tenant, error) {
+	tenants := r.Coordinator.GetTenants()
+	return tenants, nil
 }
 
 func (r *RootResolver) SourceMigrations(args sourceMigrationsFilters) ([]types.Migration, error) {
-	allSourceMigrations := r.loader.GetSourceMigrations()
+	allSourceMigrations := r.Coordinator.GetSourceMigrations()
 	filteredMigrations := r.filterMigrations(allSourceMigrations, args)
 	return filteredMigrations, nil
 }
@@ -64,7 +72,7 @@ func (r *RootResolver) SourceMigration(args struct {
 	File string
 }) (types.Migration, error) {
 	filter := sourceMigrationsFilters{File: &args.File}
-	allSourceMigrations := r.loader.GetSourceMigrations()
+	allSourceMigrations := r.Coordinator.GetSourceMigrations()
 	filteredMigrations := r.filterMigrations(allSourceMigrations, filter)
 	if len(filteredMigrations) == 0 {
 		return types.Migration{}, fmt.Errorf("Source migration %q not found", args.File)

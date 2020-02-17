@@ -15,7 +15,7 @@ import (
 
 // Coordinator interface abstracts all operations performed by migrator
 type Coordinator interface {
-	GetTenants() []string
+	GetTenants() []types.Tenant
 	GetSourceMigrations() []types.Migration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
@@ -31,7 +31,7 @@ type coordinator struct {
 	loader            loader.Loader
 	notifier          notifications.Notifier
 	config            *config.Config
-	tenants           []string
+	tenants           []types.Tenant
 	sourceMigrations  []types.Migration
 	appliedMigrations []types.MigrationDB
 	loaderLock        sync.Mutex
@@ -56,7 +56,7 @@ func New(ctx context.Context, config *config.Config, newConnector db.Factory, ne
 	return coordinator
 }
 
-func (c *coordinator) GetTenants() []string {
+func (c *coordinator) GetTenants() []types.Tenant {
 	c.connectorLock.Lock()
 	defer c.connectorLock.Unlock()
 	if c.tenants == nil {

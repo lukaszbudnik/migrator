@@ -10,12 +10,34 @@ import (
 	graphql "github.com/graph-gophers/graphql-go"
 )
 
+func TestTenants(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "Tenants"
+	query := `query Tenants {
+      tenants {
+        name
+      }
+    }`
+	variables := map[string]interface{}{}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := len(jsonMap["tenants"].([]interface{}))
+	assert.Equal(t, 3, results)
+}
+
 func TestSourceMigrationsNoFilters(t *testing.T) {
 
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations {
@@ -43,7 +65,7 @@ func TestSourceMigrationsTypeFilter(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations($migrationType: MigrationType) {
@@ -72,7 +94,7 @@ func TestSourceMigrationsTypeSourceDirFilter(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations($sourceDir: String, $migrationType: MigrationType) {
@@ -102,7 +124,7 @@ func TestSourceMigrationsTypeSourceDirNameFilter(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations($name: String, $migrationType: MigrationType) {
@@ -132,7 +154,7 @@ func TestSourceMigrationsTypeNameFilter(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations($file: String) {
@@ -161,7 +183,7 @@ func TestSourceMigration(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigration"
 	query := `query SourceMigration($file: String!) {
@@ -190,7 +212,7 @@ func TestSourceMigrations2Queries(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
-	schema := graphql.MustParseSchema(schemaString, &RootResolver{loader: &mockedLoader{}}, opts...)
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
 	opName := "SourceMigrations"
 	query := `query SourceMigrations($singleMigrationType: MigrationType, $tenantMigrationType: MigrationType) {

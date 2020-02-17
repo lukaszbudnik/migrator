@@ -45,8 +45,11 @@ func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
 	return ms
 }
 
-func (m *mockedCoordinator) GetTenants() []string {
-	return []string{"a", "b", "c"}
+func (m *mockedCoordinator) GetTenants() []types.Tenant {
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	return []types.Tenant{a, b, c}
 }
 
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {

@@ -257,5 +257,8 @@ func TestGetTenants(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	tenants := coordinator.GetTenants()
-	assert.Equal(t, []string{"a", "b", "c"}, tenants)
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	assert.Equal(t, []types.Tenant{a, b, c}, tenants)
 }

@@ -105,6 +105,11 @@ func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
 	return false
 }
 
+// Tenant contains basic information about tenant
+type Tenant struct {
+	Name string `json:"name"`
+}
+
 // Migration contains basic information about migration
 type Migration struct {
 	Name          string        `json:"name"`

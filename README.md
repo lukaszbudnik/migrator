@@ -12,12 +12,16 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 
 * [Usage](#usage)
   * [GET /](#get-)
-  * [GET /v1/config](#get-v1config)
-  * [GET /v1/migrations/source](#get-v1migrationssource)
-  * [GET /v1/migrations/applied](#get-v1migrationsapplied)
-  * [POST /v1/migrations](#post-v1migrations)
-  * [GET /v1/tenants](#get-v1tenants)
-  * [POST /v1/tenants](#post-v1tenants)
+  * [/v2 - GraphQL-based API](#v2)
+    * [GET /v2/config](#get-v2config)
+    * [POST /v2/service](#post-v2service)
+  * [/v1](#v1) **deprecated in v2020.1.0, sunset in next major release**
+    * [GET /v1/config](#get-v1config)
+    * [GET /v1/migrations/source](#get-v1migrationssource)
+    * [GET /v1/migrations/applied](#get-v1migrationsapplied)
+    * [POST /v1/migrations](#post-v1migrations)
+    * [GET /v1/tenants](#get-v1tenants)
+    * [POST /v1/tenants](#post-v1tenants)
   * [Request tracing](#request-tracing)
 * [Quick Start Guide](#quick-start-guide)
   * [1. Get the migrator project](#1-get-the-migrator-project)
@@ -64,22 +68,48 @@ curl -v http://localhost:8080/
 Sample HTTP response:
 
 ```
-< HTTP/1.1 200 OK
-< Content-Type: application/json; charset=utf-8
-< Date: Wed, 08 Jan 2020 09:13:58 GMT
-< Content-Length: 142
 
-{
-  "release": "dev-v4.0.1",
-  "commitSha": "300ee8b98f4d6a4725d38b3676accd5a361d7a04",
-  "commitDate": "2020-01-07T14:52:00+01:00",
-  "apiVersions": [
-    "v1"
-  ]
-}
 ```
 
+## /v2 - GraphQL-based API
+
+API v2 was introduced in migrator v2020.1.0 (old versioning v5.0). This is none backward compatible API. The major difference is that v2 is GraphQL-based API.
+
+## GET /v2/config
+
+Returns migrator's config as `application/x-yaml`.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v1/config
+```
+
+Sample HTTP response:
+
+```
+```
+
+## POST /v2/service
+
+This is a GraphQL endpoint which handles both query and mutation.
+
+The GraphQL schema is as follows:
+
+```
+```
+
+An example of HTTP request fetching source migrations with filters, all applied migrations for specific schema, and all tenants in a single query is show below:
+
+```
+
+```
+
+## /v1 **deprecated in v2020.1.0, sunset in next major release**
+
 API v1 was introduced in migrator v4.0. Any non API-breaking changes will be added to v1. Any significant change or an API-breaking change will be added to API v2.
+
+As of migrator v2020.1.0 this API is deprecated and will be sunset in the next major release.
 
 ## GET /v1/config
 

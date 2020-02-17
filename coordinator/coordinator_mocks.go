@@ -69,8 +69,11 @@ func (m *mockedConnector) AddTenantAndApplyMigrations(types.MigrationsModeType, 
 	return &types.MigrationResults{}
 }
 
-func (m *mockedConnector) GetTenants() []string {
-	return []string{"a", "b", "c"}
+func (m *mockedConnector) GetTenants() []types.Tenant {
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	return []types.Tenant{a, b, c}
 }
 
 func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
