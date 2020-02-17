@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"gopkg.in/go-playground/validator.v9"
@@ -19,6 +21,77 @@ const (
 	// MigrationTypeTenantScript is used to mark tenant SQL scripts which is executed always
 	MigrationTypeTenantScript MigrationType = 4
 )
+
+// ImplementsGraphQLType maps this custom Go type
+// to the graphql scalar type in the schema.
+func (MigrationType) ImplementsGraphQLType(name string) bool {
+	return name == "MigrationType"
+}
+
+// This function will be called whenever you use the
+// time scalar as an input
+func (t *MigrationType) UnmarshalGraphQL(input interface{}) error {
+	switch input := input.(type) {
+	case MigrationType:
+		t = &input
+		return nil
+	case uint32:
+		mt := MigrationType(input)
+		t = &mt
+		return nil
+	case int:
+		fmt.Printf("I'm int %v\n", input)
+		mt := MigrationType(input)
+		fmt.Printf("I'm MT %v\n", mt)
+		fmt.Printf("I'm MT %v\n", &mt)
+		t = &mt
+		return nil
+	default:
+		return fmt.Errorf("wrong type %v", input)
+	}
+}
+
+// This function will be called whenever you
+// query for fields that use the Time type
+func (t MigrationType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(uint32(t))
+}
+
+type MigrationTypeOptional struct {
+	MigrationType MigrationType
+}
+
+// ImplementsGraphQLType maps this custom Go type
+// to the graphql scalar type in the schema.
+func (MigrationTypeOptional) ImplementsGraphQLType(name string) bool {
+	return name == "MigrationTypeOptional"
+}
+
+// This function will be called whenever you use the
+// time scalar as an input
+func (t *MigrationTypeOptional) UnmarshalGraphQL(input interface{}) error {
+	switch input := input.(type) {
+	case MigrationType:
+		t.MigrationType = input
+		return nil
+	case uint32:
+		mt := MigrationType(input)
+		t.MigrationType = mt
+		return nil
+	case int:
+		mt := MigrationType(input)
+		t.MigrationType = mt
+		return nil
+	default:
+		return fmt.Errorf("Could not unmarshal graphql MigrationTypeOptional: %v", input)
+	}
+}
+
+// This function will be called whenever you
+// query for fields that use the Time type
+func (t MigrationTypeOptional) MarshalJSON() ([]byte, error) {
+	return json.Marshal(uint32(t.MigrationType))
+}
 
 // MigrationsResponseType represents type of response either full or summary
 type MigrationsResponseType string
