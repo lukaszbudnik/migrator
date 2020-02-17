@@ -128,7 +128,7 @@ func (bc *baseConnector) GetTenants() []types.Tenant {
 		if err = rows.Scan(&name); err != nil {
 			panic(fmt.Sprintf("Could not read tenants: %v", err))
 		}
-		tenants = append(tenants, types.Tenant{name})
+		tenants = append(tenants, types.Tenant{Name: name})
 	}
 
 	return tenants
