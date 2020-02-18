@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/graph-gophers/graphql-go"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -123,8 +124,8 @@ type Migration struct {
 // MigrationDB embeds Migration and adds DB-specific fields
 type MigrationDB struct {
 	Migration
-	Schema    string    `json:"schema"`
-	AppliedAt time.Time `json:"appliedAt"`
+	Schema    string       `json:"schema"`
+	AppliedAt graphql.Time `json:"appliedAt"`
 }
 
 // MigrationResults contains summary information about executed migrations

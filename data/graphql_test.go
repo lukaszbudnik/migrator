@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	graphql "github.com/graph-gophers/graphql-go"
+	"github.com/graph-gophers/graphql-go"
 )
 
 func TestTenants(t *testing.T) {
@@ -203,36 +203,159 @@ func TestSourceMigration(t *testing.T) {
 	err := json.Unmarshal(resp.Data, &jsonMap)
 	assert.Nil(t, err)
 	results := jsonMap["sourceMigration"].(map[string]interface{})
-	assert.Equal(t, "config", results["sourceDir"])
 	assert.Equal(t, "201602220001.sql", results["name"])
+	assert.Equal(t, "SingleMigration", results["migrationType"])
+	assert.Equal(t, "config", results["sourceDir"])
 	assert.Equal(t, "config/201602220001.sql", results["file"])
+	// we return only 4 fields in above query others should be nil
+	assert.Nil(t, results["contents"])
 }
 
-func TestSourceMigrations2Queries(t *testing.T) {
+func TestDBMigrationsNoFilters(t *testing.T) {
 	ctx := context.Background()
 
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
 	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
 
-	opName := "SourceMigrations"
-	query := `query SourceMigrations($singleMigrationType: MigrationType, $tenantMigrationType: MigrationType) {
-	    singleTenantMigrations: sourceMigrations(migrationType: $singleMigrationType) {
+	opName := "DBMigrations"
+	query := `query DBMigrations {
+      dbMigrations {
+        migrationType,
+      	file,
+        schema
+      }
+    }`
+	variables := map[string]interface{}{}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := len(jsonMap["dbMigrations"].([]interface{}))
+	assert.Equal(t, 5, results)
+}
+
+// migrationType is defined at the Migration level
+func TestDBMigrationsMigrationTypeFilter(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "DBMigrations"
+	query := `query DBMigrations($migrationType: MigrationType) {
+	    dbMigrations(migrationType: $migrationType) {
 	      name,
 	      migrationType,
 	      sourceDir,
-	    	file,
-	    	contents,
-	      checkSum
-	    }
-      multiTenantMigrations: sourceMigrations(migrationType: $tenantMigrationType) {
-	      name,
-	      migrationType,
-	      sourceDir,
-	    	file,
-	    	contents,
-	      checkSum
+	    	file
 	    }
   }`
+	variables := map[string]interface{}{
+		"migrationType": "SingleMigration",
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := len(jsonMap["dbMigrations"].([]interface{}))
+	assert.Equal(t, 2, results)
+}
+
+// migrationType is defined at the Migration level
+// schema is defined at the MigrationDB level
+func TestDBMigrationsSchemaMigrationTypeFilter(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "DBMigrations"
+	query := `query DBMigrations($schema: String, $migrationType: MigrationType) {
+	    dbMigrations(schema: $schema, migrationType: $migrationType) {
+	      name,
+	      migrationType,
+	      sourceDir,
+	    	file
+	    }
+  }`
+	variables := map[string]interface{}{
+		"migrationType": "TenantMigration",
+		"schema":        "abc",
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := len(jsonMap["dbMigrations"].([]interface{}))
+	assert.Equal(t, 1, results)
+}
+
+func TestDBMigration(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "DBMigration"
+	query := `query DBMigration($schema: String!, $file: String!) {
+	    dbMigration(schema: $schema, file: $file) {
+        name,
+        migrationType,
+        sourceDir,
+      	file,
+        checkSum,
+        schema,
+      	appliedAt
+	    }
+  }`
+	variables := map[string]interface{}{
+		"file":   "tenants/202002180000.sql",
+		"schema": "xyz",
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := jsonMap["dbMigration"].(map[string]interface{})
+	assert.Equal(t, "202002180000.sql", results["name"])
+	assert.Equal(t, "TenantMigration", results["migrationType"])
+	assert.Equal(t, "tenants", results["sourceDir"])
+	assert.Equal(t, "tenants/202002180000.sql", results["file"])
+	assert.Equal(t, "xyz", results["schema"])
+	assert.Equal(t, "2020-02-18T16:41:01.000000123Z", results["appliedAt"])
+	// we return all fields except contents - should be nil
+	assert.Nil(t, results["contents"])
+}
+
+func TestComplexQueries(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "Data"
+	query := `
+  query Data($singleMigrationType: MigrationType, $tenantMigrationType: MigrationType) {
+    singleTenantSourceMigrations: sourceMigrations(migrationType: $singleMigrationType) {
+      file
+      migrationType
+    }
+    multiTenantDBMigrations: dbMigrations(migrationType: $tenantMigrationType) {
+      file
+      migrationType
+      schema
+      checkSum
+      appliedAt
+    }
+    tenants {
+      name
+    }
+  }
+  `
 	variables := map[string]interface{}{
 		"singleMigrationType": "SingleMigration",
 		"tenantMigrationType": "TenantMigration",
@@ -243,8 +366,10 @@ func TestSourceMigrations2Queries(t *testing.T) {
 	jsonMap := make(map[string]interface{})
 	err := json.Unmarshal(resp.Data, &jsonMap)
 	assert.Nil(t, err)
-	single := len(jsonMap["singleTenantMigrations"].([]interface{}))
+	single := len(jsonMap["singleTenantSourceMigrations"].([]interface{}))
 	assert.Equal(t, 4, single)
-	multi := len(jsonMap["multiTenantMigrations"].([]interface{}))
-	assert.Equal(t, 1, multi)
+	multi := len(jsonMap["multiTenantDBMigrations"].([]interface{}))
+	assert.Equal(t, 3, multi)
+	tenants := len(jsonMap["tenants"].([]interface{}))
+	assert.Equal(t, 3, tenants)
 }

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/graph-gophers/graphql-go"
+
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
@@ -160,7 +162,7 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 			panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: appliedAt})
+		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: appliedAt}})
 	}
 	return dbMigrations
 }
