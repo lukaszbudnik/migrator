@@ -12,10 +12,10 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 
 * [Usage](#usage)
   * [GET /](#get-)
-  * [/v2 - GraphQL-based API](#v2)
+  * [/v2 - GraphQL-based API](#v2---graphql-based-api)
     * [GET /v2/config](#get-v2config)
     * [POST /v2/service](#post-v2service)
-  * [/v1](#v1) **deprecated in v2020.1.0, sunset in next major release**
+  * [/v1 - deprecated available in v4.x and v2020.x](#v1---deprecated-available-in-v4x-and-v2020x)
     * [GET /v1/config](#get-v1config)
     * [GET /v1/migrations/source](#get-v1migrationssource)
     * [GET /v1/migrations/applied](#get-v1migrationsapplied)
@@ -73,7 +73,7 @@ Sample HTTP response:
 
 ## /v2 - GraphQL-based API
 
-API v2 was introduced in migrator v2020.1.0 (old versioning v5.0). This is none backward compatible API. The major difference is that v2 is GraphQL-based API.
+API v2 was introduced in migrator v2020.1.0 (old versioning v5.0) and is a GraphQL-based API.
 
 ## GET /v2/config
 
@@ -92,24 +92,18 @@ Sample HTTP response:
 
 ## POST /v2/service
 
-This is a GraphQL endpoint which handles both query and mutation.
+This is a GraphQL endpoint which handles both query and mutation requests.
 
 The GraphQL schema is as follows:
 
 ```
 ```
 
-An example of HTTP request fetching source migrations with filters, all applied migrations for specific schema, and all tenants in a single query is show below:
+## /v1 - deprecated available in v4.x and v2020.x
 
-```
+API v1 is available in migrator v4.x and v2020.x.
 
-```
-
-## /v1 **deprecated in v2020.1.0, sunset in next major release**
-
-API v1 was introduced in migrator v4.0. Any non API-breaking changes will be added to v1. Any significant change or an API-breaking change will be added to API v2.
-
-As of migrator v2020.1.0 this API is deprecated and will be sunset in the next major release.
+Important: As of migrator v2020.1.0 this API is deprecated and will sunset in the next major release - v2021.1.0).
 
 ## GET /v1/config
 
