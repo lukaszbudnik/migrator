@@ -73,7 +73,7 @@ Sample HTTP response:
 
 ## /v2 - GraphQL-based API
 
-API v2 was introduced in migrator v2020.1.0 (old versioning v5.0) and is a GraphQL-based API.
+API v2 was introduced in migrator v2020.1.0 (old versioning convention v5.0) and is a GraphQL-based API.
 
 ## GET /v2/config
 
@@ -82,7 +82,22 @@ Returns migrator's config as `application/x-yaml`.
 Sample request:
 
 ```
-curl -v http://localhost:8080/v1/config
+curl -v http://localhost:8080/v2/config
+```
+
+Sample HTTP response:
+
+```
+```
+
+## GET /v2/schema
+
+Returns migrator's config as `plain/text`.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v2/schema
 ```
 
 Sample HTTP response:
@@ -99,11 +114,18 @@ The GraphQL schema is as follows:
 ```
 ```
 
+For a quick start guide below are a couple of curl examples.
+
+```
+```
+
+Further there are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+
 ## /v1 - deprecated available in v4.x and v2020.x
 
 API v1 is available in migrator v4.x and v2020.x.
 
-Important: As of migrator v2020.1.0 this API is deprecated and will sunset in the next major release - v2021.1.0).
+**Important**: As of migrator v2020.1.0 this API is deprecated and will sunset in the next major release - v2021.1.0.
 
 ## GET /v1/config
 
