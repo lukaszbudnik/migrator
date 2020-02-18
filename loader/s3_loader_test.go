@@ -62,7 +62,7 @@ func TestS3GetSourceMigrations(t *testing.T) {
 	mock := &mockS3Client{}
 
 	config := &config.Config{
-		BaseLocation:     "s3://lukasz-budnik-migrator-us-east-1",
+		BaseLocation:     "s3://your-bucket-migrator",
 		SingleMigrations: []string{"migrations/config", "migrations/ref"},
 		TenantMigrations: []string{"migrations/tenants"},
 		SingleScripts:    []string{"migrations/config-scripts"},

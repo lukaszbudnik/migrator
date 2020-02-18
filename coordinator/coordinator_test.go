@@ -5,21 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lukaszbudnik/migrator/types"
+	"github.com/graph-gophers/graphql-go"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: time.Now()}
+	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db1, db2, db3, db4}
 
@@ -35,12 +37,12 @@ func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db2, db3, db4}
 
@@ -52,26 +54,26 @@ func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs3(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: time.Now()}
+	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m5 := types.Migration{Name: "global-stored-procedure1.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure1.sql", MigrationType: types.MigrationTypeSingleScript}
-	db5 := types.MigrationDB{Migration: m5, Schema: "public", AppliedAt: time.Now()}
+	db5 := types.MigrationDB{Migration: m5, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m6 := types.Migration{Name: "global-stored-procedure2.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure2sql", MigrationType: types.MigrationTypeSingleScript}
-	db6 := types.MigrationDB{Migration: m6, Schema: "public", AppliedAt: time.Now()}
+	db6 := types.MigrationDB{Migration: m6, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m7 := types.Migration{Name: "002.sql", SourceDir: "tenants-scripts", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db7 := types.MigrationDB{Migration: m7, Schema: "abc", AppliedAt: time.Now()}
+	db7 := types.MigrationDB{Migration: m7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db8 := types.MigrationDB{Migration: m7, Schema: "def", AppliedAt: time.Now()}
+	db8 := types.MigrationDB{Migration: m7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db1, db2, db3, db4, db5, db6, db7, db8}
 
@@ -91,7 +93,7 @@ func TestComputeMigrationsToApply(t *testing.T) {
 	mdef7 := types.Migration{Name: "g", SourceDir: "g", File: "g", MigrationType: types.MigrationTypeTenantScript}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, mdef4, mdef5, mdef6, mdef7}
-	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "a", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "def", AppliedAt: time.Now()}, {Migration: mdef5, Schema: "e", AppliedAt: time.Now()}, {Migration: mdef6, Schema: "f", AppliedAt: time.Now()}, {Migration: mdef7, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef7, Schema: "def", AppliedAt: time.Now()}}
+	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "a", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef5, Schema: "e", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef6, Schema: "f", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -135,7 +137,7 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleMigration}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
-	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef1, Schema: "def", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "public", AppliedAt: time.Now()}, {Migration: mdef3, Schema: "public", AppliedAt: time.Now()}, {Migration: dev2, Schema: "abc", AppliedAt: time.Now()}, {Migration: dev2, Schema: "def", AppliedAt: time.Now()}, {Migration: dev2p, Schema: "public", AppliedAt: time.Now()}}
+	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef1, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef3, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2p, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -257,5 +259,8 @@ func TestGetTenants(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	tenants := coordinator.GetTenants()
-	assert.Equal(t, []string{"a", "b", "c"}, tenants)
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	assert.Equal(t, []types.Tenant{a, b, c}, tenants)
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/graph-gophers/graphql-go"
+
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
@@ -69,14 +71,17 @@ func (m *mockedConnector) AddTenantAndApplyMigrations(types.MigrationsModeType, 
 	return &types.MigrationResults{}
 }
 
-func (m *mockedConnector) GetTenants() []string {
-	return []string{"a", "b", "c"}
+func (m *mockedConnector) GetTenants() []types.Tenant {
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	return []types.Tenant{a, b, c}
 }
 
 func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: d1}}
+	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}}
 	return ms
 }
 
@@ -97,7 +102,7 @@ func (m *mockedDifferentScriptCheckSumMockedConnector) GetAppliedMigrations() []
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	m2 := types.Migration{Name: "recreate-indexes.sql", SourceDir: "tenants-scripts", File: "tenants-scripts/recreate-indexes.sql", MigrationType: types.MigrationTypeTenantScript, Contents: "select abc", CheckSum: "sha256-2"}
 	d2 := time.Date(2016, 02, 22, 16, 41, 1, 456, time.UTC)
-	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: d1}, {Migration: m2, Schema: "customer1", AppliedAt: d2}}
+	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}, {Migration: m2, Schema: "customer1", AppliedAt: graphql.Time{Time: d2}}}
 	return ms
 }
 

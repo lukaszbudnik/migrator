@@ -62,9 +62,9 @@ func TestGetTenants(t *testing.T) {
 	tenants := connector.GetTenants()
 
 	assert.True(t, len(tenants) >= 3)
-	assert.Contains(t, tenants, "abc")
-	assert.Contains(t, tenants, "def")
-	assert.Contains(t, tenants, "xyz")
+	assert.Contains(t, tenants, types.Tenant{Name: "abc"})
+	assert.Contains(t, tenants, types.Tenant{Name: "def"})
+	assert.Contains(t, tenants, types.Tenant{Name: "xyz"})
 }
 
 func TestApplyMigrations(t *testing.T) {

@@ -12,12 +12,16 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 
 * [Usage](#usage)
   * [GET /](#get-)
-  * [GET /v1/config](#get-v1config)
-  * [GET /v1/migrations/source](#get-v1migrationssource)
-  * [GET /v1/migrations/applied](#get-v1migrationsapplied)
-  * [POST /v1/migrations](#post-v1migrations)
-  * [GET /v1/tenants](#get-v1tenants)
-  * [POST /v1/tenants](#post-v1tenants)
+  * [/v2 - GraphQL-based API](#v2---graphql-based-api)
+    * [GET /v2/config](#get-v2config)
+    * [POST /v2/service](#post-v2service)
+  * [/v1 - deprecated available in v4.x and v2020.x](#v1---deprecated-available-in-v4x-and-v2020x)
+    * [GET /v1/config](#get-v1config)
+    * [GET /v1/migrations/source](#get-v1migrationssource)
+    * [GET /v1/migrations/applied](#get-v1migrationsapplied)
+    * [POST /v1/migrations](#post-v1migrations)
+    * [GET /v1/tenants](#get-v1tenants)
+    * [POST /v1/tenants](#post-v1tenants)
   * [Request tracing](#request-tracing)
 * [Quick Start Guide](#quick-start-guide)
   * [1. Get the migrator project](#1-get-the-migrator-project)
@@ -64,22 +68,64 @@ curl -v http://localhost:8080/
 Sample HTTP response:
 
 ```
-< HTTP/1.1 200 OK
-< Content-Type: application/json; charset=utf-8
-< Date: Wed, 08 Jan 2020 09:13:58 GMT
-< Content-Length: 142
 
-{
-  "release": "dev-v4.0.1",
-  "commitSha": "300ee8b98f4d6a4725d38b3676accd5a361d7a04",
-  "commitDate": "2020-01-07T14:52:00+01:00",
-  "apiVersions": [
-    "v1"
-  ]
-}
 ```
 
-API v1 was introduced in migrator v4.0. Any non API-breaking changes will be added to v1. Any significant change or an API-breaking change will be added to API v2.
+## /v2 - GraphQL-based API
+
+API v2 was introduced in migrator v2020.1.0 (old versioning convention v5.0) and is a GraphQL-based API.
+
+## GET /v2/config
+
+Returns migrator's config as `application/x-yaml`.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v2/config
+```
+
+Sample HTTP response:
+
+```
+```
+
+## GET /v2/schema
+
+Returns migrator's config as `plain/text`.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v2/schema
+```
+
+Sample HTTP response:
+
+```
+```
+
+## POST /v2/service
+
+This is a GraphQL endpoint which handles both query and mutation requests.
+
+The GraphQL schema is as follows:
+
+```
+```
+
+For a quick start guide below are a couple of curl examples.
+
+```
+```
+
+Further there are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+
+## /v1 - deprecated available in v4.x and v2020.x
+
+API v1 is available in migrator v4.x and v2020.x.
+
+**Important**: As of migrator v2020.1.0 this API is deprecated and will sunset in the next major release - v2021.1.0.
 
 ## GET /v1/config
 

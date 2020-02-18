@@ -26,6 +26,11 @@ func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
 	return http.NewRequest(method, versionURL, body)
 }
 
+func newTestRequestV2(method, url string, body io.Reader) (*http.Request, error) {
+	versionURL := "/v2" + url
+	return http.NewRequest(method, versionURL, body)
+}
+
 func testSetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
 	versionInfo := &types.VersionInfo{Release: "GitBranch", CommitSha: "GitCommitSha", CommitDate: "2020-01-08T09:56:41+01:00", APIVersions: []string{"v1"}}
 	gin.SetMode(gin.ReleaseMode)
@@ -337,4 +342,27 @@ func TestRouteError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Equal(t, `{"error":"Mocked Error Disk Loader: threshold 0 reached"}`, strings.TrimSpace(w.Body.String()))
+}
+
+// GraphQL section
+
+func TestGraphQLQueryWithVariables(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("POST", "/service", strings.NewReader(`
+    {
+      "query": "query SourceMigration($file: String!) { sourceMigration(file: $file) { name, migrationType, sourceDir, file } }",
+      "operationName": "SourceMigration",
+      "variables": { "file": "source/201602220001.sql" }
+    }
+  `))
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"data":{"sourceMigration":{"name":"201602220001.sql","migrationType":"TenantMigration","sourceDir":"source","file":"source/201602220001.sql"}}}`, strings.TrimSpace(w.Body.String()))
 }

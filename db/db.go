@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/graph-gophers/graphql-go"
+
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/types"
@@ -15,7 +17,7 @@ import (
 
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
-	GetTenants() []string
+	GetTenants() []types.Tenant
 	GetAppliedMigrations() []types.MigrationDB
 	ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults
 	AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults
@@ -113,10 +115,10 @@ func (bc *baseConnector) getTenantSelectSQL() string {
 }
 
 // GetTenants returns a list of all DB tenants
-func (bc *baseConnector) GetTenants() []string {
+func (bc *baseConnector) GetTenants() []types.Tenant {
 	tenantSelectSQL := bc.getTenantSelectSQL()
 
-	tenants := []string{}
+	tenants := []types.Tenant{}
 
 	rows, err := bc.db.Query(tenantSelectSQL)
 	if err != nil {
@@ -128,7 +130,7 @@ func (bc *baseConnector) GetTenants() []string {
 		if err = rows.Scan(&name); err != nil {
 			panic(fmt.Sprintf("Could not read tenants: %v", err))
 		}
-		tenants = append(tenants, name)
+		tenants = append(tenants, types.Tenant{Name: name})
 	}
 
 	return tenants
@@ -160,7 +162,7 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 			panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: appliedAt})
+		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: appliedAt}})
 	}
 	return dbMigrations
 }
@@ -246,7 +248,8 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(mode types.MigrationsModeTy
 		panic(fmt.Sprintf("Failed to add tenant entry: %v", err))
 	}
 
-	results := bc.applyMigrationsInTx(tx, mode, []string{tenant}, migrations)
+	tenantStruct := types.Tenant{Name: tenant}
+	results := bc.applyMigrationsInTx(tx, mode, []types.Tenant{tenantStruct}, migrations)
 
 	return results
 }
@@ -277,7 +280,7 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsModeType, tenants []string, migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsModeType, tenants []types.Tenant, migrations []types.Migration) *types.MigrationResults {
 
 	results := &types.MigrationResults{
 		StartedAt: time.Now(),
@@ -301,7 +304,9 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 	for _, m := range migrations {
 		var schemas []string
 		if m.MigrationType == types.MigrationTypeTenantMigration || m.MigrationType == types.MigrationTypeTenantScript {
-			schemas = tenants
+			for _, t := range tenants {
+				schemas = append(schemas, t.Name)
+			}
 		} else {
 			schemas = []string{filepath.Base(m.SourceDir)}
 		}

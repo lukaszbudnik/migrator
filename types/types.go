@@ -1,8 +1,10 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/graph-gophers/graphql-go"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -19,6 +21,48 @@ const (
 	// MigrationTypeTenantScript is used to mark tenant SQL scripts which is executed always
 	MigrationTypeTenantScript MigrationType = 4
 )
+
+// ImplementsGraphQLType maps MigrationType Go type
+// to the graphql scalar type in the schema
+func (MigrationType) ImplementsGraphQLType(name string) bool {
+	return name == "MigrationType"
+}
+
+// String converts MigrationType Go type to string literal
+func (t MigrationType) String() string {
+	switch t {
+	case MigrationTypeSingleMigration:
+		return "SingleMigration"
+	case MigrationTypeTenantMigration:
+		return "TenantMigration"
+	case MigrationTypeSingleScript:
+		return "SingleScript"
+	case MigrationTypeTenantScript:
+		return "TenantScript"
+	default:
+		panic(fmt.Sprintf("Unknown migration type value: %v", uint32(t)))
+	}
+}
+
+// UnmarshalGraphQL converts string literal to MigrationType Go type
+func (t *MigrationType) UnmarshalGraphQL(input interface{}) error {
+	if str, ok := input.(string); ok {
+		switch str {
+		case "SingleMigration":
+			*t = MigrationTypeSingleMigration
+		case "TenantMigration":
+			*t = MigrationTypeTenantMigration
+		case "SingleScript":
+			*t = MigrationTypeSingleScript
+		case "TenantScript":
+			*t = MigrationTypeTenantScript
+		default:
+			panic(fmt.Sprintf("Unknown migration type literal: %v", str))
+		}
+		return nil
+	}
+	return fmt.Errorf("Wrong type for MigrationType: %T", input)
+}
 
 // MigrationsResponseType represents type of response either full or summary
 type MigrationsResponseType string
@@ -62,6 +106,11 @@ func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
 	return false
 }
 
+// Tenant contains basic information about tenant
+type Tenant struct {
+	Name string `json:"name"`
+}
+
 // Migration contains basic information about migration
 type Migration struct {
 	Name          string        `json:"name"`
@@ -75,8 +124,8 @@ type Migration struct {
 // MigrationDB embeds Migration and adds DB-specific fields
 type MigrationDB struct {
 	Migration
-	Schema    string    `json:"schema"`
-	AppliedAt time.Time `json:"appliedAt"`
+	Schema    string       `json:"schema"`
+	AppliedAt graphql.Time `json:"appliedAt"`
 }
 
 // MigrationResults contains summary information about executed migrations
