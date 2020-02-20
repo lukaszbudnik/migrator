@@ -162,9 +162,12 @@ func TestApplyMigrationsDryRunMode(t *testing.T) {
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
 	mock.ExpectQuery("select").WillReturnRows(tenants)
 	mock.ExpectBegin()
-	mock.ExpectPrepare("insert into")
-	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
@@ -196,8 +199,11 @@ func TestApplyMigrationsSyncMode(t *testing.T) {
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
 	mock.ExpectQuery("select").WillReturnRows(tenants)
 	mock.ExpectBegin()
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	// sync the results contain correct data like number of applied migrations/scripts
@@ -304,13 +310,18 @@ func TestAddTenantAndApplyMigrationsDryRunMode(t *testing.T) {
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
+
 	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	// tenant
 	mock.ExpectPrepare("insert into")
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
@@ -340,11 +351,15 @@ func TestAddTenantAndApplyMigrationsSyncMode(t *testing.T) {
 
 	tenant := "tenantname"
 	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	// tenant
 	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(0, 0))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	// sync results contain correct data like number of applied migrations/scripts
