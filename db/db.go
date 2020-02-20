@@ -48,6 +48,7 @@ const (
 	migratorSchema           = "migrator"
 	migratorTenantsTable     = "migrator_tenants"
 	migratorMigrationsTable  = "migrator_migrations"
+	migratorVersionsTable    = "migrator_versions"
 	defaultSchemaPlaceHolder = "{schema}"
 )
 
@@ -81,6 +82,12 @@ func (bc *baseConnector) init() {
 	createMigrationsTable := bc.dialect.GetCreateMigrationsTableSQL()
 	if _, err := bc.db.Query(createMigrationsTable); err != nil {
 		panic(fmt.Sprintf("Could not create migrations table: %v", err))
+	}
+
+	// make sure versions table exists
+	createVersionsTable := bc.dialect.GetCreateVersionsTableSQL()
+	if _, err := bc.db.Query(createVersionsTable); err != nil {
+		panic(fmt.Sprintf("Could not create versions table: %v", err))
 	}
 
 	// if using default migrator tenants table make sure it exists
@@ -295,10 +302,18 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 
 	schemaPlaceHolder := bc.getSchemaPlaceHolder()
 
+	versionID := 0
+	versionInsertSQL := bc.dialect.GetVersionInsertSQL()
+	versionInsert, err := bc.db.Prepare(versionInsertSQL)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create prepared statement for version: %v", err))
+	}
+	tx.Stmt(versionInsert).QueryRow(time.Now().String()).Scan(&versionID)
+
 	insertMigrationSQL := bc.dialect.GetMigrationInsertSQL()
 	insert, err := bc.db.Prepare(insertMigrationSQL)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create prepared statement: %v", err))
+		panic(fmt.Sprintf("Could not create prepared statement for migration: %v", err))
 	}
 
 	for _, m := range migrations {
@@ -321,7 +336,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 				}
 			}
 
-			if _, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum); err != nil {
+			if _, err = tx.Stmt(insert).Exec(m.Name, m.SourceDir, m.File, m.MigrationType, s, m.Contents, m.CheckSum, versionID); err != nil {
 				panic(fmt.Sprintf("Failed to add migration entry: %v", err.Error()))
 			}
 		}

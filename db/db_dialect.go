@@ -15,6 +15,8 @@ type dialect interface {
 	GetCreateTenantsTableSQL() string
 	GetCreateMigrationsTableSQL() string
 	GetCreateSchemaSQL(string) string
+	GetCreateVersionsTableSQL() string
+	GetVersionInsertSQL() string
 }
 
 // baseDialect struct is used to provide default dialect interface implementation
@@ -75,6 +77,17 @@ func (bd *baseDialect) GetMigrationSelectSQL() string {
 // This SQL is used by both MySQL and PostgreSQL.
 func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 	return fmt.Sprintf(createSchemaSQL, schema)
+}
+
+// GetCreateVersionsTableSQL returns SQL statement to setup versions
+// in v2020.1.0 it contains upgrade logic from v4.x
+func (bd *baseDialect) GetCreateVersionsTableSQL() string {
+	return ""
+}
+
+// GetCreateVersionsTableSQL returns SQL statement for inserting versions
+func (bd *baseDialect) GetVersionInsertSQL() string {
+	return ""
 }
 
 // newDialect constructs dialect instance based on the passed Config
