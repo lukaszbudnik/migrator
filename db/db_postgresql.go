@@ -14,7 +14,8 @@ const (
 	insertMigrationPostgreSQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
 	insertTenantPostgreSQLDialectSQL    = "insert into %v.%v (name) values ($1)"
 	insertVersionPostgreSQLDialectSQL   = "insert into %v.%v (name) values ($1) returning id"
-	versionsTableSetupSQL               = `
+	// lastVersionIDPostgreSQLDialectSQL      = "select currval(pg_get_serial_sequence('%v.%v','id'))"
+	versionsTableSetupPostgreSQLDialectSQL = `
 do $$
 begin
 if not exists (select * from information_schema.tables where table_schema = '%v' and table_name = '%v') then
@@ -57,6 +58,6 @@ func (pd *postgreSQLDialect) GetVersionInsertSQL() string {
 // 2. alter statement used to add version column to migration
 // 3. create initial version if migrations exists (backwards compatibility)
 // 4. create not null consttraint on version column
-func (pd *postgreSQLDialect) GetCreateVersionsTableSQL() string {
-	return fmt.Sprintf(versionsTableSetupSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable)
+func (pd *postgreSQLDialect) GetCreateVersionsTableSQL() []string {
+	return []string{fmt.Sprintf(versionsTableSetupPostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable)}
 }

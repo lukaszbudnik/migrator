@@ -263,6 +263,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
@@ -294,6 +295,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
@@ -331,10 +333,11 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnError(errors.New("trouble maker"))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
 
 	assert.PanicsWithValue(t, "Failed to add migration entry: trouble maker", func() {
@@ -365,10 +368,11 @@ func TestApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
@@ -508,6 +512,7 @@ func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(0, 0))
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))

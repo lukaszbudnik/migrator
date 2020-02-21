@@ -164,10 +164,11 @@ func TestApplyMigrationsDryRunMode(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
@@ -201,6 +202,7 @@ func TestApplyMigrationsSyncMode(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
@@ -318,10 +320,11 @@ func TestAddTenantAndApplyMigrationsDryRunMode(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
 
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
@@ -357,6 +360,7 @@ func TestAddTenantAndApplyMigrationsSyncMode(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(0, 0))
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))

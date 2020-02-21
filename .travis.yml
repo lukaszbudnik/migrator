@@ -5,7 +5,7 @@ addons:
 
 env:
   - DB=postgresql
-  # - DB=mysql
+  - DB=mysql
 
 services:
   - postgresql
@@ -18,8 +18,8 @@ go:
 before_script:
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -d migrator_test -f test/create-test-tenants.sql; fi"
-  # - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -e 'create database migrator_test'; fi"
-  # - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -D migrator_test < test/create-test-tenants.sql; fi"
+  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -e 'create database migrator_test'; fi"
+  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -D migrator_test < test/create-test-tenants.sql; fi"
   - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
 
 script:

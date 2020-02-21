@@ -85,9 +85,11 @@ func (bc *baseConnector) init() {
 	}
 
 	// make sure versions table exists
-	createVersionsTable := bc.dialect.GetCreateVersionsTableSQL()
-	if _, err := bc.db.Query(createVersionsTable); err != nil {
-		panic(fmt.Sprintf("Could not create versions table: %v", err))
+	createVersionsTableSQLs := bc.dialect.GetCreateVersionsTableSQL()
+	for _, createVersionsTableSQL := range createVersionsTableSQLs {
+		if _, err := bc.db.Query(createVersionsTableSQL); err != nil {
+			panic(fmt.Sprintf("Could not create versions table: %v", err))
+		}
 	}
 
 	// if using default migrator tenants table make sure it exists
@@ -302,13 +304,20 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 
 	schemaPlaceHolder := bc.getSchemaPlaceHolder()
 
-	versionID := 0
+	var versionID int64
 	versionInsertSQL := bc.dialect.GetVersionInsertSQL()
 	versionInsert, err := bc.db.Prepare(versionInsertSQL)
 	if err != nil {
 		panic(fmt.Sprintf("Could not create prepared statement for version: %v", err))
 	}
-	tx.Stmt(versionInsert).QueryRow(time.Now().String()).Scan(&versionID)
+	stmt := tx.Stmt(versionInsert)
+	// this is nasty...
+	if bc.config.Driver == "mysql" {
+		result, _ := stmt.Exec("")
+		versionID, _ = result.LastInsertId()
+	} else {
+		stmt.QueryRow("").Scan(&versionID)
+	}
 
 	insertMigrationSQL := bc.dialect.GetMigrationInsertSQL()
 	insert, err := bc.db.Prepare(insertMigrationSQL)
