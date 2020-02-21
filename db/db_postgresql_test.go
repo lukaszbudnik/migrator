@@ -53,7 +53,7 @@ func TestPostgreSQLGetVersionInsertSQL(t *testing.T) {
 	assert.Equal(t, "insert into migrator.migrator_versions (name) values ($1) returning id", versionInsertSQL)
 }
 
-func TestGetCreateVersionsTableSQL(t *testing.T) {
+func TestPostgreSQLGetCreateVersionsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -86,6 +86,5 @@ end if;
 end $$;
 `
 
-	assert.Equal(t, expected, actual)
-
+	assert.Equal(t, expected, actual[0])
 }

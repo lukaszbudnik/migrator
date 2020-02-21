@@ -15,7 +15,7 @@ type dialect interface {
 	GetCreateTenantsTableSQL() string
 	GetCreateMigrationsTableSQL() string
 	GetCreateSchemaSQL(string) string
-	GetCreateVersionsTableSQL() string
+	GetCreateVersionsTableSQL() []string
 	GetVersionInsertSQL() string
 }
 
@@ -81,8 +81,8 @@ func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 
 // GetCreateVersionsTableSQL returns SQL statement to setup versions
 // in v2020.1.0 it contains upgrade logic from v4.x
-func (bd *baseDialect) GetCreateVersionsTableSQL() string {
-	return ""
+func (bd *baseDialect) GetCreateVersionsTableSQL() []string {
+	return []string{""}
 }
 
 // GetCreateVersionsTableSQL returns SQL statement for inserting versions
