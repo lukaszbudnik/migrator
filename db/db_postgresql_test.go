@@ -14,6 +14,17 @@ func TestDBCreateDialectPostgreSQLDriver(t *testing.T) {
 	assert.IsType(t, &postgreSQLDialect{}, dialect)
 }
 
+func TestPostgreSQLLastInsertIdSupported(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	lastInsertIDSupported := dialect.LastInsertIDSupported()
+
+	assert.False(t, lastInsertIDSupported)
+}
+
 func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
