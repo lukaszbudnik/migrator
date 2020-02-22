@@ -41,6 +41,11 @@ end;
 `
 )
 
+// LastInsertIDSupported instructs migrator if Result.LastInsertId() is supported by the DB driver
+func (md *mySQLDialect) LastInsertIDSupported() bool {
+	return true
+}
+
 // GetMigrationInsertSQL returns MySQL-specific migration insert SQL statement
 func (md *mySQLDialect) GetMigrationInsertSQL() string {
 	return fmt.Sprintf(insertMigrationMySQLDialectSQL, migratorSchema, migratorMigrationsTable)

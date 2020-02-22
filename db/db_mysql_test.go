@@ -14,6 +14,17 @@ func TestDBCreateDialectMysqlDriver(t *testing.T) {
 	assert.IsType(t, &mySQLDialect{}, dialect)
 }
 
+func TestMySQLLastInsertIdSupported(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "mysql"
+	dialect := newDialect(config)
+	lastInsertIDSupported := dialect.LastInsertIDSupported()
+
+	assert.True(t, lastInsertIDSupported)
+}
+
 func TestMySQLGetMigrationInsertSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)

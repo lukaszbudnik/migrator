@@ -11,10 +11,9 @@ type postgreSQLDialect struct {
 }
 
 const (
-	insertMigrationPostgreSQLDialectSQL = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
-	insertTenantPostgreSQLDialectSQL    = "insert into %v.%v (name) values ($1)"
-	insertVersionPostgreSQLDialectSQL   = "insert into %v.%v (name) values ($1) returning id"
-	// lastVersionIDPostgreSQLDialectSQL      = "select currval(pg_get_serial_sequence('%v.%v','id'))"
+	insertMigrationPostgreSQLDialectSQL    = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+	insertTenantPostgreSQLDialectSQL       = "insert into %v.%v (name) values ($1)"
+	insertVersionPostgreSQLDialectSQL      = "insert into %v.%v (name) values ($1) returning id"
 	versionsTableSetupPostgreSQLDialectSQL = `
 do $$
 begin
@@ -38,6 +37,11 @@ end if;
 end $$;
 `
 )
+
+// LastInsertIDSupported instructs migrator if Result.LastInsertId() is supported by the DB driver
+func (pd *postgreSQLDialect) LastInsertIDSupported() bool {
+	return false
+}
 
 // GetMigrationInsertSQL returns PostgreSQL-specific migration insert SQL statement
 func (pd *postgreSQLDialect) GetMigrationInsertSQL() string {

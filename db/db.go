@@ -311,8 +311,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 		panic(fmt.Sprintf("Could not create prepared statement for version: %v", err))
 	}
 	stmt := tx.Stmt(versionInsert)
-	// this is nasty...
-	if bc.config.Driver == "mysql" {
+	if bc.dialect.LastInsertIDSupported() {
 		result, _ := stmt.Exec("")
 		versionID, _ = result.LastInsertId()
 	} else {
