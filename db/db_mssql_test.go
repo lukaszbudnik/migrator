@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
@@ -177,8 +176,6 @@ begin
   EXEC ('alter table [migrator].migrator_migrations drop constraint ' + @cn);
 end
 `
-
-	fmt.Println(actual)
 
 	assert.Equal(t, expected, actual[0])
 }
