@@ -388,3 +388,14 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 
 	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
 }
+
+func TestGetVersions(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	versions := connector.GetVersions()
+	assert.True(t, len(versions) >= 2)
+}

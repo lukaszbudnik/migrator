@@ -37,7 +37,7 @@ const SchemaDefinition = `
     contents: String!
     checkSum: String!
     schema: String!
-    appliedAt: Time!
+    created: Time!
   }
   enum MigrationType {
     SingleMigration
@@ -49,9 +49,15 @@ const SchemaDefinition = `
   type Tenant {
     name: String!
   }
+  type Version {
+    id: Int!
+    name: String!
+    created: Time!
+  }
 	type Query {
     sourceMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType): [SourceMigration!]!
     sourceMigration(file: String!): SourceMigration!
+    versions(file: String): [Version!]!
     dbMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType, schema: String): [DBMigration!]!
     dbMigration(file: String!, schema: String!): DBMigration!
     tenants(): [Tenant!]!
@@ -78,6 +84,17 @@ type RootResolver struct {
 func (r *RootResolver) Tenants() ([]types.Tenant, error) {
 	tenants := r.Coordinator.GetTenants()
 	return tenants, nil
+}
+
+func (r *RootResolver) Versions(args struct {
+	File *string
+}) ([]types.Version, error) {
+	if args.File == nil {
+		return r.Coordinator.GetVersions(), nil
+	} else {
+		return r.Coordinator.GetVersionsByFile(*args.File), nil
+	}
+	return nil, nil
 }
 
 func (r *RootResolver) SourceMigrations(filters sourceMigrationsFilters) ([]types.Migration, error) {

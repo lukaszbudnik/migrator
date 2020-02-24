@@ -14,6 +14,7 @@ const (
 	insertMigrationMySQLDialectSQL             = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values (?, ?, ?, ?, ?, ?, ?, ?)"
 	insertTenantMySQLDialectSQL                = "insert into %v.%v (name) values (?)"
 	insertVersionMySQLDialectSQL               = "insert into %v.%v (name) values (?)"
+	selectVersionsByFileMySQLDialectSQL        = "select distinct id, name, created from %v.%v where id in (select version_id from %v.%v where filename = ?)"
 	versionsTableSetupMySQLDropDialectSQL      = `drop procedure if exists migrator_create_versions`
 	versionsTableSetupMySQLCallDialectSQL      = `call migrator_create_versions()`
 	versionsTableSetupMySQLProcedureDialectSQL = `
@@ -71,4 +72,8 @@ func (md *mySQLDialect) GetCreateVersionsTableSQL() []string {
 		fmt.Sprintf(versionsTableSetupMySQLProcedureDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable),
 		versionsTableSetupMySQLCallDialectSQL,
 	}
+}
+
+func (md *mySQLDialect) GetVersionsByFileSQL() string {
+	return fmt.Sprintf(selectVersionsByFileMySQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
 }

@@ -16,6 +16,8 @@ import (
 // Coordinator interface abstracts all operations performed by migrator
 type Coordinator interface {
 	GetTenants() []types.Tenant
+	GetVersions() []types.Version
+	GetVersionsByFile(string) []types.Version
 	GetSourceMigrations() []types.Migration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
@@ -32,6 +34,7 @@ type coordinator struct {
 	notifier          notifications.Notifier
 	config            *config.Config
 	tenants           []types.Tenant
+	versions          []types.Version
 	sourceMigrations  []types.Migration
 	appliedMigrations []types.MigrationDB
 	loaderLock        sync.Mutex
@@ -64,6 +67,20 @@ func (c *coordinator) GetTenants() []types.Tenant {
 		c.tenants = tenants
 	}
 	return c.tenants
+}
+
+func (c *coordinator) GetVersions() []types.Version {
+	c.connectorLock.Lock()
+	defer c.connectorLock.Unlock()
+	if c.versions == nil {
+		versions := c.connector.GetVersions()
+		c.versions = versions
+	}
+	return c.versions
+}
+
+func (c *coordinator) GetVersionsByFile(file string) []types.Version {
+	return c.connector.GetVersionsByFile(file)
 }
 
 func (c *coordinator) GetSourceMigrations() []types.Migration {

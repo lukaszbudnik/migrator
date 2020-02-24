@@ -179,3 +179,15 @@ end
 
 	assert.Equal(t, expected, actual[0])
 }
+
+func TestMSSQLGetVersionsByFileSQL(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "sqlserver"
+	dialect := newDialect(config)
+
+	versionsByFile := dialect.GetVersionsByFileSQL()
+
+	assert.Equal(t, "select distinct id, name, created from migrator.migrator_versions where id in (select version_id from migrator.migrator_migrations where filename = @p1)", versionsByFile)
+}
