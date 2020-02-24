@@ -78,6 +78,18 @@ func (m *mockedConnector) GetTenants() []types.Tenant {
 	return []types.Tenant{a, b, c}
 }
 
+func (m *mockedConnector) GetVersions() []types.Version {
+	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	b := types.Version{ID: 121, Name: "bb", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -1)}}
+	c := types.Version{ID: 122, Name: "ccc", Created: graphql.Time{Time: time.Now()}}
+	return []types.Version{a, b, c}
+}
+
+func (m *mockedConnector) GetVersionsByFile(file string) []types.Version {
+	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	return []types.Version{a}
+}
+
 func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)

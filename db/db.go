@@ -18,6 +18,8 @@ import (
 // Connector interface abstracts all DB operations performed by migrator
 type Connector interface {
 	GetTenants() []types.Tenant
+	GetVersions() []types.Version
+	GetVersionsByFile(file string) []types.Version
 	GetAppliedMigrations() []types.MigrationDB
 	ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults
 	AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults
@@ -145,6 +147,44 @@ func (bc *baseConnector) GetTenants() []types.Tenant {
 	return tenants
 }
 
+func (bc *baseConnector) GetVersions() []types.Version {
+	versionsSelectSQL := bc.dialect.GetVersionsSelectSQL()
+
+	rows, err := bc.db.Query(versionsSelectSQL)
+	if err != nil {
+		panic(fmt.Sprintf("Could not query versions: %v", err))
+	}
+
+	return bc.readVersions(rows)
+}
+
+func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
+	versionsSelectSQL := bc.dialect.GetVersionsByFileSQL()
+
+	rows, err := bc.db.Query(versionsSelectSQL, file)
+	if err != nil {
+		panic(fmt.Sprintf("Could not query versions: %v", err))
+	}
+
+	return bc.readVersions(rows)
+}
+
+func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
+	versions := []types.Version{}
+
+	for rows.Next() {
+		var id int64
+		var name string
+		var created time.Time
+		if err := rows.Scan(&id, &name, &created); err != nil {
+			panic(fmt.Sprintf("Could not read versions: %v", err))
+		}
+		versions = append(versions, types.Version{ID: int32(id), Name: name, Created: graphql.Time{Time: created}})
+	}
+
+	return versions
+}
+
 // GetAppliedMigrations returns a list of all applied DB migrations
 func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 	query := bc.dialect.GetMigrationSelectSQL()
@@ -163,15 +203,15 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 			filename      string
 			migrationType types.MigrationType
 			schema        string
-			appliedAt     time.Time
+			created       time.Time
 			contents      string
 			checksum      string
 		)
-		if err = rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &appliedAt, &contents, &checksum); err != nil {
+		if err = rows.Scan(&name, &sourceDir, &filename, &migrationType, &schema, &created, &contents, &checksum); err != nil {
 			panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: appliedAt}})
+		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
 	}
 	return dbMigrations
 }

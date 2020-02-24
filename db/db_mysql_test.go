@@ -64,7 +64,7 @@ func TestMySQLGetVersionInsertSQL(t *testing.T) {
 	assert.Equal(t, "insert into migrator.migrator_versions (name) values (?)", versionInsertSQL)
 }
 
-func TestMyGetCreateVersionsTableSQL(t *testing.T) {
+func TestMySQLGetCreateVersionsTableSQL(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -102,4 +102,16 @@ end;
 	assert.Equal(t, expectedDrop, actual[0])
 	assert.Equal(t, expectedProcedure, actual[1])
 	assert.Equal(t, expectedCall, actual[2])
+}
+
+func TestMySQLGetVersionsByFileSQL(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "mysql"
+	dialect := newDialect(config)
+
+	versionsByFile := dialect.GetVersionsByFileSQL()
+
+	assert.Equal(t, "select distinct id, name, created from migrator.migrator_versions where id in (select version_id from migrator.migrator_migrations where filename = ?)", versionsByFile)
 }

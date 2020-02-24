@@ -32,6 +32,64 @@ func TestTenants(t *testing.T) {
 	assert.Equal(t, 3, results)
 }
 
+func TestVersions(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "Versions"
+	query := `query Versions {
+      versions {
+        id
+        name
+        created
+      }
+    }`
+	variables := map[string]interface{}{}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	versions := jsonMap["versions"].([]interface{})
+	results := len(versions)
+
+	assert.Equal(t, 3, results)
+	assert.Equal(t, "a", versions[0].(map[string]interface{})["name"])
+	assert.Equal(t, "bb", versions[1].(map[string]interface{})["name"])
+	assert.Equal(t, "ccc", versions[2].(map[string]interface{})["name"])
+}
+
+func TestVersionsByFile(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "Versions"
+	query := `query Versions($file: String) {
+      versions(file: $file) {
+        id
+        name
+        created
+      }
+    }`
+	variables := map[string]interface{}{
+		"file": "config/202002180000.sql",
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	versions := jsonMap["versions"].([]interface{})
+	results := len(versions)
+
+	assert.Equal(t, 1, results)
+	assert.Equal(t, "a", versions[0].(map[string]interface{})["name"])
+}
+
 func TestSourceMigrationsNoFilters(t *testing.T) {
 
 	ctx := context.Background()
@@ -308,7 +366,7 @@ func TestDBMigration(t *testing.T) {
       	file,
         checkSum,
         schema,
-      	appliedAt
+      	created
 	    }
   }`
 	variables := map[string]interface{}{
@@ -326,7 +384,7 @@ func TestDBMigration(t *testing.T) {
 	assert.Equal(t, "tenants", results["sourceDir"])
 	assert.Equal(t, "tenants/202002180000.sql", results["file"])
 	assert.Equal(t, "xyz", results["schema"])
-	assert.Equal(t, "2020-02-18T16:41:01.000000123Z", results["appliedAt"])
+	assert.Equal(t, "2020-02-18T16:41:01.000000123Z", results["created"])
 	// we return all fields except contents - should be nil
 	assert.Nil(t, results["contents"])
 }
@@ -349,7 +407,7 @@ func TestComplexQueries(t *testing.T) {
       migrationType
       schema
       checkSum
-      appliedAt
+      created
     }
     tenants {
       name

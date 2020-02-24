@@ -36,20 +36,32 @@ func (m *mockedCoordinator) GetTenants() []types.Tenant {
 	return []types.Tenant{a, b, c}
 }
 
+func (m *mockedCoordinator) GetVersions() []types.Version {
+	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	b := types.Version{ID: 121, Name: "bb", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -1)}}
+	c := types.Version{ID: 122, Name: "ccc", Created: graphql.Time{Time: time.Now()}}
+	return []types.Version{a, b, c}
+}
+
+func (m *mockedCoordinator) GetVersionsByFile(file string) []types.Version {
+	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	return []types.Version{a}
+}
+
 func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	db1 := types.MigrationDB{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}
+	db1 := types.MigrationDB{Migration: m1, Schema: "source", Created: graphql.Time{Time: d1}}
 
 	m2 := types.Migration{Name: "202002180000.sql", SourceDir: "config", File: "config/202002180000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d2 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
-	db2 := types.MigrationDB{Migration: m2, Schema: "source", AppliedAt: graphql.Time{Time: d2}}
+	db2 := types.MigrationDB{Migration: m2, Schema: "source", Created: graphql.Time{Time: d2}}
 
 	m3 := types.Migration{Name: "202002180000.sql", SourceDir: "tenants", File: "tenants/202002180000.sql", MigrationType: types.MigrationTypeTenantMigration, Contents: "select abc"}
 	d3 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
-	db3 := types.MigrationDB{Migration: m3, Schema: "abc", AppliedAt: graphql.Time{Time: d3}}
-	db4 := types.MigrationDB{Migration: m3, Schema: "def", AppliedAt: graphql.Time{Time: d3}}
-	db5 := types.MigrationDB{Migration: m3, Schema: "xyz", AppliedAt: graphql.Time{Time: d3}}
+	db3 := types.MigrationDB{Migration: m3, Schema: "abc", Created: graphql.Time{Time: d3}}
+	db4 := types.MigrationDB{Migration: m3, Schema: "def", Created: graphql.Time{Time: d3}}
+	db5 := types.MigrationDB{Migration: m3, Schema: "xyz", Created: graphql.Time{Time: d3}}
 
 	return []types.MigrationDB{db1, db2, db3, db4, db5}
 }

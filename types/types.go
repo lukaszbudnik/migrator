@@ -111,6 +111,13 @@ type Tenant struct {
 	Name string `json:"name"`
 }
 
+// Version contains information about migrator versions
+type Version struct {
+	ID      int32        `json:"id"`
+	Name    string       `json:"name"`
+	Created graphql.Time `json:"created"`
+}
+
 // Migration contains basic information about migration
 type Migration struct {
 	Name          string        `json:"name"`
@@ -121,11 +128,24 @@ type Migration struct {
 	CheckSum      string        `json:"checkSum"`
 }
 
+// DBMigration embeds Migration and adds DB-specific fields
+// replaces deprecated MigrationDB
+type DBMigration = MigrationDB
+
 // MigrationDB embeds Migration and adds DB-specific fields
+// deprecated in v2020.1.0 sunset in v2021.1.0
+// replaced by DBMigration
 type MigrationDB struct {
 	Migration
-	Schema    string       `json:"schema"`
+	Schema string `json:"schema"`
+	// appliedAt is deprecated the SQL column is already called created
+	// API v1 uses AppliedAt
+	// this field is ignored by GrapQL
 	AppliedAt graphql.Time `json:"appliedAt"`
+	// API v2 uses Created
+	// this field is returned together with appliedAt
+	// however it does not break API contract as this is a new field
+	Created graphql.Time `json:"created"`
 }
 
 // MigrationResults contains summary information about executed migrations

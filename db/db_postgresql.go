@@ -11,10 +11,11 @@ type postgreSQLDialect struct {
 }
 
 const (
-	insertMigrationPostgreSQLDialectSQL    = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
-	insertTenantPostgreSQLDialectSQL       = "insert into %v.%v (name) values ($1)"
-	insertVersionPostgreSQLDialectSQL      = "insert into %v.%v (name) values ($1) returning id"
-	versionsTableSetupPostgreSQLDialectSQL = `
+	insertMigrationPostgreSQLDialectSQL      = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+	insertTenantPostgreSQLDialectSQL         = "insert into %v.%v (name) values ($1)"
+	insertVersionPostgreSQLDialectSQL        = "insert into %v.%v (name) values ($1) returning id"
+	selectVersionsByFilePostgreSQLDialectSQL = "select distinct id, name, created from %v.%v where id in (select version_id from %v.%v where filename = $1)"
+	versionsTableSetupPostgreSQLDialectSQL   = `
 do $$
 begin
 if not exists (select * from information_schema.tables where table_schema = '%v' and table_name = '%v') then
@@ -64,4 +65,8 @@ func (pd *postgreSQLDialect) GetVersionInsertSQL() string {
 // 4. create not null consttraint on version column
 func (pd *postgreSQLDialect) GetCreateVersionsTableSQL() []string {
 	return []string{fmt.Sprintf(versionsTableSetupPostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorVersionsTable)}
+}
+
+func (pd *postgreSQLDialect) GetVersionsByFileSQL() string {
+	return fmt.Sprintf(selectVersionsByFilePostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
 }

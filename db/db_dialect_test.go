@@ -69,3 +69,18 @@ func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 
 	assert.Equal(t, expected, createSchemaSQL)
 }
+
+func TestBaseDialectGetVersionsSelectSQL(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "postgres"
+
+	dialect := newDialect(config)
+
+	versionsSelectSQL := dialect.GetVersionsSelectSQL()
+
+	expected := "select id, name, created from migrator.migrator_versions order by created desc"
+
+	assert.Equal(t, expected, versionsSelectSQL)
+}
