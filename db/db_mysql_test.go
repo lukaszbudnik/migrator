@@ -113,5 +113,17 @@ func TestMySQLGetVersionsByFileSQL(t *testing.T) {
 
 	versionsByFile := dialect.GetVersionsByFileSQL()
 
-	assert.Equal(t, "select distinct id, name, created from migrator.migrator_versions where id in (select version_id from migrator.migrator_migrations where filename = ?)", versionsByFile)
+	assert.Equal(t, "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from migrator.migrator_versions mv left join migrator.migrator_migrations mm on mv.id = mm.version_id where mv.id in (select version_id from migrator.migrator_migrations where filename = ?) order by vid desc, mid asc", versionsByFile)
+}
+
+func TestMySQLGetVersionByIDSQL(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "mysql"
+	dialect := newDialect(config)
+
+	versionsByID := dialect.GetVersionByIDSQL()
+
+	assert.Equal(t, "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from migrator.migrator_versions mv left join migrator.migrator_migrations mm on mv.id = mm.version_id where mv.id = ? order by mid asc", versionsByID)
 }

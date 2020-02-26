@@ -13,6 +13,13 @@ const SchemaDefinition = `
 	schema {
 		query: Query
 	}
+  enum MigrationType {
+    SingleMigration
+    TenantMigration
+    SingleScript
+    TenantScript
+  }
+  scalar Time
 	interface Migration {
 		name: String!
 		migrationType: MigrationType!
@@ -39,13 +46,6 @@ const SchemaDefinition = `
     schema: String!
     created: Time!
   }
-  enum MigrationType {
-    SingleMigration
-    TenantMigration
-    SingleScript
-    TenantScript
-  }
-  scalar Time
   type Tenant {
     name: String!
   }
@@ -53,13 +53,30 @@ const SchemaDefinition = `
     id: Int!
     name: String!
     created: Time!
+    dbMigrations: [DBMigration!]!
   }
 	type Query {
+    // returns array of SourceMigration objects
+    // note that if input query includes contents field this operation can produce large amounts of data - see sourceMigration(file: String!)
+    // all parameters are optional and can be used to filter source migrations
     sourceMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType): [SourceMigration!]!
+    // returns a single SourceMigration
+    // this operation can be used to fetch a complete SourceMigration including its contents field
+    // file is the unique identifier for a source migration which you can get from sourceMigrations() operation
     sourceMigration(file: String!): SourceMigration!
+    // returns array of Version objects
+    // note that if input query includes DBMigration array this operation can produce large amounts of data - see version(id: Int!) or dbMigration(id: Int!)
+    // file is optional and can be used to return versions in which given source migration was applied
     versions(file: String): [Version!]!
-    dbMigrations(name: String, sourceDir: String, file: String, migrationType: MigrationType, schema: String): [DBMigration!]!
-    dbMigration(file: String!, schema: String!): DBMigration!
+    // returns a single Version
+    // note that if input query includes contents field this operation can produce large amounts of data - see dbMigration(id: Int!)
+    // id is the unique identifier of a version which you can get from versions() operation
+    version(id: Int!): Version!
+    // returns a single DBMigration
+    // this operation can be used to fetch a complete SourceMigration including its contents field
+    // id is the unique identifier of a version which you can get from versions(file: String) or version(id: Int!) operations
+    //dbMigration(id: Int!): DBMigration!
+    // returns array of Tenant objects
     tenants(): [Tenant!]!
 	}
 `
@@ -89,12 +106,16 @@ func (r *RootResolver) Tenants() ([]types.Tenant, error) {
 func (r *RootResolver) Versions(args struct {
 	File *string
 }) ([]types.Version, error) {
-	if args.File == nil {
-		return r.Coordinator.GetVersions(), nil
-	} else {
+	if args.File != nil {
 		return r.Coordinator.GetVersionsByFile(*args.File), nil
 	}
-	return nil, nil
+	return r.Coordinator.GetVersions(), nil
+}
+
+func (r *RootResolver) Version(args struct {
+	ID int32
+}) (types.Version, error) {
+	return r.Coordinator.GetVersionByID(args.ID), nil
 }
 
 func (r *RootResolver) SourceMigrations(filters sourceMigrationsFilters) ([]types.Migration, error) {
@@ -115,24 +136,24 @@ func (r *RootResolver) SourceMigration(args struct {
 	return filteredMigrations[0], nil
 }
 
-func (r *RootResolver) DBMigrations(filters dbMigrationsFilters) ([]types.MigrationDB, error) {
-	dbMigrations := r.Coordinator.GetAppliedMigrations()
-	filteredMigrations := r.filterDBMigrations(dbMigrations, filters)
-	return filteredMigrations, nil
-}
+// func (r *RootResolver) DBMigrations(filters dbMigrationsFilters) ([]types.MigrationDB, error) {
+// 	dbMigrations := r.Coordinator.GetAppliedMigrations()
+// 	filteredMigrations := r.filterDBMigrations(dbMigrations, filters)
+// 	return filteredMigrations, nil
+// }
 
-func (r *RootResolver) DBMigration(args struct {
-	File   string
-	Schema string
-}) (types.MigrationDB, error) {
-	filters := dbMigrationsFilters{sourceMigrationsFilters: sourceMigrationsFilters{File: &args.File}, Schema: &args.Schema}
-	dbMigrations := r.Coordinator.GetAppliedMigrations()
-	filteredMigrations := r.filterDBMigrations(dbMigrations, filters)
-	if len(filteredMigrations) == 0 {
-		return types.MigrationDB{}, fmt.Errorf("Source migration %q not found", args.File)
-	}
-	return filteredMigrations[0], nil
-}
+// func (r *RootResolver) DBMigration(args struct {
+// 	File   string
+// 	Schema string
+// }) (types.MigrationDB, error) {
+// 	filters := dbMigrationsFilters{sourceMigrationsFilters: sourceMigrationsFilters{File: &args.File}, Schema: &args.Schema}
+// 	dbMigrations := r.Coordinator.GetAppliedMigrations()
+// 	filteredMigrations := r.filterDBMigrations(dbMigrations, filters)
+// 	if len(filteredMigrations) == 0 {
+// 		return types.MigrationDB{}, fmt.Errorf("Source migration %q not found", args.File)
+// 	}
+// 	return filteredMigrations[0], nil
+// }
 
 func (r *RootResolver) filterMigrations(migrations []types.Migration, filters sourceMigrationsFilters) []types.Migration {
 	filtered := []types.Migration{}

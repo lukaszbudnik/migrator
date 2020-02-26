@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ type Connector interface {
 	GetTenants() []types.Tenant
 	GetVersions() []types.Version
 	GetVersionsByFile(file string) []types.Version
+	GetVersionByID(ID int32) types.Version
 	GetAppliedMigrations() []types.MigrationDB
 	ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults
 	AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults
@@ -169,19 +171,66 @@ func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
 	return bc.readVersions(rows)
 }
 
-func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
-	versions := []types.Version{}
+func (bc *baseConnector) GetVersionByID(ID int32) types.Version {
+	versionsSelectSQL := bc.dialect.GetVersionByIDSQL()
 
-	for rows.Next() {
-		var id int64
-		var name string
-		var created time.Time
-		if err := rows.Scan(&id, &name, &created); err != nil {
-			panic(fmt.Sprintf("Could not read versions: %v", err))
-		}
-		versions = append(versions, types.Version{ID: int32(id), Name: name, Created: graphql.Time{Time: created}})
+	rows, err := bc.db.Query(versionsSelectSQL, ID)
+	if err != nil {
+		panic(fmt.Sprintf("Could not query versions: %v", err))
 	}
 
+	// readVersions is generic and returns a slice of Version objects
+	// we are querying by ID and are interested in only the first one
+	versions := bc.readVersions(rows)
+
+	if len(versions) == 0 {
+		panic(fmt.Sprintf("Could not find versions for ID: %v", ID))
+	}
+
+	return versions[0]
+}
+
+func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
+	versions := []types.Version{}
+	versionsMap := map[int64]*types.Version{}
+
+	for rows.Next() {
+		var (
+			vid           int64
+			vname         string
+			vcreated      time.Time
+			mid           int64
+			name          string
+			sourceDir     string
+			filename      string
+			migrationType types.MigrationType
+			schema        string
+			created       time.Time
+			contents      string
+			checksum      string
+		)
+
+		if err := rows.Scan(&vid, &vname, &vcreated, &mid, &name, &sourceDir, &filename, &migrationType, &schema, &created, &contents, &checksum); err != nil {
+			panic(fmt.Sprintf("Could not read versions: %v", err))
+		}
+		if versionsMap[vid] == nil {
+			version := types.Version{ID: int32(vid), Name: vname, Created: graphql.Time{Time: vcreated}}
+			versionsMap[vid] = &version
+		}
+
+		version := versionsMap[vid]
+		migration := types.Migration{ID: int32(mid), Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
+		version.DBMigrations = append(version.DBMigrations, types.MigrationDB{Migration: migration, Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
+	}
+
+	// map to versions
+	for _, v := range versionsMap {
+		versions = append(versions, *v)
+	}
+	// since we used map above sort by version
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i].ID > versions[j].ID
+	})
 	return versions
 }
 

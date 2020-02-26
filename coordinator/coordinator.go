@@ -18,6 +18,7 @@ type Coordinator interface {
 	GetTenants() []types.Tenant
 	GetVersions() []types.Version
 	GetVersionsByFile(string) []types.Version
+	GetVersionByID(int32) types.Version
 	GetSourceMigrations() []types.Migration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
@@ -81,6 +82,10 @@ func (c *coordinator) GetVersions() []types.Version {
 
 func (c *coordinator) GetVersionsByFile(file string) []types.Version {
 	return c.connector.GetVersionsByFile(file)
+}
+
+func (c *coordinator) GetVersionByID(ID int32) types.Version {
+	return c.connector.GetVersionByID(ID)
 }
 
 func (c *coordinator) GetSourceMigrations() []types.Migration {

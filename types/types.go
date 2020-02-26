@@ -113,13 +113,15 @@ type Tenant struct {
 
 // Version contains information about migrator versions
 type Version struct {
-	ID      int32        `json:"id"`
-	Name    string       `json:"name"`
-	Created graphql.Time `json:"created"`
+	ID           int32         `json:"id"`
+	Name         string        `json:"name"`
+	Created      graphql.Time  `json:"created"`
+	DBMigrations []DBMigration `json:"dbMigrations"`
 }
 
 // Migration contains basic information about migration
 type Migration struct {
+	ID            int32         `json:"id"`
 	Name          string        `json:"name"`
 	SourceDir     string        `json:"sourceDir"`
 	File          string        `json:"file"`

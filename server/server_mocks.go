@@ -66,6 +66,11 @@ func (m *mockedCoordinator) GetVersionsByFile(file string) []types.Version {
 	return []types.Version{a}
 }
 
+func (m *mockedCoordinator) GetVersionByID(ID int32) types.Version {
+	a := types.Version{ID: ID, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	return a
+}
+
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
 	if m.errorThreshold == m.counter {
 		m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "123"}

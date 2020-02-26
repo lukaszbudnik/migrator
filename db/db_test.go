@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	existingVersion types.Version
+)
+
 func newTestContext() context.Context {
 	ctx := context.TODO()
 	ctx = context.WithValue(ctx, common.RequestIDKey{}, time.Now().Nanosecond())
@@ -397,5 +401,36 @@ func TestGetVersions(t *testing.T) {
 	defer connector.Dispose()
 
 	versions := connector.GetVersions()
+
 	assert.True(t, len(versions) >= 2)
+	// versions are sorted from newest (highest ID) to oldest (lowest ID)
+	assert.True(t, versions[0].ID > versions[1].ID)
+
+	existingVersion = versions[0]
+}
+
+func TestGetVersionsByFile(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	versions := connector.GetVersionsByFile(existingVersion.DBMigrations[0].File)
+	version := versions[0]
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.Equal(t, existingVersion.DBMigrations[0].File, version.DBMigrations[0].File)
+	assert.True(t, len(version.DBMigrations) > 0)
+}
+
+func TestGetVersionByID(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	version := connector.GetVersionByID(existingVersion.ID)
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.True(t, len(version.DBMigrations) > 0)
 }

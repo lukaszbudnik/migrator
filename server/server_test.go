@@ -114,7 +114,7 @@ func TestDiskMigrationsRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 // section /migrations/applied
@@ -132,7 +132,7 @@ func TestAppliedMigrationsRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":"sha256","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z","created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":"sha256","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z","created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
 }
 
 // section /migrations
@@ -151,7 +151,7 @@ func TestMigrationsPostRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
 func TestMigrationsPostRouteSummaryResponse(t *testing.T) {
@@ -187,7 +187,7 @@ func TestMigrationsPostRouteListResponse(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestMigrationsPostRouteBadRequest(t *testing.T) {
@@ -256,7 +256,7 @@ func TestTenantsPostRoute(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
 func TestTenantsPostRouteSummaryResponse(t *testing.T) {
@@ -292,7 +292,7 @@ func TestTenantsPostRouteListResponse(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestTenantsPostRouteBadRequestError(t *testing.T) {

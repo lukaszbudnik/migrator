@@ -48,6 +48,26 @@ func (m *mockedCoordinator) GetVersionsByFile(file string) []types.Version {
 	return []types.Version{a}
 }
 
+func (m *mockedCoordinator) GetVersionByID(ID int32) types.Version {
+	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
+	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
+	db1 := types.MigrationDB{Migration: m1, Schema: "source", Created: graphql.Time{Time: d1}}
+
+	m2 := types.Migration{Name: "202002180000.sql", SourceDir: "config", File: "config/202002180000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
+	d2 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
+	db2 := types.MigrationDB{Migration: m2, Schema: "source", Created: graphql.Time{Time: d2}}
+
+	m3 := types.Migration{Name: "202002180000.sql", SourceDir: "tenants", File: "tenants/202002180000.sql", MigrationType: types.MigrationTypeTenantMigration, Contents: "select abc"}
+	d3 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
+	db3 := types.MigrationDB{Migration: m3, Schema: "abc", Created: graphql.Time{Time: d3}}
+	db4 := types.MigrationDB{Migration: m3, Schema: "def", Created: graphql.Time{Time: d3}}
+	db5 := types.MigrationDB{Migration: m3, Schema: "xyz", Created: graphql.Time{Time: d3}}
+
+	a := types.Version{ID: ID, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}, DBMigrations: []types.MigrationDB{db1, db2, db3, db4, db5}}
+
+	return a
+}
+
 func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)

@@ -90,6 +90,11 @@ func (m *mockedConnector) GetVersionsByFile(file string) []types.Version {
 	return []types.Version{a}
 }
 
+func (m *mockedConnector) GetVersionByID(ID int32) types.Version {
+	a := types.Version{ID: ID, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
+	return a
+}
+
 func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
