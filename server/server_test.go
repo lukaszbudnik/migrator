@@ -21,7 +21,7 @@ var (
 	configFileOverrides = "../test/migrator-overrides.yaml"
 )
 
-func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
+func newTestRequestV1(method, url string, body io.Reader) (*http.Request, error) {
 	versionURL := "/v1" + url
 	return http.NewRequest(method, versionURL, body)
 }
@@ -83,6 +83,8 @@ func TestRootWithPathPrefix(t *testing.T) {
 	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v1"]}`, strings.TrimSpace(w.Body.String()))
 }
 
+// /v1 API
+
 // section /config
 
 func TestConfigRoute(t *testing.T) {
@@ -92,11 +94,14 @@ func TestConfigRoute(t *testing.T) {
 	router := testSetupRouter(config, nil)
 
 	w := httptest.NewRecorder()
-	req, _ := newTestRequest("GET", "/config", nil)
+	req, _ := newTestRequestV1("GET", "/config", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/x-yaml; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	// confirm /v1 has Deprecated and Sunset headers
+	assert.Equal(t, `version="v2020.1.0"`, w.HeaderMap["Deprecation"][0])
+	assert.Equal(t, `<https://github.com/lukaszbudnik/migrator/#v2---graphql-based-api>; rel="successor-version"`, w.HeaderMap["Link"][0])
 	assert.Equal(t, config.String(), strings.TrimSpace(w.Body.String()))
 }
 
@@ -109,12 +114,12 @@ func TestDiskMigrationsRoute(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	w := httptest.NewRecorder()
-	req, _ := newTestRequest("GET", "/migrations/source", nil)
+	req, _ := newTestRequestV1("GET", "/migrations/source", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`, strings.TrimSpace(w.Body.String()))
 }
 
 // section /migrations/applied
@@ -125,14 +130,14 @@ func TestAppliedMigrationsRoute(t *testing.T) {
 
 	router := testSetupRouter(config, newMockedCoordinator)
 
-	req, _ := newTestRequest(http.MethodGet, "/migrations/applied", nil)
+	req, _ := newTestRequestV1(http.MethodGet, "/migrations/applied", nil)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":"sha256","schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z","created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":"sha256","id":0,"schema":"source","appliedAt":"2016-02-22T16:41:01.000000123Z","created":"2016-02-22T16:41:01.000000123Z"}]`, strings.TrimSpace(w.Body.String()))
 }
 
 // section /migrations
@@ -144,14 +149,14 @@ func TestMigrationsPostRoute(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"mode": "apply", "response": "full"}`)
-	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/migrations", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"contents":"select abc","checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
 func TestMigrationsPostRouteSummaryResponse(t *testing.T) {
@@ -161,7 +166,7 @@ func TestMigrationsPostRouteSummaryResponse(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"mode": "apply", "response": "summary"}`)
-	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/migrations", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -179,7 +184,7 @@ func TestMigrationsPostRouteListResponse(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"mode": "apply", "response": "list"}`)
-	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/migrations", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -187,7 +192,7 @@ func TestMigrationsPostRouteListResponse(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"checkSum":""},{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220000.sql","sourceDir":"source","file":"source/201602220000.sql","migrationType":1,"checkSum":""},{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestMigrationsPostRouteBadRequest(t *testing.T) {
@@ -198,7 +203,7 @@ func TestMigrationsPostRouteBadRequest(t *testing.T) {
 
 	// response is invalid
 	json := []byte(`{"mode": "apply", "response": "abc"}`)
-	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/migrations", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -215,7 +220,7 @@ func TestMigrationsPostRouteCheckSumError(t *testing.T) {
 	router := testSetupRouter(config, newMockedErrorCoordinator(0))
 
 	json := []byte(`{"mode": "apply", "response": "full"}`)
-	req, _ := newTestRequest(http.MethodPost, "/migrations", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/migrations", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -234,7 +239,7 @@ func TestTenantsGetRoute(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	w := httptest.NewRecorder()
-	req, _ := newTestRequest("GET", "/tenants", nil)
+	req, _ := newTestRequestV1("GET", "/tenants", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -249,14 +254,14 @@ func TestTenantsPostRoute(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"name": "new_tenant", "response": "full", "mode":"dry-run"}`)
-	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"contents":"select def","checkSum":""}]`)
 }
 
 func TestTenantsPostRouteSummaryResponse(t *testing.T) {
@@ -266,7 +271,7 @@ func TestTenantsPostRouteSummaryResponse(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"name": "new_tenant", "response": "summary", "mode":"dry-run"}`)
-	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -284,7 +289,7 @@ func TestTenantsPostRouteListResponse(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"name": "new_tenant", "response": "list", "mode":"dry-run"}`)
-	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -292,7 +297,7 @@ func TestTenantsPostRouteListResponse(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	assert.Contains(t, strings.TrimSpace(w.Body.String()), `"results":`)
-	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"id":0,"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
+	assert.Contains(t, strings.TrimSpace(w.Body.String()), `[{"name":"201602220001.sql","sourceDir":"source","file":"source/201602220001.sql","migrationType":2,"checkSum":""}]`)
 }
 
 func TestTenantsPostRouteBadRequestError(t *testing.T) {
@@ -302,7 +307,7 @@ func TestTenantsPostRouteBadRequestError(t *testing.T) {
 	router := testSetupRouter(config, newMockedCoordinator)
 
 	json := []byte(`{"a": "new_tenant"}`)
-	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -319,7 +324,7 @@ func TestTenantsPostRouteCheckSumError(t *testing.T) {
 	router := testSetupRouter(config, newMockedErrorCoordinator(0))
 
 	json := []byte(`{"name": "new_tenant", "response": "full", "mode":"dry-run"}`)
-	req, _ := newTestRequest(http.MethodPost, "/tenants", bytes.NewBuffer(json))
+	req, _ := newTestRequestV1(http.MethodPost, "/tenants", bytes.NewBuffer(json))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -336,7 +341,7 @@ func TestRouteError(t *testing.T) {
 	router := testSetupRouter(config, newMockedErrorCoordinator(0))
 
 	w := httptest.NewRecorder()
-	req, _ := newTestRequest("GET", "/migrations/source", nil)
+	req, _ := newTestRequestV1("GET", "/migrations/source", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -344,7 +349,7 @@ func TestRouteError(t *testing.T) {
 	assert.Equal(t, `{"error":"Mocked Error Disk Loader: threshold 0 reached"}`, strings.TrimSpace(w.Body.String()))
 }
 
-// GraphQL section
+// /v2 API
 
 func TestGraphQLQueryWithVariables(t *testing.T) {
 	config, err := config.FromFile(configFile)
@@ -364,5 +369,25 @@ func TestGraphQLQueryWithVariables(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"data":{"sourceMigration":{"name":"201602220001.sql","migrationType":"TenantMigration","sourceDir":"source","file":"source/201602220001.sql"}}}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"data":{"sourceMigration":{"name":"201602220001.sql","migrationType":"SingleMigration","sourceDir":"source","file":"source/201602220001.sql"}}}`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestGraphQLQueryError(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("POST", "/service", strings.NewReader(`
+    {
+      "query": "query SourceMigration($file: String!) { sourceMigration(file: $file) { name, migrationType, sourceDir, file } }",
+      "operationName": "SourceMigration",
+    }
+  `))
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
 }

@@ -12,6 +12,7 @@ type dialect interface {
 	GetTenantSelectSQL() string
 	GetMigrationInsertSQL() string
 	GetMigrationSelectSQL() string
+	GetMigrationByIDSQL() string
 	GetCreateTenantsTableSQL() string
 	GetCreateMigrationsTableSQL() string
 	GetCreateSchemaSQL(string) string

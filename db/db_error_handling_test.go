@@ -527,3 +527,87 @@ func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+func TestGetVersionsError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	// don't have to provide full SQL here - patterns at work
+	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not query versions: trouble maker", func() {
+		connector.GetVersions()
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetVersionsByFileError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	// don't have to provide full SQL here - patterns at work
+	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not query versions: trouble maker", func() {
+		connector.GetVersionsByFile("file")
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetVersionsByIDError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	// don't have to provide full SQL here - patterns at work
+	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not query versions: trouble maker", func() {
+		connector.GetVersionByID(0)
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetDBMigrationByIDError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	// don't have to provide full SQL here - patterns at work
+	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not query DB migrations: trouble maker", func() {
+		connector.GetDBMigrationByID(0)
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}

@@ -3,7 +3,8 @@ package coordinator
 import (
 	"context"
 	"encoding/json"
-	"sync"
+	"fmt"
+	"reflect"
 
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
@@ -13,13 +14,25 @@ import (
 	"github.com/lukaszbudnik/migrator/types"
 )
 
+// SourceMigrationFilters defines filters which can be used to fetch source migrations
+type SourceMigrationFilters struct {
+	Name          *string
+	SourceDir     *string
+	File          *string
+	MigrationType *types.MigrationType
+}
+
 // Coordinator interface abstracts all operations performed by migrator
 type Coordinator interface {
 	GetTenants() []types.Tenant
 	GetVersions() []types.Version
 	GetVersionsByFile(string) []types.Version
-	GetVersionByID(int32) types.Version
-	GetSourceMigrations() []types.Migration
+	GetVersionByID(int32) (*types.Version, error)
+	GetDBMigrationByID(int32) (*types.DBMigration, error)
+	GetSourceMigrations(*SourceMigrationFilters) []types.Migration
+	GetSourceMigrationByFile(string) (*types.Migration, error)
+	// deprecated in v2020.1.0 sunset in v2021.1.0
+	// Version now contains slice of DBMigration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
 	ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration)
@@ -29,17 +42,11 @@ type Coordinator interface {
 
 // coordinator struct is a struct for implementing DB specific dialects
 type coordinator struct {
-	ctx               context.Context
-	connector         db.Connector
-	loader            loader.Loader
-	notifier          notifications.Notifier
-	config            *config.Config
-	tenants           []types.Tenant
-	versions          []types.Version
-	sourceMigrations  []types.Migration
-	appliedMigrations []types.MigrationDB
-	loaderLock        sync.Mutex
-	connectorLock     sync.Mutex
+	ctx       context.Context
+	connector db.Connector
+	loader    loader.Loader
+	notifier  notifications.Notifier
+	config    *config.Config
 }
 
 // Factory creates new Coordinator instance
@@ -61,51 +68,45 @@ func New(ctx context.Context, config *config.Config, newConnector db.Factory, ne
 }
 
 func (c *coordinator) GetTenants() []types.Tenant {
-	c.connectorLock.Lock()
-	defer c.connectorLock.Unlock()
-	if c.tenants == nil {
-		tenants := c.connector.GetTenants()
-		c.tenants = tenants
-	}
-	return c.tenants
+	return c.connector.GetTenants()
 }
 
 func (c *coordinator) GetVersions() []types.Version {
-	c.connectorLock.Lock()
-	defer c.connectorLock.Unlock()
-	if c.versions == nil {
-		versions := c.connector.GetVersions()
-		c.versions = versions
-	}
-	return c.versions
+	return c.connector.GetVersions()
 }
 
 func (c *coordinator) GetVersionsByFile(file string) []types.Version {
 	return c.connector.GetVersionsByFile(file)
 }
 
-func (c *coordinator) GetVersionByID(ID int32) types.Version {
+func (c *coordinator) GetVersionByID(ID int32) (*types.Version, error) {
 	return c.connector.GetVersionByID(ID)
 }
 
-func (c *coordinator) GetSourceMigrations() []types.Migration {
-	c.loaderLock.Lock()
-	defer c.loaderLock.Unlock()
-	if c.sourceMigrations == nil {
-		sourceMigrations := c.loader.GetSourceMigrations()
-		c.sourceMigrations = sourceMigrations
+func (c *coordinator) GetSourceMigrations(filters *SourceMigrationFilters) []types.Migration {
+	allSourceMigrations := c.loader.GetSourceMigrations()
+	filteredMigrations := c.filterMigrations(allSourceMigrations, filters)
+	return filteredMigrations
+}
+
+func (c *coordinator) GetSourceMigrationByFile(file string) (*types.Migration, error) {
+	allSourceMigrations := c.loader.GetSourceMigrations()
+	filters := SourceMigrationFilters{
+		File: &file,
 	}
-	return c.sourceMigrations
+	filteredMigrations := c.filterMigrations(allSourceMigrations, &filters)
+	if len(filteredMigrations) == 0 {
+		return nil, fmt.Errorf("Source migration not found: %v", file)
+	}
+	return &filteredMigrations[0], nil
+}
+
+func (c *coordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
+	return c.connector.GetDBMigrationByID(ID)
 }
 
 func (c *coordinator) GetAppliedMigrations() []types.MigrationDB {
-	c.connectorLock.Lock()
-	defer c.connectorLock.Unlock()
-	if c.appliedMigrations == nil {
-		appliedMigrations := c.connector.GetAppliedMigrations()
-		c.appliedMigrations = appliedMigrations
-	}
-	return c.appliedMigrations
+	return c.connector.GetAppliedMigrations()
 }
 
 // VerifySourceMigrationsCheckSums verifies if CheckSum of source and applied DB migrations match
@@ -114,7 +115,7 @@ func (c *coordinator) GetAppliedMigrations() []types.MigrationDB {
 // if bool is false the function returns a slice of offending migrations
 // if bool is true the slice of effending migrations is empty
 func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
-	sourceMigrations := c.GetSourceMigrations()
+	sourceMigrations := c.GetSourceMigrations(nil)
 	appliedMigrations := c.GetAppliedMigrations()
 
 	flattenedAppliedMigration := c.flattenAppliedMigrations(appliedMigrations)
@@ -136,7 +137,7 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 }
 
 func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
-	sourceMigrations := c.GetSourceMigrations()
+	sourceMigrations := c.GetSourceMigrations(nil)
 	appliedMigrations := c.GetAppliedMigrations()
 
 	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
@@ -150,7 +151,7 @@ func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.Mig
 }
 
 func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string) (*types.MigrationResults, []types.Migration) {
-	sourceMigrations := c.GetSourceMigrations()
+	sourceMigrations := c.GetSourceMigrations(nil)
 
 	// filter only tenant schemas
 	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
@@ -256,4 +257,40 @@ func (c *coordinator) sendNotification(results *types.MigrationResults) {
 	} else {
 		common.LogInfo(c.ctx, "Notifier response: %v", resp)
 	}
+}
+
+func (c *coordinator) filterMigrations(migrations []types.Migration, filters *SourceMigrationFilters) []types.Migration {
+	filtered := []types.Migration{}
+	for _, m := range migrations {
+		match := c.matchMigration(m, filters)
+		if match {
+			filtered = append(filtered, m)
+		}
+	}
+	return filtered
+}
+
+func (c *coordinator) matchMigration(m types.Migration, filters *SourceMigrationFilters) bool {
+	match := true
+
+	if filters == nil {
+		return match
+	}
+
+	ps := reflect.ValueOf(filters)
+	s := ps.Elem()
+	for i := 0; i < s.Type().NumField(); i++ {
+		// if filter is nil it means match
+		if s.Field(i).IsNil() {
+			continue
+		}
+		// args field names match migration names
+		pm := reflect.ValueOf(m).FieldByName(s.Type().Field(i).Name)
+		match = match && (pm.Interface() == s.Field(i).Elem().Interface())
+		// if already non match don't bother further looping
+		if !match {
+			break
+		}
+	}
+	return match
 }

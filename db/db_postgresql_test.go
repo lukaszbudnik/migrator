@@ -123,3 +123,15 @@ func TestPostgreSQLGetVersionByIDSQL(t *testing.T) {
 
 	assert.Equal(t, "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from migrator.migrator_versions mv left join migrator.migrator_migrations mm on mv.id = mm.version_id where mv.id = $1 order by mid asc", versionsByID)
 }
+
+func TestPostgreSQLGetMigrationByIDSQL(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+
+	migrationByID := dialect.GetMigrationByIDSQL()
+
+	assert.Equal(t, "select id, name, source_dir, filename, type, db_schema, created, contents, checksum from migrator.migrator_migrations where id = $1", migrationByID)
+}

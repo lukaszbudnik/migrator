@@ -16,6 +16,7 @@ const (
 	insertVersionMSSQLSQLDialectSQL     = "insert into %v.%v (name) output inserted.id values (@p1)"
 	selectVersionsByFileMSSQLDialectSQL = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id in (select version_id from %v.%v where filename = @p1) order by vid desc, mid asc"
 	selectVersionByIDMSSQLDialectSQL    = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id = @p1 order by mid asc"
+	selectMigrationByIDMSSQLDialectSQL  = "select id, name, source_dir, filename, type, db_schema, created, contents, checksum from %v.%v where id = @p1"
 	createTenantsTableMSSQLDialectSQL   = `
 IF NOT EXISTS (select * from information_schema.tables where table_schema = '%v' and table_name = '%v')
 BEGIN
@@ -124,4 +125,8 @@ func (md *msSQLDialect) GetVersionsByFileSQL() string {
 
 func (md *msSQLDialect) GetVersionByIDSQL() string {
 	return fmt.Sprintf(selectVersionByIDMSSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
+}
+
+func (md *msSQLDialect) GetMigrationByIDSQL() string {
+	return fmt.Sprintf(selectMigrationByIDMSSQLDialectSQL, migratorSchema, migratorMigrationsTable)
 }

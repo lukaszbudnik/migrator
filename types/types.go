@@ -121,7 +121,6 @@ type Version struct {
 
 // Migration contains basic information about migration
 type Migration struct {
-	ID            int32         `json:"id"`
 	Name          string        `json:"name"`
 	SourceDir     string        `json:"sourceDir"`
 	File          string        `json:"file"`
@@ -139,6 +138,7 @@ type DBMigration = MigrationDB
 // replaced by DBMigration
 type MigrationDB struct {
 	Migration
+	ID     int32  `json:"id"`
 	Schema string `json:"schema"`
 	// appliedAt is deprecated the SQL column is already called created
 	// API v1 uses AppliedAt
