@@ -113,9 +113,10 @@ type Tenant struct {
 
 // Version contains information about migrator versions
 type Version struct {
-	ID      int32        `json:"id"`
-	Name    string       `json:"name"`
-	Created graphql.Time `json:"created"`
+	ID           int32         `json:"id"`
+	Name         string        `json:"name"`
+	Created      graphql.Time  `json:"created"`
+	DBMigrations []DBMigration `json:"dbMigrations"`
 }
 
 // Migration contains basic information about migration
@@ -137,6 +138,7 @@ type DBMigration = MigrationDB
 // replaced by DBMigration
 type MigrationDB struct {
 	Migration
+	ID     int32  `json:"id"`
 	Schema string `json:"schema"`
 	// appliedAt is deprecated the SQL column is already called created
 	// API v1 uses AppliedAt

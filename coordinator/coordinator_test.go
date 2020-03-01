@@ -228,7 +228,7 @@ func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
 	defer coordinator.Dispose()
 	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
 	assert.False(t, verified)
-	assert.Equal(t, coordinator.GetSourceMigrations()[0], offendingMigrations[0])
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[0], offendingMigrations[0])
 }
 
 func TestVerifySourceMigrationsAndScriptsCheckSumsOK(t *testing.T) {
@@ -243,8 +243,9 @@ func TestApplyMigrations(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	_, appliedMigrations := coordinator.ApplyMigrations(types.ModeTypeApply)
-	assert.Len(t, appliedMigrations, 1)
-	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
+	assert.Len(t, appliedMigrations, 4)
+	// first source migration is already applied so getting the 2nd one
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[1], appliedMigrations[0])
 }
 
 func TestAddTenantAndApplyMigrations(t *testing.T) {
@@ -252,7 +253,7 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	defer coordinator.Dispose()
 	_, appliedMigrations := coordinator.AddTenantAndApplyMigrations(types.ModeTypeApply, "new")
 	assert.Len(t, appliedMigrations, 1)
-	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[4], appliedMigrations[0])
 }
 
 func TestGetTenants(t *testing.T) {
@@ -263,4 +264,114 @@ func TestGetTenants(t *testing.T) {
 	b := types.Tenant{Name: "b"}
 	c := types.Tenant{Name: "c"}
 	assert.Equal(t, []types.Tenant{a, b, c}, tenants)
+}
+
+func TestGetVersions(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	versions := coordinator.GetVersions()
+
+	assert.Equal(t, int32(12), versions[0].ID)
+	assert.Equal(t, int32(121), versions[1].ID)
+	assert.Equal(t, int32(122), versions[2].ID)
+}
+
+func TestGetVersionByID(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	version, _ := coordinator.GetVersionByID(123)
+
+	assert.Equal(t, int32(123), version.ID)
+}
+
+func TestGetVersionsByFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	versions := coordinator.GetVersionsByFile("tenants/abc.sql")
+
+	assert.Equal(t, int32(12), versions[0].ID)
+}
+
+func TestGetMigrationByID(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	migration, _ := coordinator.GetDBMigrationByID(456)
+
+	assert.Equal(t, int32(456), migration.ID)
+}
+
+// Notifier error should not cause the whole process to fail
+func TestApplyMigrationsNotifierError(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	_, appliedMigrations := coordinator.ApplyMigrations(types.ModeTypeApply)
+	assert.Len(t, appliedMigrations, 4)
+	// first source migration is already applied so getting the 2nd one
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[1], appliedMigrations[0])
+}
+
+func TestGetSourceMigrationByFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "source/201602220001.sql"
+	migration, err := coordinator.GetSourceMigrationByFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, file, migration.File)
+}
+
+func TestGetSourceMigrationByFileNotFound(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "xyz/201602220001.sql"
+	_, err := coordinator.GetSourceMigrationByFile(file)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Source migration not found: xyz/201602220001.sql", err.Error())
+}
+
+func TestGetSourceMigrationsFilterMigrationType(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 4)
+}
+
+func TestGetSourceMigrationsFilterMigrationTypeSourceDir(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	sourceDir := "source"
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+		SourceDir:     &sourceDir,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 3)
+}
+
+func TestGetSourceMigrationsFilterMigrationTypeName(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	name := "201602220001.sql"
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+		Name:          &name,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 2)
+}
+
+func TestGetSourceMigrationsFilterFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "source/201602220001.sql"
+	filters := SourceMigrationFilters{
+		File: &file,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 1)
 }

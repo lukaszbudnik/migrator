@@ -3,9 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -63,6 +61,10 @@ func requestIDHandler() gin.HandlerFunc {
 		}
 		ctx := context.WithValue(c.Request.Context(), common.RequestIDKey{}, requestID)
 		c.Request = c.Request.WithContext(ctx)
+		if strings.Contains(c.Request.URL.Path, "/v1/") {
+			c.Header("Deprecation", `version="v2020.1.0"`)
+			c.Header("Link", `<https://github.com/lukaszbudnik/migrator/#v2---graphql-based-api>; rel="successor-version"`)
+		}
 		c.Next()
 	}
 }
@@ -71,29 +73,11 @@ func recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Check for a broken connection, as it is not really a
-				// condition that warrants a panic stack trace.
-				var brokenPipe bool
-				if ne, ok := err.(*net.OpError); ok {
-					if se, ok := ne.Err.(*os.SyscallError); ok {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
-							brokenPipe = true
-						}
-					}
+				common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
+				if gin.IsDebugging() {
+					debug.PrintStack()
 				}
-
-				// If the connection is dead, we can't write a status to it.
-				if brokenPipe {
-					common.LogPanic(c.Request.Context(), "Broken pipe: %v", err)
-					c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
-				} else {
-					common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
-					if gin.IsDebugging() {
-						debug.PrintStack()
-					}
-					c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
-				}
+				c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
 			}
 		}()
 		c.Next()
@@ -120,7 +104,7 @@ func configHandler(c *gin.Context, config *config.Config, newCoordinator func(co
 func migrationsSourceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
-	migrations := coordinator.GetSourceMigrations()
+	migrations := coordinator.GetSourceMigrations(nil)
 	common.LogInfo(c.Request.Context(), "Returning source migrations: %v", len(migrations))
 	c.JSON(http.StatusOK, migrations)
 }

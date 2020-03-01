@@ -14,7 +14,9 @@ const (
 	insertMigrationMySQLDialectSQL             = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values (?, ?, ?, ?, ?, ?, ?, ?)"
 	insertTenantMySQLDialectSQL                = "insert into %v.%v (name) values (?)"
 	insertVersionMySQLDialectSQL               = "insert into %v.%v (name) values (?)"
-	selectVersionsByFileMySQLDialectSQL        = "select distinct id, name, created from %v.%v where id in (select version_id from %v.%v where filename = ?)"
+	selectVersionsByFileMySQLDialectSQL        = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id in (select version_id from %v.%v where filename = ?) order by vid desc, mid asc"
+	selectVersionByIDMySQLDialectSQL           = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id = ? order by mid asc"
+	selectMigrationByIDMySQLDialectSQL         = "select id, name, source_dir, filename, type, db_schema, created, contents, checksum from %v.%v where id = ?"
 	versionsTableSetupMySQLDropDialectSQL      = `drop procedure if exists migrator_create_versions`
 	versionsTableSetupMySQLCallDialectSQL      = `call migrator_create_versions()`
 	versionsTableSetupMySQLProcedureDialectSQL = `
@@ -75,5 +77,13 @@ func (md *mySQLDialect) GetCreateVersionsTableSQL() []string {
 }
 
 func (md *mySQLDialect) GetVersionsByFileSQL() string {
-	return fmt.Sprintf(selectVersionsByFileMySQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
+	return fmt.Sprintf(selectVersionsByFileMySQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
+}
+
+func (md *mySQLDialect) GetVersionByIDSQL() string {
+	return fmt.Sprintf(selectVersionByIDMySQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
+}
+
+func (md *mySQLDialect) GetMigrationByIDSQL() string {
+	return fmt.Sprintf(selectMigrationByIDMySQLDialectSQL, migratorSchema, migratorMigrationsTable)
 }

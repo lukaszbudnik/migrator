@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/graph-gophers/graphql-go"
@@ -30,7 +31,7 @@ func newMockedErrorCoordinator(errorThreshold int) func(context.Context, *config
 func (m *mockedCoordinator) Dispose() {
 }
 
-func (m *mockedCoordinator) GetSourceMigrations() []types.Migration {
+func (m *mockedCoordinator) GetSourceMigrations(_ *coordinator.SourceMigrationFilters) []types.Migration {
 	if m.errorThreshold == m.counter {
 		panic(fmt.Sprintf("Mocked Error Disk Loader: threshold %v reached", m.errorThreshold))
 	}
@@ -40,11 +41,24 @@ func (m *mockedCoordinator) GetSourceMigrations() []types.Migration {
 	return []types.Migration{m1, m2}
 }
 
+func (m *mockedCoordinator) GetSourceMigrationByFile(file string) (*types.Migration, error) {
+	i := strings.Index(file, "/")
+	sourceDir := file[:i]
+	name := file[i+1:]
+	m1 := types.Migration{Name: name, SourceDir: sourceDir, File: file, MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
+	return &m1, nil
+}
+
 func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "sha256"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}, Created: graphql.Time{Time: d1}}}
 	return ms
+}
+
+// part of interface but not used in server tests - tested in data package
+func (m *mockedCoordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
+	return nil, nil
 }
 
 func (m *mockedCoordinator) GetTenants() []types.Tenant {
@@ -54,16 +68,19 @@ func (m *mockedCoordinator) GetTenants() []types.Tenant {
 	return []types.Tenant{a, b, c}
 }
 
+// part of interface but not used in server tests - tested in data package
 func (m *mockedCoordinator) GetVersions() []types.Version {
-	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
-	b := types.Version{ID: 121, Name: "bb", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -1)}}
-	c := types.Version{ID: 122, Name: "ccc", Created: graphql.Time{Time: time.Now()}}
-	return []types.Version{a, b, c}
+	return []types.Version{}
 }
 
+// part of interface but not used in server tests - tested in data package
 func (m *mockedCoordinator) GetVersionsByFile(file string) []types.Version {
-	a := types.Version{ID: 12, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}}
-	return []types.Version{a}
+	return []types.Version{}
+}
+
+// part of interface but not used in server tests - tested in data package
+func (m *mockedCoordinator) GetVersionByID(ID int32) (*types.Version, error) {
+	return nil, nil
 }
 
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
@@ -76,9 +93,9 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 }
 
 func (m *mockedCoordinator) ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, m.GetSourceMigrations()
+	return &types.MigrationResults{}, m.GetSourceMigrations(nil)
 }
 
 func (m *mockedCoordinator) AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, m.GetSourceMigrations()[1:]
+	return &types.MigrationResults{}, m.GetSourceMigrations(nil)[1:]
 }

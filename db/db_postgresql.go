@@ -14,7 +14,9 @@ const (
 	insertMigrationPostgreSQLDialectSQL      = "insert into %v.%v (name, source_dir, filename, type, db_schema, contents, checksum, version_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
 	insertTenantPostgreSQLDialectSQL         = "insert into %v.%v (name) values ($1)"
 	insertVersionPostgreSQLDialectSQL        = "insert into %v.%v (name) values ($1) returning id"
-	selectVersionsByFilePostgreSQLDialectSQL = "select distinct id, name, created from %v.%v where id in (select version_id from %v.%v where filename = $1)"
+	selectVersionsByFilePostgreSQLDialectSQL = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id in (select version_id from %v.%v where filename = $1) order by vid desc, mid asc"
+	selectVersionByIDPostgreSQLDialectSQL    = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id where mv.id = $1 order by mid asc"
+	selectMigrationByIDPostgreSQLDialectSQL  = "select id, name, source_dir, filename, type, db_schema, created, contents, checksum from %v.%v where id = $1"
 	versionsTableSetupPostgreSQLDialectSQL   = `
 do $$
 begin
@@ -68,5 +70,13 @@ func (pd *postgreSQLDialect) GetCreateVersionsTableSQL() []string {
 }
 
 func (pd *postgreSQLDialect) GetVersionsByFileSQL() string {
-	return fmt.Sprintf(selectVersionsByFilePostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
+	return fmt.Sprintf(selectVersionsByFilePostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
+}
+
+func (pd *postgreSQLDialect) GetVersionByIDSQL() string {
+	return fmt.Sprintf(selectVersionByIDPostgreSQLDialectSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
+}
+
+func (pd *postgreSQLDialect) GetMigrationByIDSQL() string {
+	return fmt.Sprintf(selectMigrationByIDPostgreSQLDialectSQL, migratorSchema, migratorMigrationsTable)
 }

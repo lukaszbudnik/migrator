@@ -14,6 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	existingVersion     types.Version
+	existingDBMigration types.DBMigration
+)
+
 func newTestContext() context.Context {
 	ctx := context.TODO()
 	ctx = context.WithValue(ctx, common.RequestIDKey{}, time.Now().Nanosecond())
@@ -397,5 +402,74 @@ func TestGetVersions(t *testing.T) {
 	defer connector.Dispose()
 
 	versions := connector.GetVersions()
+
 	assert.True(t, len(versions) >= 2)
+	// versions are sorted from newest (highest ID) to oldest (lowest ID)
+	assert.True(t, versions[0].ID > versions[1].ID)
+
+	existingVersion = versions[0]
+	existingDBMigration = existingVersion.DBMigrations[0]
+}
+
+func TestGetVersionsByFile(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	versions := connector.GetVersionsByFile(existingVersion.DBMigrations[0].File)
+	version := versions[0]
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.Equal(t, existingVersion.DBMigrations[0].File, version.DBMigrations[0].File)
+	assert.True(t, len(version.DBMigrations) > 0)
+}
+
+func TestGetVersionByID(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	version, err := connector.GetVersionByID(existingVersion.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.True(t, len(version.DBMigrations) > 0)
+}
+
+func TestGetVersionByIDNotFound(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	version, err := connector.GetVersionByID(-1)
+	assert.Nil(t, version)
+	assert.Equal(t, "Version not found ID: -1", err.Error())
+}
+
+func TestGetDBMigrationByID(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	dbMigration, err := connector.GetDBMigrationByID(existingDBMigration.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, existingDBMigration.ID, dbMigration.ID)
+}
+
+func TestGetDBMigrationByIDNotFound(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	dbMigration, err := connector.GetDBMigrationByID(-1)
+	assert.Nil(t, dbMigration)
+	assert.Equal(t, "DB migration not found ID: -1", err.Error())
 }

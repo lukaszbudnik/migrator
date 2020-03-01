@@ -80,7 +80,7 @@ func TestBaseDialectGetVersionsSelectSQL(t *testing.T) {
 
 	versionsSelectSQL := dialect.GetVersionsSelectSQL()
 
-	expected := "select id, name, created from migrator.migrator_versions order by created desc"
+	expected := "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from migrator.migrator_versions mv left join migrator.migrator_migrations mm on mv.id = mm.version_id order by vid desc, mid asc"
 
 	assert.Equal(t, expected, versionsSelectSQL)
 }
