@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/coordinator"
+	"github.com/lukaszbudnik/migrator/data"
 	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -350,6 +351,21 @@ func TestRouteError(t *testing.T) {
 }
 
 // /v2 API
+
+func TestGraphQLSchema(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("GET", "/schema", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/plain; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, strings.TrimSpace(data.SchemaDefinition), strings.TrimSpace(w.Body.String()))
+}
 
 func TestGraphQLQueryWithVariables(t *testing.T) {
 	config, err := config.FromFile(configFile)

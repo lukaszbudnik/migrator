@@ -207,6 +207,10 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 	c.JSON(http.StatusOK, response)
 }
 
+func schemaHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	c.String(http.StatusOK, strings.TrimSpace(data.SchemaDefinition))
+}
+
 // GraphQL endpoint
 func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
 	var params struct {
@@ -263,6 +267,7 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 
 	v2 := r.Group(config.PathPrefix + "/v2")
 	v2.GET("/config", makeHandler(config, newCoordinator, configHandler))
+	v2.GET("/schema", makeHandler(config, newCoordinator, schemaHandler))
 	v2.POST("/service", makeHandler(config, newCoordinator, serviceHandler))
 
 	return r

@@ -12,10 +12,10 @@ Further, there is an official docker image available on docker hub. [lukasz/migr
 
 * [Usage](#usage)
   * [GET /](#get-)
-  * [/v2 - GraphQL-based API](#v2---graphql-based-api)
+  * [/v2 - GraphQL API](#v2---graphql-api)
     * [GET /v2/config](#get-v2config)
     * [POST /v2/service](#post-v2service)
-  * [/v1 - deprecated available in v4.x and v2020.x](#v1---deprecated-available-in-v4x-and-v2020x)
+  * [/v1](#v1)
     * [GET /v1/config](#get-v1config)
     * [GET /v1/migrations/source](#get-v1migrationssource)
     * [GET /v1/migrations/applied](#get-v1migrationsapplied)
@@ -57,7 +57,7 @@ migrator exposes a simple REST API described below.
 
 ## GET /
 
-Migrator returns build information together with supported API versions.
+Migrator returns build information together with a list of supported API versions.
 
 Sample request:
 
@@ -68,12 +68,19 @@ curl -v http://localhost:8080/
 Sample HTTP response:
 
 ```
-
+< HTTP/1.1 200 OK
+< Content-Type: application/json; charset=utf-8
+< Date: Mon, 02 Mar 2020 19:48:45 GMT
+< Content-Length: 150
+<
+{"release":"dev-v2020.1.0","commitSha":"c871b176f6e428e186dfe5114a9c86d52a4350f2","commitDate":"2020-03-01T20:58:32+01:00","apiVersions":["v1","v2"]}
 ```
 
-## /v2 - GraphQL-based API
+## /v2 - GraphQL API
 
-API v2 was introduced in migrator v2020.1.0 (old versioning convention v5.0) and is a GraphQL-based API.
+API v2 was introduced in migrator v2020.1.0. API v2 is a GraphQL API.
+
+API v2 also introduced a formal concept of DB versions. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
 
 ## GET /v2/config
 
@@ -88,11 +95,27 @@ curl -v http://localhost:8080/v2/config
 Sample HTTP response:
 
 ```
+< HTTP/1.1 200 OK
+< Content-Type: application/x-yaml; charset=utf-8
+< Date: Mon, 02 Mar 2020 20:03:13 GMT
+< Content-Length: 244
+<
+baseLocation: test/migrations
+driver: sqlserver
+dataSource: sqlserver://SA:YourStrongPassw0rd@127.0.0.1:32774/?database=migratortest&connection+timeout=1&dial+timeout=1
+singleMigrations:
+- ref
+- config
+tenantMigrations:
+- tenants
+pathPrefix: /
 ```
 
 ## GET /v2/schema
 
-Returns migrator's config as `plain/text`.
+Returns migrator's GraphQL schema as `plain/text`.
+
+Although migrator supports GraphQL introspection it is much more convenient to get the schema in the plain text.
 
 Sample request:
 
@@ -100,32 +123,62 @@ Sample request:
 curl -v http://localhost:8080/v2/schema
 ```
 
-Sample HTTP response:
+Sample HTTP response (truncated):
 
 ```
+< HTTP/1.1 200 OK
+< Content-Type: text/plain; charset=utf-8
+< Date: Mon, 02 Mar 2020 20:12:20 GMT
+< Transfer-Encoding: chunked
+<
+schema {
+  query: Query
+}
+enum MigrationType {
+  SingleMigration
+  TenantMigration
+  SingleScript
+  TenantScript
+}
+...
 ```
 
 ## POST /v2/service
 
 This is a GraphQL endpoint which handles both query and mutation requests.
 
-The GraphQL schema is as follows:
+The current GraphQL schema together with description in comments is as follows:
+
+```graphql
+
+```
+
+There are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+
+Below are a couple of curl examples to get you started.
+
+Create new version:
 
 ```
 ```
 
-For a quick start guide below are a couple of curl examples.
+Create new tenant:
 
 ```
 ```
 
-Further there are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+Query data:
 
-## /v1 - deprecated available in v4.x and v2020.x
+```
+```
+
+For more GraphQL query and mutation examples see `data/graphql_test.go`.
+
+## /v1
+
+**Deprecation**: As of migrator v2020.1.0 API v1 is deprecated and will sunset in v2021.1.0.
 
 API v1 is available in migrator v4.x and v2020.x.
-
-**Important**: As of migrator v2020.1.0 this API is deprecated and will sunset in the next major release - v2021.1.0.
 
 ## GET /v1/config
 
