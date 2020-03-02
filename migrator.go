@@ -59,7 +59,7 @@ func main() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	versionInfo := &types.VersionInfo{Release: GitBranch, CommitSha: GitCommitSha, CommitDate: GitCommitDate, APIVersions: []string{"v1"}}
+	versionInfo := &types.VersionInfo{Release: GitBranch, CommitSha: GitCommitSha, CommitDate: GitCommitDate, APIVersions: []string{"v1", "v2"}}
 	g := server.SetupRouter(versionInfo, cfg, createCoordinator)
 	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)
