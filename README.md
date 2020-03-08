@@ -370,7 +370,7 @@ EOF
 curl -d @create_tenant.txt http://localhost:8080/v2/service
 ```
 
-Query data (yes, migrator supports multiple operations in a single GrapQL query):
+Query data (yes, migrator supports multiple operations in a single GraphQL query):
 
 ```
 # new lines are used for readability but have to be removed from the actual request
