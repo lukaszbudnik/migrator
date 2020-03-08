@@ -9,12 +9,21 @@ import (
 const SchemaDefinition = `
 schema {
   query: Query
+  mutation: Mutation
 }
 enum MigrationType {
   SingleMigration
   TenantMigration
   SingleScript
   TenantScript
+}
+enum Action {
+  // Apply is the default action, migrator reads all source migrations and applies them
+  Apply
+  // Sync is an action where migrator reads all source migrations and marks them as applied in DB
+  // typical use cases are:
+  // importing source migrations from a legacy tool or synchronising tenant migrations when tenant was created using external tool
+  Sync
 }
 scalar Time
 interface Migration {
@@ -34,6 +43,7 @@ type SourceMigration implements Migration {
   checkSum: String!
 }
 type DBMigration implements Migration {
+  id: Int!
   name: String!
   migrationType: MigrationType!
   sourceDir: String!
@@ -58,6 +68,45 @@ input SourceMigrationFilters {
   file: String
   migrationType: MigrationType
 }
+input VersionInput {
+  versionName: String!
+  action: Action = Apply
+  dryRun: Boolean = false
+}
+input TenantInput {
+  tenantName: String!
+  versionName: String!
+  action: Action = Apply
+  dryRun: Boolean = false
+}
+type Summary {
+  // date time operation started
+  startedAt: Time!
+  // how long the operation took in nanoseconds
+	duration: Int!
+  // number of tenants in the system
+	tenants: Int!
+  // number of applied single schema migrations
+	singleMigrations: Int!
+  // number of applied multi-tenant schema migrations
+	tenantMigrations: Int!
+  // number of all applied multi-tenant schema migrations (equals to tenants * tenantMigrations)
+	tenantMigrationsTotal: Int!
+  // sum of singleMigrations and tenantMigrationsTotal
+	migrationsGrandTotal: Int!
+  // number of applied single schema scripts
+	singleScripts: Int!
+  // number of applied multi-tenant schema scripts
+	tenantScripts: Int!
+  // number of all applied multi-tenant schema migrations (equals to tenants * tenantScripts)
+	tenantScriptsTotal: Int!
+  // sum of singleScripts and tenantScriptsTotal
+	scriptsGrandTotal: Int!
+}
+type CreateResults {
+  summary: Summary!
+  version: Version!
+}
 type Query {
   // returns array of SourceMigration objects
   // note that if input query includes contents field this operation can produce large amounts of data - see sourceMigration(file: String!)
@@ -81,6 +130,10 @@ type Query {
   dbMigration(id: Int!): DBMigration
   // returns array of Tenant objects
   tenants(): [Tenant!]!
+}
+type Mutation {
+  createVersion(input: VersionInput!): CreateResults!
+  createTenant(input: TenantInput!): CreateResults!
 }
 `
 
@@ -132,4 +185,20 @@ func (r *RootResolver) DBMigration(args struct {
 	ID int32
 }) (*types.MigrationDB, error) {
 	return r.Coordinator.GetDBMigrationByID(args.ID)
+}
+
+// CreateVersion creates new DB version
+func (r *RootResolver) CreateVersion(args struct {
+	Input types.VersionInput
+}) (*types.CreateResults, error) {
+	results := r.Coordinator.CreateVersion(args.Input.VersionName, args.Input.Action, args.Input.DryRun)
+	return results, nil
+}
+
+// CreateTenant creates new tenant
+func (r *RootResolver) CreateTenant(args struct {
+	Input types.TenantInput
+}) (*types.CreateResults, error) {
+	results := r.Coordinator.CreateTenant(args.Input.VersionName, args.Input.Action, args.Input.DryRun, args.Input.TenantName)
+	return results, nil
 }

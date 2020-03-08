@@ -31,6 +31,14 @@ func newMockedErrorCoordinator(errorThreshold int) func(context.Context, *config
 func (m *mockedCoordinator) Dispose() {
 }
 
+func (m *mockedCoordinator) CreateTenant(string, types.Action, bool, string) *types.CreateResults {
+	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: &types.Version{}}
+}
+
+func (m *mockedCoordinator) CreateVersion(string, types.Action, bool) *types.CreateResults {
+	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: &types.Version{}}
+}
+
 func (m *mockedCoordinator) GetSourceMigrations(_ *coordinator.SourceMigrationFilters) []types.Migration {
 	if m.errorThreshold == m.counter {
 		panic(fmt.Sprintf("Mocked Error Disk Loader: threshold %v reached", m.errorThreshold))

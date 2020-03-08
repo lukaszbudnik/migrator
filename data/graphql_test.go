@@ -402,3 +402,235 @@ func TestComplexQueries(t *testing.T) {
 	tenants := len(jsonMap["tenants"].([]interface{}))
 	assert.Equal(t, 3, tenants)
 }
+
+func TestCreateVersionWithDefaults(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "CreateVersion"
+	query := `mutation CreateVersion($input: VersionInput!) {
+  createVersion(input: $input) {
+    version {
+      id,
+      name,
+    }
+    summary {
+      startedAt
+      tenants
+      migrationsGrandTotal
+      scriptsGrandTotal
+    }
+  }
+}`
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"versionName": "commit-sha",
+		},
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := jsonMap["createVersion"].(map[string]interface{})
+
+	// check version part
+	version := results["version"].(map[string]interface{})
+	assert.NotNil(t, version["id"])
+	assert.NotNil(t, version["name"])
+	// we return only 2 fields in above query others should be nil including dbMigrations
+	assert.Nil(t, version["dbMigrations"])
+
+	// check summary part
+	summary := results["summary"].(map[string]interface{})
+	assert.NotNil(t, summary["startedAt"])
+	assert.NotNil(t, summary["tenants"])
+	assert.NotNil(t, summary["migrationsGrandTotal"])
+	assert.NotNil(t, summary["scriptsGrandTotal"])
+	// we return only 4 fields in above query others should be nil including duration
+	assert.Nil(t, summary["duration"])
+}
+
+func TestCreateVersionNonDefaultParams(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "CreateVersion"
+	query := `mutation CreateVersion($input: VersionInput!) {
+  createVersion(input: $input) {
+    version {
+      id,
+      name,
+      dbMigrations {
+        id,
+        file,
+        schema
+      }
+    }
+    summary {
+      startedAt
+      tenants
+      migrationsGrandTotal
+      scriptsGrandTotal
+    }
+  }
+}`
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"action":      "Sync",
+			"dryRun":      true,
+			"versionName": "commit-sha",
+		},
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := jsonMap["createVersion"].(map[string]interface{})
+
+	// check version part
+	version := results["version"].(map[string]interface{})
+	assert.NotNil(t, version["id"])
+	assert.NotNil(t, version["name"])
+	// in this test we also fetch dbMigrations
+	dbMigrations := version["dbMigrations"].([]interface{})
+	assert.Equal(t, 5, len(dbMigrations))
+	// for each migration we fetch only 3 fields
+	dbMigration := dbMigrations[0].(map[string]interface{})
+	assert.NotNil(t, dbMigration["id"])
+	assert.NotNil(t, dbMigration["file"])
+	assert.NotNil(t, dbMigration["schema"])
+	// others should be nil
+	assert.Nil(t, dbMigration["contents"])
+
+	// check summary part
+	summary := results["summary"].(map[string]interface{})
+	assert.NotNil(t, summary["startedAt"])
+	assert.NotNil(t, summary["tenants"])
+	assert.NotNil(t, summary["migrationsGrandTotal"])
+	assert.NotNil(t, summary["scriptsGrandTotal"])
+	// we return only 4 fields in above query others should be nil including duration
+	assert.Nil(t, summary["duration"])
+}
+
+func TestCreateTenantWithDefaults(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "CreateTenant"
+	query := `mutation CreateTenant($input: TenantInput!) {
+  createTenant(input: $input) {
+    version {
+      id,
+      name,
+    }
+    summary {
+      startedAt
+      tenants
+      migrationsGrandTotal
+      scriptsGrandTotal
+    }
+  }
+}`
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"versionName": "commit-sha",
+			"tenantName":  "new-tenant",
+		},
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := jsonMap["createTenant"].(map[string]interface{})
+
+	// check version part
+	version := results["version"].(map[string]interface{})
+	assert.NotNil(t, version["id"])
+	assert.NotNil(t, version["name"])
+	// we return only 2 fields in above query others should be nil including dbMigrations
+	assert.Nil(t, version["dbMigrations"])
+
+	// check summary part
+	summary := results["summary"].(map[string]interface{})
+	assert.NotNil(t, summary["startedAt"])
+	assert.NotNil(t, summary["tenants"])
+	assert.NotNil(t, summary["migrationsGrandTotal"])
+	assert.NotNil(t, summary["scriptsGrandTotal"])
+	// we return only 4 fields in above query others should be nil including duration
+	assert.Nil(t, summary["duration"])
+}
+
+func TestCreateTenantNonDefaultParams(t *testing.T) {
+	ctx := context.Background()
+
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(SchemaDefinition, &RootResolver{Coordinator: &mockedCoordinator{}}, opts...)
+
+	opName := "CreateTenant"
+	query := `mutation CreateTenant($input: TenantInput!) {
+  createTenant(input: $input) {
+    version {
+      id,
+      name,
+      dbMigrations {
+        id,
+        file,
+        schema
+      }
+    }
+    summary {
+      startedAt
+      tenants
+      migrationsGrandTotal
+      scriptsGrandTotal
+    }
+  }
+}`
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"action":      "Sync",
+			"dryRun":      true,
+			"versionName": "commit-sha",
+			"tenantName":  "new-tenant",
+		},
+	}
+
+	resp := schema.Exec(ctx, query, opName, variables)
+	jsonMap := make(map[string]interface{})
+	err := json.Unmarshal(resp.Data, &jsonMap)
+	assert.Nil(t, err)
+	results := jsonMap["createTenant"].(map[string]interface{})
+
+	// check version part
+	version := results["version"].(map[string]interface{})
+	assert.NotNil(t, version["id"])
+	assert.NotNil(t, version["name"])
+	// in this test we also fetch dbMigrations
+	dbMigrations := version["dbMigrations"].([]interface{})
+	assert.Equal(t, 5, len(dbMigrations))
+	// for each migration we fetch only 3 fields
+	dbMigration := dbMigrations[0].(map[string]interface{})
+	assert.NotNil(t, dbMigration["id"])
+	assert.NotNil(t, dbMigration["file"])
+	assert.NotNil(t, dbMigration["schema"])
+	// others should be nil
+	assert.Nil(t, dbMigration["contents"])
+
+	// check summary part
+	summary := results["summary"].(map[string]interface{})
+	assert.NotNil(t, summary["startedAt"])
+	assert.NotNil(t, summary["tenants"])
+	assert.NotNil(t, summary["migrationsGrandTotal"])
+	assert.NotNil(t, summary["scriptsGrandTotal"])
+	// we return only 4 fields in above query others should be nil including duration
+	assert.Nil(t, summary["duration"])
+}

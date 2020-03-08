@@ -375,3 +375,21 @@ func TestGetSourceMigrationsFilterFile(t *testing.T) {
 	migrations := coordinator.GetSourceMigrations(&filters)
 	assert.True(t, len(migrations) == 1)
 }
+
+func TestCreateVersion(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	results := coordinator.CreateVersion("commit-sha", types.ActionApply, false)
+	assert.NotNil(t, results)
+	assert.NotNil(t, results.Summary)
+	assert.NotNil(t, results.Version)
+}
+
+func TestCreateTenant(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	results := coordinator.CreateTenant("commit-sha", types.ActionSync, true, "NewTenant")
+	assert.NotNil(t, results)
+	assert.NotNil(t, results.Summary)
+	assert.NotNil(t, results.Version)
+}
