@@ -55,7 +55,7 @@ func FromBytes(contents []byte) (*Config, error) {
 	}
 
 	if len(config.BaseDir) > 0 && len(config.BaseLocation) == 0 {
-		common.Log("WARN", "Deprecated: config property `baseDir` will be removed in migrator v5.0, please rename it to `baseLocation`")
+		common.Log("WARN", "Deprecated: config property `baseDir` will be removed in migrator v2021.1.0, please rename it to `baseLocation`")
 		config.BaseLocation = config.BaseDir
 	}
 

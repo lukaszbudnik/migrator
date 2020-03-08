@@ -25,8 +25,8 @@ type Connector interface {
 	GetDBMigrationByID(ID int32) (*types.DBMigration, error)
 	// deprecated in v2020.1.0 sunset in v2021.1.0
 	GetAppliedMigrations() []types.MigrationDB
-	ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults
-	AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults
+	CreateVersion(string, types.Action, bool, []types.Migration) (*types.MigrationResults, *types.Version)
+	CreateTenant(string, types.Action, bool, string, []types.Migration) (*types.MigrationResults, *types.Version)
 	Dispose()
 }
 
@@ -192,6 +192,26 @@ func (bc *baseConnector) GetVersionByID(ID int32) (*types.Version, error) {
 	return &versions[0], nil
 }
 
+func (bc *baseConnector) getVersionByIDInTx(tx *sql.Tx, ID int32) *types.Version {
+	versionsSelectSQL := bc.dialect.GetVersionByIDSQL()
+
+	rows, err := tx.Query(versionsSelectSQL, ID)
+	if err != nil {
+		panic(fmt.Sprintf("Could not query versions: %v", err))
+	}
+
+	// readVersions is generic and returns a slice of Version objects
+	// we are querying by ID and are interested in only the first one
+	versions := bc.readVersions(rows)
+
+	// when running in transaction version must be found
+	if len(versions) == 0 {
+		panic(fmt.Sprintf("Version not found ID: %v", ID))
+	}
+
+	return &versions[0]
+}
+
 func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
 	versions := []types.Version{}
 	versionsMap := map[int64]*types.Version{}
@@ -299,13 +319,13 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 	return dbMigrations
 }
 
-// ApplyMigrations applies passed migrations
-func (bc *baseConnector) ApplyMigrations(mode types.MigrationsModeType, migrations []types.Migration) *types.MigrationResults {
+// CreateVersion creates new DB version and applies passed migrations
+func (bc *baseConnector) CreateVersion(versionName string, action types.Action, dryRun bool, migrations []types.Migration) (*types.MigrationResults, *types.Version) {
 	if len(migrations) == 0 {
 		return &types.MigrationResults{
-			StartedAt: time.Now(),
+			StartedAt: graphql.Time{Time: time.Now()},
 			Duration:  0,
-		}
+		}, nil
 	}
 
 	tenants := bc.GetTenants()
@@ -318,27 +338,30 @@ func (bc *baseConnector) ApplyMigrations(mode types.MigrationsModeType, migratio
 	defer func() {
 		r := recover()
 		if r == nil {
-			if mode == types.ModeTypeDryRun {
+			if dryRun {
 				common.LogInfo(bc.ctx, "Running in dry-run mode, calling rollback")
 				tx.Rollback()
 			} else {
-				common.LogInfo(bc.ctx, "Running in %v mode, committing transaction", mode)
+				common.LogInfo(bc.ctx, "Running %v, committing transaction", action)
 				if err := tx.Commit(); err != nil {
 					panic(fmt.Sprintf("Could not commit transaction: %v", err.Error()))
 				}
 			}
 		} else {
-			common.LogInfo(bc.ctx, "Recovered in ApplyMigrations. Transaction rollback.")
+			common.LogInfo(bc.ctx, "Recovered in CreateVersion. Transaction rollback.")
 			tx.Rollback()
 			panic(r)
 		}
 	}()
 
-	return bc.applyMigrationsInTx(tx, mode, tenants, migrations)
+	results, versionID := bc.applyMigrationsInTx(tx, versionName, action, tenants, migrations)
+	version := bc.getVersionByIDInTx(tx, int32(versionID))
+
+	return results, version
 }
 
-// AddTenantAndApplyMigrations adds new tenant and applies all existing tenant migrations
-func (bc *baseConnector) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string, migrations []types.Migration) *types.MigrationResults {
+// CreateTenant creates new tenant and applies passed tenant migrations
+func (bc *baseConnector) CreateTenant(versionName string, action types.Action, dryRun bool, tenant string, migrations []types.Migration) (*types.MigrationResults, *types.Version) {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -349,17 +372,17 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(mode types.MigrationsModeTy
 	defer func() {
 		r := recover()
 		if r == nil {
-			if mode == types.ModeTypeDryRun {
+			if dryRun {
 				common.LogInfo(bc.ctx, "Running in dry-run mode, calling rollback")
 				tx.Rollback()
 			} else {
-				common.LogInfo(bc.ctx, "Running in %v mode, committing transaction", mode)
+				common.LogInfo(bc.ctx, "Running %v action, committing transaction", action)
 				if err := tx.Commit(); err != nil {
 					panic(fmt.Sprintf("Could not commit transaction: %v", err.Error()))
 				}
 			}
 		} else {
-			common.LogInfo(bc.ctx, "Recovered in AddTenantAndApplyMigrations. Transaction rollback.")
+			common.LogInfo(bc.ctx, "Recovered in CreateTenant. Transaction rollback.")
 			tx.Rollback()
 			panic(r)
 		}
@@ -381,9 +404,11 @@ func (bc *baseConnector) AddTenantAndApplyMigrations(mode types.MigrationsModeTy
 	}
 
 	tenantStruct := types.Tenant{Name: tenant}
-	results := bc.applyMigrationsInTx(tx, mode, []types.Tenant{tenantStruct}, migrations)
+	results, versionID := bc.applyMigrationsInTx(tx, versionName, action, []types.Tenant{tenantStruct}, migrations)
 
-	return results
+	version := bc.getVersionByIDInTx(tx, int32(versionID))
+
+	return results, version
 }
 
 // getTenantInsertSQL returns tenant insert SQL statement from configuration file
@@ -412,15 +437,15 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsModeType, tenants []types.Tenant, migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, action types.Action, tenants []types.Tenant, migrations []types.Migration) (*types.MigrationResults, int64) {
 
 	results := &types.MigrationResults{
-		StartedAt: time.Now(),
-		Tenants:   len(tenants),
+		StartedAt: graphql.Time{Time: time.Now()},
+		Tenants:   int32(len(tenants)),
 	}
 
 	defer func() {
-		results.Duration = time.Now().Sub(results.StartedAt)
+		results.Duration = int32(time.Now().Sub(results.StartedAt.Time))
 		results.MigrationsGrandTotal = results.TenantMigrationsTotal + results.SingleMigrations
 		results.ScriptsGrandTotal = results.TenantScriptsTotal + results.SingleScripts
 	}()
@@ -435,10 +460,10 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 	}
 	stmt := tx.Stmt(versionInsert)
 	if bc.dialect.LastInsertIDSupported() {
-		result, _ := stmt.Exec("")
+		result, _ := stmt.Exec(versionName)
 		versionID, _ = result.LastInsertId()
 	} else {
-		stmt.QueryRow("").Scan(&versionID)
+		stmt.QueryRow(versionName).Scan(&versionID)
 	}
 
 	insertMigrationSQL := bc.dialect.GetMigrationInsertSQL()
@@ -460,7 +485,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 		for _, s := range schemas {
 			common.LogInfo(bc.ctx, "Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
 
-			if mode != types.ModeTypeSync {
+			if action == types.ActionApply {
 				contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)
 				if _, err = tx.Exec(contents); err != nil {
 					panic(fmt.Sprintf("SQL migration %v failed with error: %v", m.File, err.Error()))
@@ -480,14 +505,14 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, mode types.MigrationsMo
 		}
 		if m.MigrationType == types.MigrationTypeTenantMigration {
 			results.TenantMigrations++
-			results.TenantMigrationsTotal += len(schemas)
+			results.TenantMigrationsTotal += int32(len(schemas))
 		}
 		if m.MigrationType == types.MigrationTypeTenantScript {
 			results.TenantScripts++
-			results.TenantScriptsTotal += len(schemas)
+			results.TenantScriptsTotal += int32(len(schemas))
 		}
 
 	}
 
-	return results
+	return results, versionID
 }

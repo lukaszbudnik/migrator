@@ -35,8 +35,12 @@ type Coordinator interface {
 	// Version now contains slice of DBMigration
 	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
+	// Deprecated, uses CreateVersion under the hood
 	ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration)
+	// Deprecated, uses CreateTenant under the hood
 	AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration)
+	CreateVersion(string, types.Action, bool) *types.CreateResults
+	CreateTenant(string, types.Action, bool, string) *types.CreateResults
 	Dispose()
 }
 
@@ -137,31 +141,80 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 }
 
 func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
+
+	// convert to new API params
+	versionName := "createVersion"
+	action := types.ActionApply
+	dryRun := false
+	if mode == types.ModeTypeDryRun {
+		dryRun = true
+	} else if mode == types.ModeTypeSync {
+		action = types.ActionSync
+	}
+
 	sourceMigrations := c.GetSourceMigrations(nil)
 	appliedMigrations := c.GetAppliedMigrations()
 
 	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
 	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
 
-	results := c.connector.ApplyMigrations(mode, migrationsToApply)
+	results, _ := c.connector.CreateVersion(versionName, action, dryRun, migrationsToApply)
 
 	c.sendNotification(results)
 
 	return results, migrationsToApply
 }
 
+func (c *coordinator) CreateVersion(versionName string, action types.Action, dryRun bool) *types.CreateResults {
+	sourceMigrations := c.GetSourceMigrations(nil)
+	appliedMigrations := c.GetAppliedMigrations()
+
+	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
+	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
+
+	summary, version := c.connector.CreateVersion(versionName, action, dryRun, migrationsToApply)
+
+	c.sendNotification(summary)
+
+	return &types.CreateResults{Summary: summary, Version: version}
+}
+
 func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string) (*types.MigrationResults, []types.Migration) {
+	// convert to new API params
+	versionName := "createVersion"
+	action := types.ActionApply
+	dryRun := false
+	if mode == types.ModeTypeDryRun {
+		dryRun = true
+	} else if mode == types.ModeTypeSync {
+		action = types.ActionSync
+	}
+
 	sourceMigrations := c.GetSourceMigrations(nil)
 
 	// filter only tenant schemas
 	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
 	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
 
-	results := c.connector.AddTenantAndApplyMigrations(mode, tenant, migrationsToApply)
+	summary, _ := c.connector.CreateTenant(versionName, action, dryRun, tenant, migrationsToApply)
 
-	c.sendNotification(results)
+	c.sendNotification(summary)
 
-	return results, migrationsToApply
+	return summary, migrationsToApply
+}
+
+func (c *coordinator) CreateTenant(versionName string, action types.Action, dryRun bool, tenant string) *types.CreateResults {
+	sourceMigrations := c.GetSourceMigrations(nil)
+
+	// filter only tenant schemas
+	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
+	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
+
+	summary, version := c.connector.CreateTenant(versionName, action, dryRun, tenant, migrationsToApply)
+
+	c.sendNotification(summary)
+
+	return &types.CreateResults{Summary: summary, Version: version}
 }
 
 func (c *coordinator) Dispose() {

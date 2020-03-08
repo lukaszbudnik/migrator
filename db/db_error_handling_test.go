@@ -195,7 +195,7 @@ func TestGetAppliedMigrationsError(t *testing.T) {
 	}
 }
 
-func TestApplyTransactionBeginError(t *testing.T) {
+func TestCreateVersionTransactionBeginError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -213,7 +213,7 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -221,7 +221,7 @@ func TestApplyTransactionBeginError(t *testing.T) {
 	}
 }
 
-func TestApplyInsertVersionPreparedStatementError(t *testing.T) {
+func TestCreateVersionInsertVersionPreparedStatementError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -241,7 +241,7 @@ func TestApplyInsertVersionPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement for version: trouble maker", func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -249,7 +249,7 @@ func TestApplyInsertVersionPreparedStatementError(t *testing.T) {
 	}
 }
 
-func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
+func TestCreateVersionInsertMigrationPreparedStatementError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -263,7 +263,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
-	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations").WillReturnError(errors.New("trouble maker"))
 	mock.ExpectRollback()
@@ -273,7 +273,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement for migration: trouble maker", func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -281,7 +281,7 @@ func TestApplyInsertMigrationPreparedStatementError(t *testing.T) {
 	}
 }
 
-func TestApplyMigrationSQLError(t *testing.T) {
+func TestCreateVersionMigrationSQLError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -295,7 +295,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
-	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnError(errors.New("trouble maker"))
@@ -306,7 +306,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, fmt.Sprintf("SQL migration %v failed with error: trouble maker", tenant1.File), func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -314,7 +314,7 @@ func TestApplyMigrationSQLError(t *testing.T) {
 	}
 }
 
-func TestApplyInsertMigrationError(t *testing.T) {
+func TestCreateVersionInsertMigrationError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -333,7 +333,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
-	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
@@ -341,7 +341,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	mock.ExpectRollback()
 
 	assert.PanicsWithValue(t, "Failed to add migration entry: trouble maker", func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -349,7 +349,7 @@ func TestApplyInsertMigrationError(t *testing.T) {
 	}
 }
 
-func TestApplyMigrationsCommitError(t *testing.T) {
+func TestCreateVersionGetVersionError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -358,8 +358,8 @@ func TestApplyMigrationsCommitError(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
@@ -368,15 +368,16 @@ func TestApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectBegin()
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
-	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
+	// get version
+	mock.ExpectQuery("select").WillReturnError(errors.New("get version trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+	assert.PanicsWithValue(t, "Could not query versions: get version trouble maker", func() {
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -384,7 +385,82 @@ func TestApplyMigrationsCommitError(t *testing.T) {
 	}
 }
 
-func TestAddTenantTransactionBeginError(t *testing.T) {
+func TestCreateVersionVersionNotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
+	mock.ExpectQuery("select").WillReturnRows(tenants)
+	mock.ExpectBegin()
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"})
+	mock.ExpectQuery("select").WillReturnRows(rows)
+
+	assert.PanicsWithValue(t, "Version not found ID: 0", func() {
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestCreateVersionMigrationsCommitError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db}
+
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	migrationsToApply := []types.Migration{m}
+
+	tenant := "tenantname"
+	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
+	mock.ExpectQuery("select").WillReturnRows(tenants)
+	mock.ExpectBegin()
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
+	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
+
+	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
+		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+	})
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestCreateTenantTransactionBeginError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -400,7 +476,7 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
+		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -408,7 +484,7 @@ func TestAddTenantTransactionBeginError(t *testing.T) {
 	}
 }
 
-func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
+func TestCreateTenantCreateSchemaError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -426,7 +502,7 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Create schema failed: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
+		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -434,7 +510,7 @@ func TestAddTenantAndApplyMigrationsCreateSchemaError(t *testing.T) {
 	}
 }
 
-func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testing.T) {
+func TestCreateTenantInsertTenantPreparedStatementError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -453,7 +529,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, "newtenant", migrationsToApply)
+		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -461,7 +537,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantPreparedStatementError(t *testin
 	}
 }
 
-func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
+func TestCreateTenantInsertTenantError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -483,7 +559,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	migrationsToApply := []types.Migration{m1}
 
 	assert.PanicsWithValue(t, "Failed to add tenant entry: trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, tenant, migrationsToApply)
+		connector.CreateTenant("commit-sha", types.ActionApply, false, tenant, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -491,7 +567,7 @@ func TestAddTenantAndApplyMigrationsInsertTenantError(t *testing.T) {
 	}
 }
 
-func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
+func TestCreateTenantCommitError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -500,8 +576,8 @@ func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
@@ -512,15 +588,18 @@ func TestAddTenantAndApplyMigrationsCommitError(t *testing.T) {
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(0, 0))
 	// version
 	mock.ExpectPrepare("insert into migrator.migrator_versions")
-	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
 	// migration
 	mock.ExpectPrepare("insert into migrator.migrator_migrations")
 	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.AddTenantAndApplyMigrations(types.ModeTypeApply, tenant, migrationsToApply)
+		connector.CreateTenant("commit-sha", types.ActionApply, false, tenant, migrationsToApply)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {

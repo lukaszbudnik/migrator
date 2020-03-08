@@ -19,6 +19,17 @@ func (m *mockedCoordinator) safeString(value *string) string {
 	return *value
 }
 
+func (m *mockedCoordinator) CreateTenant(string, types.Action, bool, string) *types.CreateResults {
+	version, _ := m.GetVersionByID(0)
+	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: version}
+}
+
+func (m *mockedCoordinator) CreateVersion(string, types.Action, bool) *types.CreateResults {
+	// re-use mocked version from GetVersionByID...
+	version, _ := m.GetVersionByID(0)
+	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: version}
+}
+
 func (m *mockedCoordinator) GetSourceMigrations(filters *coordinator.SourceMigrationFilters) []types.Migration {
 
 	if filters == nil {

@@ -86,6 +86,14 @@ type mockedConnector struct {
 func (m *mockedConnector) Dispose() {
 }
 
+func (m *mockedConnector) CreateTenant(string, types.Action, bool, string, []types.Migration) (*types.MigrationResults, *types.Version) {
+	return &types.MigrationResults{}, &types.Version{}
+}
+
+func (m *mockedConnector) CreateVersion(string, types.Action, bool, []types.Migration) (*types.MigrationResults, *types.Version) {
+	return &types.MigrationResults{}, &types.Version{}
+}
+
 func (m *mockedConnector) AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults {
 	return &types.MigrationResults{}
 }
