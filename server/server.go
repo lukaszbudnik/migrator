@@ -3,20 +3,20 @@ package server
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/graph-gophers/graphql-go"
 	"gopkg.in/go-playground/validator.v9"
 
 	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/coordinator"
+	"github.com/lukaszbudnik/migrator/data"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -61,6 +61,10 @@ func requestIDHandler() gin.HandlerFunc {
 		}
 		ctx := context.WithValue(c.Request.Context(), common.RequestIDKey{}, requestID)
 		c.Request = c.Request.WithContext(ctx)
+		if strings.Contains(c.Request.URL.Path, "/v1/") {
+			c.Header("Deprecation", `version="v2020.1.0"`)
+			c.Header("Link", `<https://github.com/lukaszbudnik/migrator/#v2---graphql-api>; rel="successor-version"`)
+		}
 		c.Next()
 	}
 }
@@ -69,29 +73,11 @@ func recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Check for a broken connection, as it is not really a
-				// condition that warrants a panic stack trace.
-				var brokenPipe bool
-				if ne, ok := err.(*net.OpError); ok {
-					if se, ok := ne.Err.(*os.SyscallError); ok {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
-							brokenPipe = true
-						}
-					}
+				common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
+				if gin.IsDebugging() {
+					debug.PrintStack()
 				}
-
-				// If the connection is dead, we can't write a status to it.
-				if brokenPipe {
-					common.LogPanic(c.Request.Context(), "Broken pipe: %v", err)
-					c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
-				} else {
-					common.LogPanic(c.Request.Context(), "Panic recovered: %v", err)
-					if gin.IsDebugging() {
-						debug.PrintStack()
-					}
-					c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
-				}
+				c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
 			}
 		}()
 		c.Next()
@@ -118,7 +104,7 @@ func configHandler(c *gin.Context, config *config.Config, newCoordinator func(co
 func migrationsSourceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
-	migrations := coordinator.GetSourceMigrations()
+	migrations := coordinator.GetSourceMigrations(nil)
 	common.LogInfo(c.Request.Context(), "Returning source migrations: %v", len(migrations))
 	c.JSON(http.StatusOK, migrations)
 }
@@ -172,9 +158,15 @@ func migrationsPostHandler(c *gin.Context, config *config.Config, newCoordinator
 func tenantsGetHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
 	coordinator := newCoordinator(c.Request.Context(), config)
 	defer coordinator.Dispose()
+	// starting v2019.1.0 GetTenants returns a slice of Tenant struct
+	// /v1 API returns a slice of strings and we must maintain backward compatibility
 	tenants := coordinator.GetTenants()
+	tenantNames := []string{}
+	for _, t := range tenants {
+		tenantNames = append(tenantNames, t.Name)
+	}
 	common.LogInfo(c.Request.Context(), "Returning tenants: %v", len(tenants))
-	c.JSON(http.StatusOK, tenants)
+	c.JSON(http.StatusOK, tenantNames)
 }
 
 func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
@@ -215,6 +207,32 @@ func tenantsPostHandler(c *gin.Context, config *config.Config, newCoordinator fu
 	c.JSON(http.StatusOK, response)
 }
 
+func schemaHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	c.String(http.StatusOK, strings.TrimSpace(data.SchemaDefinition))
+}
+
+// GraphQL endpoint
+func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+	var params struct {
+		Query         string                 `json:"query"`
+		OperationName string                 `json:"operationName"`
+		Variables     map[string]interface{} `json:"variables"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		common.LogError(c.Request.Context(), "Bad request: %v", err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
+		return
+	}
+
+	coordinator := newCoordinator(c.Request.Context(), config)
+	defer coordinator.Dispose()
+	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
+	schema := graphql.MustParseSchema(data.SchemaDefinition, &data.RootResolver{Coordinator: coordinator}, opts...)
+
+	response := schema.Exec(c.Request.Context(), params.Query, params.OperationName, params.Variables)
+	c.JSON(http.StatusOK, response)
+}
+
 // SetupRouter setups router
 func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
 	r := gin.New()
@@ -246,6 +264,11 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 	v1.GET("/migrations/source", makeHandler(config, newCoordinator, migrationsSourceHandler))
 	v1.GET("/migrations/applied", makeHandler(config, newCoordinator, migrationsAppliedHandler))
 	v1.POST("/migrations", makeHandler(config, newCoordinator, migrationsPostHandler))
+
+	v2 := r.Group(config.PathPrefix + "/v2")
+	v2.GET("/config", makeHandler(config, newCoordinator, configHandler))
+	v2.GET("/schema", makeHandler(config, newCoordinator, schemaHandler))
+	v2.POST("/service", makeHandler(config, newCoordinator, serviceHandler))
 
 	return r
 }

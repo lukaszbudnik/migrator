@@ -12,9 +12,16 @@ type dialect interface {
 	GetTenantSelectSQL() string
 	GetMigrationInsertSQL() string
 	GetMigrationSelectSQL() string
+	GetMigrationByIDSQL() string
 	GetCreateTenantsTableSQL() string
 	GetCreateMigrationsTableSQL() string
 	GetCreateSchemaSQL(string) string
+	GetCreateVersionsTableSQL() []string
+	GetVersionInsertSQL() string
+	GetVersionsSelectSQL() string
+	GetVersionsByFileSQL() string
+	GetVersionByIDSQL() string
+	LastInsertIDSupported() bool
 }
 
 // baseDialect struct is used to provide default dialect interface implementation
@@ -22,6 +29,7 @@ type baseDialect struct {
 }
 
 const (
+	selectVersionsSQL        = "select mv.id as vid, mv.name as vname, mv.created as vcreated, mm.id as mid, mm.name, mm.source_dir, mm.filename, mm.type, mm.db_schema, mm.created, mm.contents, mm.checksum from %v.%v mv left join %v.%v mm on mv.id = mm.version_id order by vid desc, mid asc"
 	selectMigrationsSQL      = "select name, source_dir as sd, filename, type, db_schema, created, contents, checksum from %v.%v order by name, source_dir"
 	selectTenantsSQL         = "select name from %v.%v"
 	createMigrationsTableSQL = `
@@ -75,6 +83,12 @@ func (bd *baseDialect) GetMigrationSelectSQL() string {
 // This SQL is used by both MySQL and PostgreSQL.
 func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 	return fmt.Sprintf(createSchemaSQL, schema)
+}
+
+// GetVersionsSelectSQL returns select SQL statement that returns all versions
+// This SQL is used by both MySQL and PostgreSQL.
+func (bd *baseDialect) GetVersionsSelectSQL() string {
+	return fmt.Sprintf(selectVersionsSQL, migratorSchema, migratorVersionsTable, migratorSchema, migratorMigrationsTable)
 }
 
 // newDialect constructs dialect instance based on the passed Config

@@ -14,6 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	existingVersion     types.Version
+	existingDBMigration types.DBMigration
+)
+
 func newTestContext() context.Context {
 	ctx := context.TODO()
 	ctx = context.WithValue(ctx, common.RequestIDKey{}, time.Now().Nanosecond())
@@ -62,12 +67,12 @@ func TestGetTenants(t *testing.T) {
 	tenants := connector.GetTenants()
 
 	assert.True(t, len(tenants) >= 3)
-	assert.Contains(t, tenants, "abc")
-	assert.Contains(t, tenants, "def")
-	assert.Contains(t, tenants, "xyz")
+	assert.Contains(t, tenants, types.Tenant{Name: "abc"})
+	assert.Contains(t, tenants, types.Tenant{Name: "def"})
+	assert.Contains(t, tenants, types.Tenant{Name: "xyz"})
 }
 
-func TestApplyMigrations(t *testing.T) {
+func TestCreateVersion(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -109,17 +114,21 @@ func TestApplyMigrations(t *testing.T) {
 
 	migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3, public4, public5, tenant4}
 
-	results := connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
+	results, version := connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
 
-	assert.Equal(t, noOfTenants, results.Tenants)
-	assert.Equal(t, 3, results.SingleMigrations)
-	assert.Equal(t, 2, results.SingleScripts)
-	assert.Equal(t, 3, results.TenantMigrations)
-	assert.Equal(t, 1, results.TenantScripts)
-	assert.Equal(t, noOfTenants*3, results.TenantMigrationsTotal)
-	assert.Equal(t, noOfTenants*1, results.TenantScriptsTotal)
-	assert.Equal(t, noOfTenants*3+3, results.MigrationsGrandTotal)
-	assert.Equal(t, noOfTenants*1+2, results.ScriptsGrandTotal)
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, "commit-sha", version.Name)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
+	assert.Equal(t, int32(noOfTenants), results.Tenants)
+	assert.Equal(t, int32(3), results.SingleMigrations)
+	assert.Equal(t, int32(2), results.SingleScripts)
+	assert.Equal(t, int32(3), results.TenantMigrations)
+	assert.Equal(t, int32(1), results.TenantScripts)
+	assert.Equal(t, int32(noOfTenants*3), results.TenantMigrationsTotal)
+	assert.Equal(t, int32(noOfTenants*1), results.TenantScriptsTotal)
+	assert.Equal(t, int32(noOfTenants*3+3), results.MigrationsGrandTotal)
+	assert.Equal(t, int32(noOfTenants*1+2), results.ScriptsGrandTotal)
 
 	dbMigrationsAfter := connector.GetAppliedMigrations()
 	lenAfter := len(dbMigrationsAfter)
@@ -130,7 +139,7 @@ func TestApplyMigrations(t *testing.T) {
 	assert.Equal(t, expected, lenAfter-lenBefore)
 }
 
-func TestApplyMigrationsEmptyMigrationArray(t *testing.T) {
+func TestCreateVersionEmptyMigrationArray(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -139,13 +148,14 @@ func TestApplyMigrationsEmptyMigrationArray(t *testing.T) {
 
 	migrationsToApply := []types.Migration{}
 
-	results := connector.ApplyMigrations(types.ModeTypeApply, migrationsToApply)
-
-	assert.Equal(t, 0, results.MigrationsGrandTotal)
-	assert.Equal(t, 0, results.ScriptsGrandTotal)
+	results, version := connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+	// empty migrations slice - no version created
+	assert.Nil(t, version)
+	assert.Equal(t, int32(0), results.MigrationsGrandTotal)
+	assert.Equal(t, int32(0), results.ScriptsGrandTotal)
 }
 
-func TestApplyMigrationsDryRunMode(t *testing.T) {
+func TestCreateVersionDryRunMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -154,32 +164,40 @@ func TestApplyMigrationsDryRunMode(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
 	mock.ExpectQuery("select").WillReturnRows(tenants)
 	mock.ExpectBegin()
-	mock.ExpectPrepare("insert into")
-	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
-
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
 
 	// however the results contain correct dry-run data like number of applied migrations/scripts
-	results := connector.ApplyMigrations(types.ModeTypeDryRun, migrationsToApply)
-
-	assert.Equal(t, 1, results.MigrationsGrandTotal)
+	results, version := connector.CreateVersion("commit-sha", types.ActionApply, true, migrationsToApply)
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
+	assert.Equal(t, int32(1), results.MigrationsGrandTotal)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestApplyMigrationsSyncMode(t *testing.T) {
+func TestCreateVersionSyncMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -188,22 +206,31 @@ func TestApplyMigrationsSyncMode(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow(tenant)
 	mock.ExpectQuery("select").WillReturnRows(tenants)
 	mock.ExpectBegin()
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
 	mock.ExpectCommit()
 
 	// sync the results contain correct data like number of applied migrations/scripts
-	results := connector.ApplyMigrations(types.ModeTypeSync, migrationsToApply)
-
-	assert.Equal(t, 1, results.MigrationsGrandTotal)
+	results, version := connector.CreateVersion("commit-sha", types.ActionSync, false, migrationsToApply)
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
+	assert.Equal(t, int32(1), results.MigrationsGrandTotal)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -262,7 +289,7 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 	assert.Equal(t, "[schema]", placeholder)
 }
 
-func TestAddTenantAndApplyMigrations(t *testing.T) {
+func TestCreateTenant(t *testing.T) {
 	config, err := config.FromFile("../test/migrator.yaml")
 	assert.Nil(t, err)
 
@@ -281,16 +308,21 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 
 	uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-	results := connector.AddTenantAndApplyMigrations(types.ModeTypeApply, uniqueTenant, migrationsToApply)
+	results, version := connector.CreateTenant("commit-sha", types.ActionApply, false, uniqueTenant, migrationsToApply)
+
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, "commit-sha", version.Name)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
 
 	// applied only for one tenant - the newly added one
-	assert.Equal(t, 1, results.Tenants)
+	assert.Equal(t, int32(1), results.Tenants)
 	// just one tenant so total number of tenant migrations is equal to tenant migrations
-	assert.Equal(t, 3, results.TenantMigrations)
-	assert.Equal(t, 3, results.TenantMigrationsTotal)
+	assert.Equal(t, int32(3), results.TenantMigrations)
+	assert.Equal(t, int32(3), results.TenantMigrationsTotal)
 }
 
-func TestAddTenantAndApplyMigrationsDryRunMode(t *testing.T) {
+func TestCreateTenantDryRunMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -299,33 +331,43 @@ func TestAddTenantAndApplyMigrationsDryRunMode(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
+
 	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	// tenant
 	mock.ExpectPrepare("insert into")
 	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
-
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectExec("insert into").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectPrepare("insert into migrator.migrator_migrations").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
 	// dry-run mode calls rollback instead of commit
 	mock.ExpectRollback()
 
 	// however the results contain correct dry-run data like number of applied migrations/scripts
-	results := connector.AddTenantAndApplyMigrations(types.ModeTypeDryRun, tenant, migrationsToApply)
-
-	assert.Equal(t, 1, results.MigrationsGrandTotal)
+	results, version := connector.CreateTenant("commit-sha", types.ActionApply, true, tenant, migrationsToApply)
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
+	assert.Equal(t, int32(1), results.MigrationsGrandTotal)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestAddTenantAndApplyMigrationsSyncMode(t *testing.T) {
+func TestCreateTenantSyncMode(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.Nil(t, err)
 
@@ -334,23 +376,33 @@ func TestAddTenantAndApplyMigrationsSyncMode(t *testing.T) {
 	dialect := newDialect(config)
 	connector := baseConnector{newTestContext(), config, dialect, db}
 
-	time := time.Now().UnixNano()
-	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
+	tn := time.Now().UnixNano()
+	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
 	migrationsToApply := []types.Migration{m}
 
 	tenant := "tenantname"
 	mock.ExpectBegin()
-	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	// tenant
 	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectPrepare("insert into")
-	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(tenant).WillReturnResult(sqlmock.NewResult(0, 0))
+	// version
+	mock.ExpectPrepare("insert into migrator.migrator_versions")
+	mock.ExpectPrepare("insert into migrator.migrator_versions").ExpectQuery().WithArgs("commit-sha")
+	// migration
+	mock.ExpectPrepare("insert into migrator.migrator_migrations")
+	mock.ExpectPrepare("insert into").ExpectExec().WithArgs(m.Name, m.SourceDir, m.File, m.MigrationType, tenant, m.Contents, m.CheckSum, 0).WillReturnResult(sqlmock.NewResult(0, 0))
+	// get version
+	rows := sqlmock.NewRows([]string{"vid", "vname", "vcreated", "mid", "name", "source_dir", "filename", "type", "db_schema", "created", "contents", "checksum"}).AddRow("123", "vname", time.Now(), "456", m.Name, m.SourceDir, m.File, m.MigrationType, tenant, time.Now(), m.Contents, m.CheckSum)
+	mock.ExpectQuery("select").WillReturnRows(rows)
 	mock.ExpectCommit()
 
 	// sync results contain correct data like number of applied migrations/scripts
-	results := connector.AddTenantAndApplyMigrations(types.ModeTypeSync, tenant, migrationsToApply)
-
-	assert.Equal(t, 1, results.MigrationsGrandTotal)
+	results, version := connector.CreateTenant("commit-sha", types.ActionSync, false, tenant, migrationsToApply)
+	assert.NotNil(t, version)
+	assert.True(t, version.ID > 0)
+	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
+	assert.Equal(t, int32(1), results.MigrationsGrandTotal)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -368,4 +420,84 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
+}
+
+func TestGetVersions(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	versions := connector.GetVersions()
+
+	assert.True(t, len(versions) >= 2)
+	// versions are sorted from newest (highest ID) to oldest (lowest ID)
+	assert.True(t, versions[0].ID > versions[1].ID)
+
+	existingVersion = versions[0]
+	existingDBMigration = existingVersion.DBMigrations[0]
+}
+
+func TestGetVersionsByFile(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	versions := connector.GetVersionsByFile(existingVersion.DBMigrations[0].File)
+	version := versions[0]
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.Equal(t, existingVersion.DBMigrations[0].File, version.DBMigrations[0].File)
+	assert.True(t, len(version.DBMigrations) > 0)
+}
+
+func TestGetVersionByID(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	version, err := connector.GetVersionByID(existingVersion.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, existingVersion.ID, version.ID)
+	assert.True(t, len(version.DBMigrations) > 0)
+}
+
+func TestGetVersionByIDNotFound(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	version, err := connector.GetVersionByID(-1)
+	assert.Nil(t, version)
+	assert.Equal(t, "Version not found ID: -1", err.Error())
+}
+
+func TestGetDBMigrationByID(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	dbMigration, err := connector.GetDBMigrationByID(existingDBMigration.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, existingDBMigration.ID, dbMigration.ID)
+}
+
+func TestGetDBMigrationByIDNotFound(t *testing.T) {
+	config, err := config.FromFile("../test/migrator.yaml")
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	dbMigration, err := connector.GetDBMigrationByID(-1)
+	assert.Nil(t, dbMigration)
+	assert.Equal(t, "DB migration not found ID: -1", err.Error())
 }

@@ -1,8 +1,9 @@
 package types
 
 import (
-	"time"
+	"fmt"
 
+	"github.com/graph-gophers/graphql-go"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -19,6 +20,48 @@ const (
 	// MigrationTypeTenantScript is used to mark tenant SQL scripts which is executed always
 	MigrationTypeTenantScript MigrationType = 4
 )
+
+// ImplementsGraphQLType maps MigrationType Go type
+// to the graphql scalar type in the schema
+func (MigrationType) ImplementsGraphQLType(name string) bool {
+	return name == "MigrationType"
+}
+
+// String converts MigrationType Go type to string literal
+func (t MigrationType) String() string {
+	switch t {
+	case MigrationTypeSingleMigration:
+		return "SingleMigration"
+	case MigrationTypeTenantMigration:
+		return "TenantMigration"
+	case MigrationTypeSingleScript:
+		return "SingleScript"
+	case MigrationTypeTenantScript:
+		return "TenantScript"
+	default:
+		panic(fmt.Sprintf("Unknown MigrationType value: %v", uint32(t)))
+	}
+}
+
+// UnmarshalGraphQL converts string literal to MigrationType Go type
+func (t *MigrationType) UnmarshalGraphQL(input interface{}) error {
+	if str, ok := input.(string); ok {
+		switch str {
+		case "SingleMigration":
+			*t = MigrationTypeSingleMigration
+		case "TenantMigration":
+			*t = MigrationTypeTenantMigration
+		case "SingleScript":
+			*t = MigrationTypeSingleScript
+		case "TenantScript":
+			*t = MigrationTypeTenantScript
+		default:
+			panic(fmt.Sprintf("Unknown MigrationType literal: %v", str))
+		}
+		return nil
+	}
+	return fmt.Errorf("Wrong type for MigrationType: %T", input)
+}
 
 // MigrationsResponseType represents type of response either full or summary
 type MigrationsResponseType string
@@ -62,6 +105,19 @@ func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
 	return false
 }
 
+// Tenant contains basic information about tenant
+type Tenant struct {
+	Name string `json:"name"`
+}
+
+// Version contains information about migrator versions
+type Version struct {
+	ID           int32         `json:"id"`
+	Name         string        `json:"name"`
+	Created      graphql.Time  `json:"created"`
+	DBMigrations []DBMigration `json:"dbMigrations"`
+}
+
 // Migration contains basic information about migration
 type Migration struct {
 	Name          string        `json:"name"`
@@ -72,26 +128,109 @@ type Migration struct {
 	CheckSum      string        `json:"checkSum"`
 }
 
+// DBMigration embeds Migration and adds DB-specific fields
+// replaces deprecated MigrationDB
+type DBMigration = MigrationDB
+
 // MigrationDB embeds Migration and adds DB-specific fields
+// deprecated in v2020.1.0 sunset in v2021.1.0
+// replaced by DBMigration
 type MigrationDB struct {
 	Migration
-	Schema    string    `json:"schema"`
-	AppliedAt time.Time `json:"appliedAt"`
+	ID     int32  `json:"id"`
+	Schema string `json:"schema"`
+	// appliedAt is deprecated the SQL column is already called created
+	// API v1 uses AppliedAt
+	// this field is ignored by GrapQL
+	AppliedAt graphql.Time `json:"appliedAt"`
+	// API v2 uses Created
+	// this field is returned together with appliedAt
+	// however it does not break API contract as this is a new field
+	Created graphql.Time `json:"created"`
 }
 
+// Summary contains summary information about created version
+// replaces deprecated MigrationDB
+type Summary = MigrationResults
+
 // MigrationResults contains summary information about executed migrations
+// deprecated in v2020.1.0 sunset in v2021.1.0
+// replaced by Stats
 type MigrationResults struct {
-	StartedAt             time.Time     `json:"startedAt"`
-	Duration              time.Duration `json:"duration"`
-	Tenants               int           `json:"tenants"`
-	SingleMigrations      int           `json:"singleMigrations"`
-	TenantMigrations      int           `json:"tenantMigrations"`
-	TenantMigrationsTotal int           `json:"tenantMigrationsTotal"` // tenant migrations for all tenants
-	MigrationsGrandTotal  int           `json:"migrationsGrandTotal"`  // total number of all migrations applied
-	SingleScripts         int           `json:"singleScripts"`
-	TenantScripts         int           `json:"tenantScripts"`
-	TenantScriptsTotal    int           `json:"tenantScriptsTotal"` // tenant scripts for all tenants
-	ScriptsGrandTotal     int           `json:"scriptsGrandTotal"`  // total number of all scripts applied
+	StartedAt             graphql.Time `json:"startedAt"`
+	Duration              int32        `json:"duration"`
+	Tenants               int32        `json:"tenants"`
+	SingleMigrations      int32        `json:"singleMigrations"`
+	TenantMigrations      int32        `json:"tenantMigrations"`
+	TenantMigrationsTotal int32        `json:"tenantMigrationsTotal"` // tenant migrations for all tenants
+	MigrationsGrandTotal  int32        `json:"migrationsGrandTotal"`  // total number of all migrations applied
+	SingleScripts         int32        `json:"singleScripts"`
+	TenantScripts         int32        `json:"tenantScripts"`
+	TenantScriptsTotal    int32        `json:"tenantScriptsTotal"` // tenant scripts for all tenants
+	ScriptsGrandTotal     int32        `json:"scriptsGrandTotal"`  // total number of all scripts applied
+}
+
+// CreateResults contains results of CreateVersion or CreateTenant
+type CreateResults struct {
+	Summary *Summary
+	Version *Version
+}
+
+// Action stores information about migrator action
+type Action int
+
+const (
+	// ActionApply (the default action) tells migrator to apply all source migrations
+	ActionApply Action = iota
+	// ActionSync tells migrator to synchronise source migrations and not apply them
+	ActionSync
+)
+
+// ImplementsGraphQLType maps Action Go type
+// to the graphql scalar type in the schema
+func (Action) ImplementsGraphQLType(name string) bool {
+	return name == "Action"
+}
+
+// String converts MigrationType Go type to string literal
+func (a Action) String() string {
+	switch a {
+	case ActionSync:
+		return "Sync"
+	case ActionApply:
+		return "Apply"
+	default:
+		panic(fmt.Sprintf("Unknown Action value: %v", uint32(a)))
+	}
+}
+
+// UnmarshalGraphQL converts string literal to MigrationType Go type
+func (a *Action) UnmarshalGraphQL(input interface{}) error {
+	if str, ok := input.(string); ok {
+		switch str {
+		case "Sync":
+			*a = ActionSync
+		case "Apply":
+			*a = ActionApply
+		default:
+			panic(fmt.Sprintf("Unknown Action literal: %v", str))
+		}
+		return nil
+	}
+	return fmt.Errorf("Wrong type for Action: %T", input)
+}
+
+type VersionInput struct {
+	VersionName string
+	Action      Action
+	DryRun      bool
+}
+
+type TenantInput struct {
+	VersionName string
+	Action      Action
+	DryRun      bool
+	TenantName  string
 }
 
 // VersionInfo contains build information and supported API versions

@@ -1,23 +1,28 @@
 # migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration tool written in go.
+Super fast and lightweight DB migration tool written in go. migrator consumes 6MB of memory and outperforms other DB migration/evolution frameworks by a few orders of magnitude.
 
-migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator not only supports single schemas, but also comes with a multi-tenant support.
+migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support (ideal for multi-schema multi-tenant SaaS products).
 
 migrator runs as a HTTP REST service and can be easily integrated into your continuous integration and continuous delivery pipeline.
 
-Further, there is an official docker image available on docker hub. [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+The official docker image is available on docker hub at [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator). It is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
 
 # Table of contents
 
 * [Usage](#usage)
   * [GET /](#get-)
-  * [GET /v1/config](#get-v1config)
-  * [GET /v1/migrations/source](#get-v1migrationssource)
-  * [GET /v1/migrations/applied](#get-v1migrationsapplied)
-  * [POST /v1/migrations](#post-v1migrations)
-  * [GET /v1/tenants](#get-v1tenants)
-  * [POST /v1/tenants](#post-v1tenants)
+  * [/v2 - GraphQL API](#v2---graphql-api)
+    * [GET /v2/config](#get-v2config)
+    * [GET /v2/schema](#get-v2schema)
+    * [POST /v2/service](#post-v2service)
+  * [/v1](#v1)
+    * [GET /v1/config](#get-v1config)
+    * [GET /v1/migrations/source](#get-v1migrationssource)
+    * [GET /v1/migrations/applied](#get-v1migrationsapplied)
+    * [POST /v1/migrations](#post-v1migrations)
+    * [GET /v1/tenants](#get-v1tenants)
+    * [POST /v1/tenants](#post-v1tenants)
   * [Request tracing](#request-tracing)
 * [Quick Start Guide](#quick-start-guide)
   * [1. Get the migrator project](#1-get-the-migrator-project)
@@ -53,7 +58,7 @@ migrator exposes a simple REST API described below.
 
 ## GET /
 
-Migrator returns build information together with supported API versions.
+Migrator returns build information together with a list of supported API versions.
 
 Sample request:
 
@@ -66,20 +71,350 @@ Sample HTTP response:
 ```
 < HTTP/1.1 200 OK
 < Content-Type: application/json; charset=utf-8
-< Date: Wed, 08 Jan 2020 09:13:58 GMT
-< Content-Length: 142
+< Date: Mon, 02 Mar 2020 19:48:45 GMT
+< Content-Length: 150
+<
+{"release":"dev-v2020.1.0","commitSha":"c871b176f6e428e186dfe5114a9c86d52a4350f2","commitDate":"2020-03-01T20:58:32+01:00","apiVersions":["v1","v2"]}
+```
 
-{
-  "release": "dev-v4.0.1",
-  "commitSha": "300ee8b98f4d6a4725d38b3676accd5a361d7a04",
-  "commitDate": "2020-01-07T14:52:00+01:00",
-  "apiVersions": [
-    "v1"
-  ]
+## /v2 - GraphQL API
+
+API v2 was introduced in migrator v2020.1.0. API v2 is a GraphQL API.
+
+API v2 also introduced a formal concept of DB versions. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
+
+## GET /v2/config
+
+Returns migrator's config as `application/x-yaml`.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v2/config
+```
+
+Sample HTTP response:
+
+```
+< HTTP/1.1 200 OK
+< Content-Type: application/x-yaml; charset=utf-8
+< Date: Mon, 02 Mar 2020 20:03:13 GMT
+< Content-Length: 244
+<
+baseLocation: test/migrations
+driver: sqlserver
+dataSource: sqlserver://SA:YourStrongPassw0rd@127.0.0.1:32774/?database=migratortest&connection+timeout=1&dial+timeout=1
+singleMigrations:
+- ref
+- config
+tenantMigrations:
+- tenants
+pathPrefix: /
+```
+
+## GET /v2/schema
+
+Returns migrator's GraphQL schema as `plain/text`.
+
+Although migrator supports GraphQL introspection it is much more convenient to get the schema in the plain text.
+
+Sample request:
+
+```
+curl -v http://localhost:8080/v2/schema
+```
+
+Sample HTTP response (truncated):
+
+```
+< HTTP/1.1 200 OK
+< Content-Type: text/plain; charset=utf-8
+< Date: Mon, 02 Mar 2020 20:12:20 GMT
+< Transfer-Encoding: chunked
+<
+schema {
+  query: Query
+  mutation: Mutation
+}
+enum MigrationType {
+  SingleMigration
+  TenantMigration
+  SingleScript
+  TenantScript
+}
+...
+```
+
+## POST /v2/service
+
+This is a GraphQL endpoint which handles both query and mutation requests.
+
+The current GraphQL schema together with description in comments is as follows:
+
+```graphql
+schema {
+  query: Query
+  mutation: Mutation
+}
+enum MigrationType {
+  SingleMigration
+  TenantMigration
+  SingleScript
+  TenantScript
+}
+enum Action {
+  // Apply is the default action, migrator reads all source migrations and applies them
+  Apply
+  // Sync is an action where migrator reads all source migrations and marks them as applied in DB
+  // typical use cases are:
+  // importing source migrations from a legacy tool or synchronising tenant migrations when tenant was created using external tool
+  Sync
+}
+scalar Time
+interface Migration {
+  name: String!
+  migrationType: MigrationType!
+  sourceDir: String!
+  file: String!
+  contents: String!
+  checkSum: String!
+}
+type SourceMigration implements Migration {
+  name: String!
+  migrationType: MigrationType!
+  sourceDir: String!
+  file: String!
+  contents: String!
+  checkSum: String!
+}
+type DBMigration implements Migration {
+  id: Int!
+  name: String!
+  migrationType: MigrationType!
+  sourceDir: String!
+  file: String!
+  contents: String!
+  checkSum: String!
+  schema: String!
+  created: Time!
+}
+type Tenant {
+  name: String!
+}
+type Version {
+  id: Int!
+  name: String!
+  created: Time!
+  dbMigrations: [DBMigration!]!
+}
+input SourceMigrationFilters {
+  name: String
+  sourceDir: String
+  file: String
+  migrationType: MigrationType
+}
+input VersionInput {
+  versionName: String!
+  action: Action = Apply
+  dryRun: Boolean = false
+}
+input TenantInput {
+  tenantName: String!
+  versionName: String!
+  action: Action = Apply
+  dryRun: Boolean = false
+}
+type Summary {
+  // date time operation started
+  startedAt: Time!
+  // how long the operation took in nanoseconds
+  duration: Int!
+  // number of tenants in the system
+  tenants: Int!
+  // number of applied single schema migrations
+  singleMigrations: Int!
+  // number of applied multi-tenant schema migrations
+  tenantMigrations: Int!
+  // number of all applied multi-tenant schema migrations (equals to tenants * tenantMigrations)
+  tenantMigrationsTotal: Int!
+  // sum of singleMigrations and tenantMigrationsTotal
+  migrationsGrandTotal: Int!
+  // number of applied single schema scripts
+  singleScripts: Int!
+  // number of applied multi-tenant schema scripts
+  tenantScripts: Int!
+  // number of all applied multi-tenant schema migrations (equals to tenants * tenantScripts)
+  tenantScriptsTotal: Int!
+  // sum of singleScripts and tenantScriptsTotal
+  scriptsGrandTotal: Int!
+}
+type CreateResults {
+  summary: Summary!
+  version: Version
+}
+type Query {
+  // returns array of SourceMigration objects
+  // note that if input query includes contents field this operation can produce large amounts of data - see sourceMigration(file: String!)
+  // all parameters are optional and can be used to filter source migrations
+  sourceMigrations(filters: SourceMigrationFilters): [SourceMigration!]!
+  // returns a single SourceMigration
+  // this operation can be used to fetch a complete SourceMigration including its contents field
+  // file is the unique identifier for a source migration which you can get from sourceMigrations() operation
+  sourceMigration(file: String!): SourceMigration
+  // returns array of Version objects
+  // note that if input query includes DBMigration array this operation can produce large amounts of data - see version(id: Int!) or dbMigration(id: Int!)
+  // file is optional and can be used to return versions in which given source migration was applied
+  versions(file: String): [Version!]!
+  // returns a single Version
+  // note that if input query includes contents field this operation can produce large amounts of data - see dbMigration(id: Int!)
+  // id is the unique identifier of a version which you can get from versions() operation
+  version(id: Int!): Version
+  // returns a single DBMigration
+  // this operation can be used to fetch a complete SourceMigration including its contents field
+  // id is the unique identifier of a version which you can get from versions(file: String) or version(id: Int!) operations
+  dbMigration(id: Int!): DBMigration
+  // returns array of Tenant objects
+  tenants(): [Tenant!]!
+}
+type Mutation {
+  // creates new DB version by applying all eligible DB migrations & scripts
+  createVersion(input: VersionInput!): CreateResults!
+  // creates new tenant by applying only tenant-specific DB migrations & scripts, also creates new DB version
+  createTenant(input: TenantInput!): CreateResults!
 }
 ```
 
-API v1 was introduced in migrator v4.0. Any non API-breaking changes will be added to v1. Any significant change or an API-breaking change will be added to API v2.
+There are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+
+However, below are a few curl examples to get you started.
+
+Create new version:
+
+```
+# versionName parameter is required and can be:
+# 1. your version number
+# 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
+# 3. or if you do CI/CD the commit sha (recommended)
+COMMIT_SHA="acfd70fd1f4c7413e558c03ed850012627c9caa9"
+# new lines are used for readability but have to be removed from the actual request
+cat <<EOF | tr -d "\n" > create_version.txt
+{
+  "query": "
+  mutation CreateVersion(\$input: VersionInput!) {
+    createVersion(input: \$input) {
+      version {
+        id,
+        name,
+      }
+      summary {
+        startedAt
+        tenants
+        migrationsGrandTotal
+        scriptsGrandTotal
+      }
+    }
+  }",
+  "operationName": "CreateVersion",
+  "variables": {
+    "input": {
+      "versionName": "$COMMIT_SHA"
+    }
+  }
+}
+EOF
+# and now execute the above query
+curl -d @create_version.txt http://localhost:8080/v2/service
+```
+
+Create new tenant, run in dry run and instead of default `Apply`, run `Sync` action, also include DB migrations in output:
+
+```
+# versionName parameter is required and can be:
+# 1. your version number
+# 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
+# 3. or if you do CI/CD the commit sha (recommended)
+COMMIT_SHA="acfd70fd1f4c7413e558c03ed850012627c9caa9"
+# tenantName parameter is also required (should not come as a surprise since we want to create new tenant)
+TENANT_NAME="new_customer_of_yours"
+# new lines are used for readability but have to be removed from the actual request
+cat <<EOF | tr -d "\n" > create_tenant.txt
+{
+  "query": "
+  mutation CreateTenant(\$input: TenantInput!) {
+    createTenant(input: \$input) {
+      version {
+        id,
+        name,
+        dbMigrations {
+          id,
+          file,
+          schema
+        }
+      }
+      summary {
+        startedAt
+        tenants
+        migrationsGrandTotal
+        scriptsGrandTotal
+      }
+    }
+  }",
+  "operationName": "CreateTenant",
+  "variables": {
+    "input": {
+      "versionName": "$COMMIT_SHA - $TENANT_NAME",
+      "tenantName": "$TENANT_NAME"
+    }
+  }
+}
+EOF
+# and now execute the above query
+curl -d @create_tenant.txt http://localhost:8080/v2/service
+```
+
+Query data (yes, migrator supports multiple operations in a single GraphQL query):
+
+```
+# new lines are used for readability but have to be removed from the actual request
+cat <<EOF | tr -d "\n" > query.txt
+{
+  "query": "
+  query Data(\$singleMigrationsFilters: SourceMigrationFilters, \$tenantMigrationsFilters: SourceMigrationFilters) {
+    singleTenantSourceMigrations: sourceMigrations(filters: \$singleMigrationsFilters) {
+      file
+      migrationType
+    }
+    multiTenantSourceMigrations: sourceMigrations(filters: \$tenantMigrationsFilters) {
+      file
+      migrationType
+      checkSum
+    }
+    tenants {
+      name
+    }
+  }",
+  "operationName": "Data",
+  "variables": {
+    "singleMigrationsFilters": {
+      "migrationType": "SingleMigration"
+    },
+    "tenantMigrationsFilters": {
+      "migrationType": "TenantMigration"
+    }
+  }
+}
+EOF
+# and now execute the above query
+curl -d @query.txt http://localhost:8080/v2/service
+```
+
+For more GraphQL query and mutation examples see `data/graphql_test.go`.
+
+## /v1
+
+**Deprecation**: As of migrator v2020.1.0 API v1 is deprecated and will sunset in v2021.1.0.
+
+API v1 is available in migrator v4.x and v2020.x.
 
 ## GET /v1/config
 

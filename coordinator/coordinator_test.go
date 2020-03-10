@@ -5,21 +5,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lukaszbudnik/migrator/types"
+	"github.com/graph-gophers/graphql-go"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: time.Now()}
+	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db1, db2, db3, db4}
 
@@ -35,12 +37,12 @@ func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db2, db3, db4}
 
@@ -52,26 +54,26 @@ func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs3(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: time.Now()}
+	db1 := types.MigrationDB{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: time.Now()}
+	db2 := types.MigrationDB{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: time.Now()}
+	db3 := types.MigrationDB{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: time.Now()}
+	db4 := types.MigrationDB{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m5 := types.Migration{Name: "global-stored-procedure1.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure1.sql", MigrationType: types.MigrationTypeSingleScript}
-	db5 := types.MigrationDB{Migration: m5, Schema: "public", AppliedAt: time.Now()}
+	db5 := types.MigrationDB{Migration: m5, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m6 := types.Migration{Name: "global-stored-procedure2.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure2sql", MigrationType: types.MigrationTypeSingleScript}
-	db6 := types.MigrationDB{Migration: m6, Schema: "public", AppliedAt: time.Now()}
+	db6 := types.MigrationDB{Migration: m6, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	m7 := types.Migration{Name: "002.sql", SourceDir: "tenants-scripts", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db7 := types.MigrationDB{Migration: m7, Schema: "abc", AppliedAt: time.Now()}
+	db7 := types.MigrationDB{Migration: m7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
 
-	db8 := types.MigrationDB{Migration: m7, Schema: "def", AppliedAt: time.Now()}
+	db8 := types.MigrationDB{Migration: m7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.MigrationDB{db1, db2, db3, db4, db5, db6, db7, db8}
 
@@ -91,7 +93,7 @@ func TestComputeMigrationsToApply(t *testing.T) {
 	mdef7 := types.Migration{Name: "g", SourceDir: "g", File: "g", MigrationType: types.MigrationTypeTenantScript}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, mdef4, mdef5, mdef6, mdef7}
-	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "a", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "def", AppliedAt: time.Now()}, {Migration: mdef5, Schema: "e", AppliedAt: time.Now()}, {Migration: mdef6, Schema: "f", AppliedAt: time.Now()}, {Migration: mdef7, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef7, Schema: "def", AppliedAt: time.Now()}}
+	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "a", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef5, Schema: "e", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef6, Schema: "f", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -135,7 +137,7 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleMigration}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
-	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "abc", AppliedAt: time.Now()}, {Migration: mdef1, Schema: "def", AppliedAt: time.Now()}, {Migration: mdef2, Schema: "public", AppliedAt: time.Now()}, {Migration: mdef3, Schema: "public", AppliedAt: time.Now()}, {Migration: dev2, Schema: "abc", AppliedAt: time.Now()}, {Migration: dev2, Schema: "def", AppliedAt: time.Now()}, {Migration: dev2p, Schema: "public", AppliedAt: time.Now()}}
+	dbMigrations := []types.MigrationDB{{Migration: mdef1, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef1, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef3, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2p, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -226,7 +228,7 @@ func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
 	defer coordinator.Dispose()
 	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
 	assert.False(t, verified)
-	assert.Equal(t, coordinator.GetSourceMigrations()[0], offendingMigrations[0])
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[0], offendingMigrations[0])
 }
 
 func TestVerifySourceMigrationsAndScriptsCheckSumsOK(t *testing.T) {
@@ -241,8 +243,9 @@ func TestApplyMigrations(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	_, appliedMigrations := coordinator.ApplyMigrations(types.ModeTypeApply)
-	assert.Len(t, appliedMigrations, 1)
-	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
+	assert.Len(t, appliedMigrations, 4)
+	// first source migration is already applied so getting the 2nd one
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[1], appliedMigrations[0])
 }
 
 func TestAddTenantAndApplyMigrations(t *testing.T) {
@@ -250,12 +253,143 @@ func TestAddTenantAndApplyMigrations(t *testing.T) {
 	defer coordinator.Dispose()
 	_, appliedMigrations := coordinator.AddTenantAndApplyMigrations(types.ModeTypeApply, "new")
 	assert.Len(t, appliedMigrations, 1)
-	assert.Equal(t, coordinator.GetSourceMigrations()[1], appliedMigrations[0])
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[4], appliedMigrations[0])
 }
 
 func TestGetTenants(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	tenants := coordinator.GetTenants()
-	assert.Equal(t, []string{"a", "b", "c"}, tenants)
+	a := types.Tenant{Name: "a"}
+	b := types.Tenant{Name: "b"}
+	c := types.Tenant{Name: "c"}
+	assert.Equal(t, []types.Tenant{a, b, c}, tenants)
+}
+
+func TestGetVersions(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	versions := coordinator.GetVersions()
+
+	assert.Equal(t, int32(12), versions[0].ID)
+	assert.Equal(t, int32(121), versions[1].ID)
+	assert.Equal(t, int32(122), versions[2].ID)
+}
+
+func TestGetVersionByID(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	version, _ := coordinator.GetVersionByID(123)
+
+	assert.Equal(t, int32(123), version.ID)
+}
+
+func TestGetVersionsByFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	versions := coordinator.GetVersionsByFile("tenants/abc.sql")
+
+	assert.Equal(t, int32(12), versions[0].ID)
+}
+
+func TestGetMigrationByID(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	defer coordinator.Dispose()
+	migration, _ := coordinator.GetDBMigrationByID(456)
+
+	assert.Equal(t, int32(456), migration.ID)
+}
+
+// Notifier error should not cause the whole process to fail
+func TestApplyMigrationsNotifierError(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	_, appliedMigrations := coordinator.ApplyMigrations(types.ModeTypeApply)
+	assert.Len(t, appliedMigrations, 4)
+	// first source migration is already applied so getting the 2nd one
+	assert.Equal(t, coordinator.GetSourceMigrations(nil)[1], appliedMigrations[0])
+}
+
+func TestGetSourceMigrationByFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "source/201602220001.sql"
+	migration, err := coordinator.GetSourceMigrationByFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, file, migration.File)
+}
+
+func TestGetSourceMigrationByFileNotFound(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "xyz/201602220001.sql"
+	_, err := coordinator.GetSourceMigrationByFile(file)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Source migration not found: xyz/201602220001.sql", err.Error())
+}
+
+func TestGetSourceMigrationsFilterMigrationType(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 4)
+}
+
+func TestGetSourceMigrationsFilterMigrationTypeSourceDir(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	sourceDir := "source"
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+		SourceDir:     &sourceDir,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 3)
+}
+
+func TestGetSourceMigrationsFilterMigrationTypeName(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	migrationType := types.MigrationTypeSingleMigration
+	name := "201602220001.sql"
+	filters := SourceMigrationFilters{
+		MigrationType: &migrationType,
+		Name:          &name,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 2)
+}
+
+func TestGetSourceMigrationsFilterFile(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	file := "source/201602220001.sql"
+	filters := SourceMigrationFilters{
+		File: &file,
+	}
+	migrations := coordinator.GetSourceMigrations(&filters)
+	assert.True(t, len(migrations) == 1)
+}
+
+func TestCreateVersion(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	results := coordinator.CreateVersion("commit-sha", types.ActionApply, false)
+	assert.NotNil(t, results)
+	assert.NotNil(t, results.Summary)
+	assert.NotNil(t, results.Version)
+}
+
+func TestCreateTenant(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	results := coordinator.CreateTenant("commit-sha", types.ActionSync, true, "NewTenant")
+	assert.NotNil(t, results)
+	assert.NotNil(t, results.Summary)
+	assert.NotNil(t, results.Version)
 }

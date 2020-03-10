@@ -66,15 +66,14 @@ func (s3l *s3Loader) getObjectList(client s3iface.S3API, prefixes []string) []*s
 			MaxKeys: aws.Int64(1000),
 		}
 
-		pageNum := 0
 		err := client.ListObjectsV2Pages(input,
 			func(page *s3.ListObjectsV2Output, lastPage bool) bool {
-				pageNum++
+
 				for _, o := range page.Contents {
 					objects = append(objects, o.Key)
 				}
 
-				return pageNum <= 10
+				return !lastPage
 			})
 
 		if err != nil {
