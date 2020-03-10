@@ -143,7 +143,7 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
 
 	// convert to new API params
-	versionName := "createVersion"
+	versionName := "API v1 ApplyMigrations"
 	action := types.ActionApply
 	dryRun := false
 	if mode == types.ModeTypeDryRun {
@@ -181,7 +181,7 @@ func (c *coordinator) CreateVersion(versionName string, action types.Action, dry
 
 func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string) (*types.MigrationResults, []types.Migration) {
 	// convert to new API params
-	versionName := "createVersion"
+	versionName := "API v1 AddTenantAndApplyMigrations"
 	action := types.ActionApply
 	dryRun := false
 	if mode == types.ModeTypeDryRun {

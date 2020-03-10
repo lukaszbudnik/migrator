@@ -102,7 +102,7 @@ func TestConfigRoute(t *testing.T) {
 	assert.Equal(t, "application/x-yaml; charset=utf-8", w.HeaderMap["Content-Type"][0])
 	// confirm /v1 has Deprecated and Sunset headers
 	assert.Equal(t, `version="v2020.1.0"`, w.HeaderMap["Deprecation"][0])
-	assert.Equal(t, `<https://github.com/lukaszbudnik/migrator/#v2---graphql-based-api>; rel="successor-version"`, w.HeaderMap["Link"][0])
+	assert.Equal(t, `<https://github.com/lukaszbudnik/migrator/#v2---graphql-api>; rel="successor-version"`, w.HeaderMap["Link"][0])
 	assert.Equal(t, config.String(), strings.TrimSpace(w.Body.String()))
 }
 

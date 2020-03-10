@@ -228,29 +228,29 @@ type Summary {
   // date time operation started
   startedAt: Time!
   // how long the operation took in nanoseconds
-	duration: Int!
+  duration: Int!
   // number of tenants in the system
-	tenants: Int!
+  tenants: Int!
   // number of applied single schema migrations
-	singleMigrations: Int!
+  singleMigrations: Int!
   // number of applied multi-tenant schema migrations
-	tenantMigrations: Int!
+  tenantMigrations: Int!
   // number of all applied multi-tenant schema migrations (equals to tenants * tenantMigrations)
-	tenantMigrationsTotal: Int!
+  tenantMigrationsTotal: Int!
   // sum of singleMigrations and tenantMigrationsTotal
-	migrationsGrandTotal: Int!
+  migrationsGrandTotal: Int!
   // number of applied single schema scripts
-	singleScripts: Int!
+  singleScripts: Int!
   // number of applied multi-tenant schema scripts
-	tenantScripts: Int!
+  tenantScripts: Int!
   // number of all applied multi-tenant schema migrations (equals to tenants * tenantScripts)
-	tenantScriptsTotal: Int!
+  tenantScriptsTotal: Int!
   // sum of singleScripts and tenantScriptsTotal
-	scriptsGrandTotal: Int!
+  scriptsGrandTotal: Int!
 }
 type CreateResults {
   summary: Summary!
-  version: Version!
+  version: Version
 }
 type Query {
   // returns array of SourceMigration objects
@@ -277,7 +277,9 @@ type Query {
   tenants(): [Tenant!]!
 }
 type Mutation {
+  // creates new DB version by applying all eligible DB migrations & scripts
   createVersion(input: VersionInput!): CreateResults!
+  // creates new tenant by applying only tenant-specific DB migrations & scripts, also creates new DB version
   createTenant(input: TenantInput!): CreateResults!
 }
 ```
