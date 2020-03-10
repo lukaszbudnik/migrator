@@ -2,6 +2,7 @@ package loader
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,14 +11,14 @@ import (
 )
 
 func TestAzureGetSourceMigrations(t *testing.T) {
-
-	travis := os.Getenv("TRAVIS")
-	if len(travis) > 0 {
-		t.Skip("Does not work on travis due to Azure Storage Account credentials required")
-	}
+	// migrator implements env variable substitution and normally we would use:
+	// "https://${AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/mycontainer"
+	// however below we are creating the Config struct directly
+	// and that's why we need to build correct URL ourselves
+	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/mycontainer", os.Getenv("AZURE_STORAGE_ACCOUNT"))
 
 	config := &config.Config{
-		BaseLocation:     "https://storageaccountname.blob.core.windows.net/mycontainer",
+		BaseLocation:     baseLocation,
 		SingleMigrations: []string{"migrations/config", "migrations/ref"},
 		TenantMigrations: []string{"migrations/tenants"},
 		SingleScripts:    []string{"migrations/config-scripts"},

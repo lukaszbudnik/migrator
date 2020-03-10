@@ -63,7 +63,7 @@ func requestIDHandler() gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 		if strings.Contains(c.Request.URL.Path, "/v1/") {
 			c.Header("Deprecation", `version="v2020.1.0"`)
-			c.Header("Link", `<https://github.com/lukaszbudnik/migrator/#v2---graphql-based-api>; rel="successor-version"`)
+			c.Header("Link", `<https://github.com/lukaszbudnik/migrator/#v2---graphql-api>; rel="successor-version"`)
 		}
 		c.Next()
 	}
