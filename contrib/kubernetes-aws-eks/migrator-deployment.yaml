@@ -19,30 +19,30 @@ spec:
     spec:
       serviceAccountName: migrator-serviceaccount
       containers:
-      - image: {aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/migrator:v4.1.2
+      - image: XXX.dkr.ecr.XXX.amazonaws.com/migrator:v2020.1.0
         name: migrator
         env:
         - name: AWS_REGION
-          value: ap-northeast-1
+          value: XXX
         - name: DATABASE_USERNAME
           valueFrom:
             secretKeyRef:
-              name: database-credentials-gdm5t4mt9h
+              name: database-credentials-bd8htk2bk7
               key: username
         - name: DATABASE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: database-credentials-gdm5t4mt9h
+              name: database-credentials-bd8htk2bk7
               key: password
         - name: DATABASE_NAME
           valueFrom:
             secretKeyRef:
-              name: database-credentials-gdm5t4mt9h
+              name: database-credentials-bd8htk2bk7
               key: database
         - name: DATABASE_HOST
           valueFrom:
             secretKeyRef:
-              name: database-credentials-gdm5t4mt9h
+              name: database-credentials-bd8htk2bk7
               key: host
         ports:
         - containerPort: 8080

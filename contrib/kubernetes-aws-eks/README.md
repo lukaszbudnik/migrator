@@ -2,22 +2,19 @@
 
 The goal of this tutorial is to deploy migrator on AWS EKS with Fargate and IAM Roles for Service Accounts (IRSA), load migrations from AWS S3 and apply them to AWS RDS DB.
 
-In all below commands I use a cluster name of `awesome-product` and `ap-northeast-1` region. Everywhere you see {aws_account_id} replace it with your AWS account ID.
+In all below commands I use these env variables:
 
-## Fargate and IRSA
-
-In this tutorial I'm using EKS with Fargate and IAM Roles for Service Accounts (IRSA). This is a new feature and as of the time of writing this tutorial there were only 4 AWS regions supported.
-
-Further, the support of this new feature was limited as of the time of writing this tutorial. I wanted to use the following two helm charts to simplify the whole deployment but they didn't work with Fargate and IRSA. Before you start this tutorial be sure to check out their latest versions as they may ease your life (and if they support IRSA don't forget to send me a pull with amended tutorial):
-
-* https://github.com/helm/charts/tree/master/incubator/aws-alb-ingress-controller - issue to watch: [[incubator/aws-alb-ingress-controller] Fargate and IRSA: Not authorized to perform sts:AssumeRoleWithWebIdentity](https://github.com/helm/charts/issues/20504)
-* https://github.com/godaddy/kubernetes-external-secrets - issue to watch: [Fargate Support](https://github.com/godaddy/kubernetes-external-secrets/issues/254)
+```
+AWS_REGION=us-east-2
+CLUSTER_NAME=awesome-product
+AWS_ACCOUNT_ID=XXX
+```
 
 ## S3 - upload test migrations
 
-Create S3 bucket in same region you will be deploying AWS EKS. Update `baseDir` (v4.0 and earlier versions) or `baseLocation` (v5.0+) property in `migrator.yaml`.
+Create S3 bucket in same region you will be deploying AWS EKS.
 
-You can also use test migrations to play around with migrator:
+You can use test migrations to play around with migrator:
 
 ```
 cd test/migrations
@@ -26,32 +23,36 @@ aws s3 cp --recursive migrations s3://your-bucket-migrator/migrations
 
 ## ECR - build and publish migrator image
 
-You can find detailed instructions in [contrib/aws-ecs-ecr-secretsmanager-rds-s3](../aws-ecs-ecr-secretsmanager-rds-s3).
+Update `baseLocation` property in `migrator.yaml` to your AWS S3 bucket. Now that `migrator.yaml` is ready, build the migrator image and push it to ECR.
+
+You can find detailed instructions in previous tutorial: [contrib/aws-ecs-ecr-secretsmanager-rds-s3](../aws-ecs-ecr-secretsmanager-rds-s3).
 
 ```
-aws ecr get-login --region ap-northeast-1
-docker build --tag {aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/migrator:v4.1.2 .
-docker push {aws_account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/migrator:v4.1.2
+aws ecr get-login --region $AWS_REGION
+docker build --tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/migrator:v2020.1.0 .
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/migrator:v2020.1.0
 ```
 
-Don't forget to edit `migrator-deployment.yaml` and update the image name to the one built above (line 22).
+Don't forget to edit `migrator-deployment.yaml` line 22 and update the image name to the image built above.
 
-## Create and setup the cluster
+## EKS - create and setup the cluster
 
-There is no AWS managed policy which would allow creation of EKS clusters. You need to explicitly add `eks:*` permissions to the user executing the create cluster command. Mind that we are using fargate profile (last param).
+Note: There is no AWS managed policy which allows creation of EKS clusters. You need to explicitly add `eks:*` permissions to the user executing the create cluster command.
+
+Then create the cluster with Fargate profile:
 
 ```
 eksctl create cluster \
---name awesome-product \
---version 1.14 \
---region ap-northeast-1 \
---external-dns-access \
---alb-ingress-access \
---full-ecr-access \
---fargate
+  --name $CLUSTER_NAME \
+  --version 1.15 \
+  --region $AWS_REGION \
+  --external-dns-access \
+  --alb-ingress-access \
+  --full-ecr-access \
+  --fargate
 ```
 
-It will take around 15 minutes to complete. Make sure kubectl points to `awesome-product` cluster:
+It will take around 15 minutes to complete. Make sure kubectl points to your cluster:
 
 ```
 kubectl config current-context
@@ -61,61 +62,74 @@ Create an IAM OIDC provider and associate it with your cluster (prerequisite for
 
 ```
 eksctl utils associate-iam-oidc-provider \
-    --region ap-northeast-1 \
-    --cluster awesome-product \
-    --approve
+  --region $AWS_REGION \
+  --cluster $CLUSTER_NAME \
+  --approve
 ```
 
-## ALB
+## Application Load Balancer - create ingress controller
 
-As mentioned at the top, you may review latest version of [incubator/aws-alb-ingress-controller](https://github.com/helm/charts/tree/master/incubator/aws-alb-ingress-controller) and see if Fargate and IAM are now working.
+### Service Account
 
-If not, proceed with the below instructions.
+First, we need to create Kubernetes service account for the Application Load Balancer ingress controller. This Kubernetes service account will be assigned AWS IAM Policy (via automatically created AWS IAM Role) allowing Kubernetes to manage AWS ALB on your behalf.
 
-### IAM
-
-We need to create Kubernetes service account for the ALB ingress controller. Code is available at kubernetes-sigs/aws-alb-ingress-controller:
+Code is available in `kubernetes-sigs/aws-alb-ingress-controller` repo:
 
 ```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/rbac-role.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.7/docs/examples/rbac-role.yaml
 ```
 
-Next, we need to create IAM policy allowing the ingress controller to provision the Application Load Balancer for us. Again, we will use code available at kubernetes-sigs/aws-alb-ingress-controller:
+Next, we need to create IAM policy allowing the ingress controller to provision the ALB for us. Again, we will use code available in `kubernetes-sigs/aws-alb-ingress-controller` repo:
 
 ```
 aws iam create-policy \
-    --policy-name ALBIngressControllerIAMPolicy \
-    --policy-document https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/iam-policy.json
+  --policy-name ALBIngressControllerIAMPolicy \
+  --policy-document https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.7/docs/examples/iam-policy.json
 ```
 
-Next, we need to create the service account. Please change the policy ARN to the one created above (if you used same policy name then just update {aws_account_id}).
+Finally, we need to attach the IAM policy to our service account:
 
 ```
 eksctl create iamserviceaccount \
-    --region ap-northeast-1 \
-    --name alb-ingress-controller \
-    --namespace kube-system \
-    --cluster awesome-product \
-    --attach-policy-arn arn:aws:iam::{aws_account_id}:policy/ALBIngressControllerIAMPolicy \
-    --override-existing-serviceaccounts \
-    --approve
+  --region $AWS_REGION \
+  --name alb-ingress-controller \
+  --namespace kube-system \
+  --cluster $CLUSTER_NAME \
+  --attach-policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/ALBIngressControllerIAMPolicy \
+  --override-existing-serviceaccounts \
+  --approve
 ```
 
 ### ALB ingress controller
 
-Open and edit `alb-ingress-controller.yaml` and update 3 things:
+I will use helm chart `incubator/aws-alb-ingress-controller` to provision ALB ingress controller.
 
-* cluster name - line 39
-* AWS region - line 43
-* EKS VPC - line 48
+When creating the ALB ingress controller we need to explicitly pass the following parameters:
 
-Finally, create the ingress controller itself:
+* cluster name
+* region (EC2 metadata are disabled)
+* VPC ID (EC2 metadata are disabled)
+* service account with permissions to manage AWS ALB - the one we created above
 
 ```
-kubectl apply -f alb-ingress-controller.yaml
+# get VPC ID
+vpcid=$(eksctl get cluster -n $CLUSTER_NAME -r $AWS_REGION | tail -1 | awk '{print $5}')
+# add helm repo
+helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+# install the chart
+helm install incubator/aws-alb-ingress-controller \
+  --set clusterName=$CLUSTER_NAME \
+  --set awsRegion=$AWS_REGION \
+  --set awsVpcID=$vpcid \
+  --set rbac.serviceAccount.create=false \
+  --set rbac.serviceAccount.name=alb-ingress-controller \
+  --generate-name \
+  --namespace kube-system
 ```
 
-### S3
+## migrator setup
+
+### Service Account
 
 migrator needs to connect to S3 to read source migrations. We will create IAM service account for it called `migrator-serviceaccount`.
 
@@ -123,25 +137,23 @@ As a policy I will use the AWS-managed `AmazonS3ReadOnlyAccess`:
 
 ```
 eksctl create iamserviceaccount \
-  --region ap-northeast-1 \
+  --cluster $CLUSTER_NAME \
+  --region $AWS_REGION \
   --name migrator-serviceaccount \
   --namespace default \
-  --cluster awesome-product \
   --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
   --approve
 ```
 
-## RDS
+### RDS
 
 Create a new RDS DB. The example uses PostgreSQL. Launch the create wizard. Let AWS generate password for you. In "Connectivity" section make sure new DB will be provisioned in same VPC in which you created the EKS cluster. In same section expand "Additional connectivity configuration" and instead of using the default VPC security group create a new one called `database`.
 
 Hit "Create database".
 
-You cannot add inbound rules to DB security group in the wizard so we have to do it after DB is created. migrator pod need access to DB. Update `database` security group to allow inbound traffic on the DB port from the following SG: `eks-cluster-sg-awesome-product-{suffix}` (the suffix is random, replace it with your SG, simply start typing the name of the SG and AWS web console will load and autocomplete it for you).
+You cannot add inbound rules to DB security group in the wizard so we have to do it after DB is created. migrator pod need access to DB. Update `database` security group to allow inbound traffic on the DB port from the following SG: `eks-cluster-sg-$CLUSTER_NAME-{suffix}` (the suffix is random, replace it with your SG, simply start typing the name of the SG and AWS web console will autocomplete it for you).
 
-In this place I would like to remind you to checkout the latest version of [godaddy/kubernetes-external-secrets](https://godaddy.github.io/kubernetes-external-secrets/) and see if this helm chart works correctly with Fargate and IAM.
-
-If not proceed with standard Kubernetes secrets.
+For handling secrets securely you may want to checkout the latest version of [godaddy/kubernetes-external-secrets](https://godaddy.github.io/kubernetes-external-secrets/) and see if it works correctly with Fargate (as of the time of writing this tutorial it didn't work with IRSA). If not proceed with standard Kubernetes secrets.
 
 Copy credentials and connection information and update the secret in `kustomization.yaml`.
 
@@ -151,16 +163,20 @@ Then create `database-credentials` secret:
 kubectl apply -k .
 ```
 
-The generated secret name has a suffix appended by hashing the contents. This ensures that a new Secret is generated each time the contents is modified. Open `migrator-deployment.yaml` and update references to the secret name on lines: 30, 35, 40, 45.
+The generated secret name has a suffix appended by hashing the contents. This ensures that a new secret is generated each time the contents is modified. Open `migrator-deployment.yaml` and update references to the secret name on lines: 30, 35, 40, 45.
 
-## Deploy migrator
+While you are updating secrets don't forget to set a valid region name on line 26.
 
-Last bit required is to update the `migrator-ingress.yaml` to make it a little bit more secure:
+### ALB configuration
+
+Last bit required is to update the `migrator-ingress.yaml` if we want migrator to be secure:
 
 * alb.ingress.kubernetes.io/certificate-arn (line 9) - as we want HTTPS listener we need to provide ARN to ACM certificate
 * alb.ingress.kubernetes.io/inbound-cidrs (line 11) - restrict access to your IP addresses (or leave default allow all mask)
 
 And that should be us.
+
+## Deploy migrator
 
 Review the config files and if all good deploy migrator:
 
@@ -172,25 +188,31 @@ kubectl apply -f migrator-ingress.yaml
 
 Wait a few moments for alb-ingress-controller to provision the ALB.
 
-## Accessing migrator
+## Access migrator
 
-The migrator is up and running. From AWS console copy the ALB DNS name and then try the following URLs:
+The migrator is up and running. From Kubernetes ingress get the ALB DNS name:
 
 ```
-curl -v -k https://3e283ba1-default-migratori-3cc8-xxx.ap-northeast-1.elb.amazonaws.com/migrator/
-curl -v -k https://3e283ba1-default-migratori-3cc8-xxx.ap-northeast-1.elb.amazonaws.com/migrator/v1/config
+address=$(kubectl get ingress | tail -1 | awk '{print $3}')
+```
+
+and then try the following URLs:
+
+```
+curl -v -k https://$address/migrator/
+curl -v -k https://$address/migrator/v1/config
 ```
 
 Check if migrator can load migrations from S3 and connect to DB:
 
 ```
-curl -v -k https://3e283ba1-default-migratori-3cc8-xxx.ap-northeast-1.elb.amazonaws.com/migrator/v1/migrations/source
+curl -v -k https://$address/migrator/v1/migrations/source
 ```
 
 When you're ready apply migrations:
 
 ```
-curl -v -k -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "response": "list"}' https://3e283ba1-default-migratori-xxx.ap-northeast-1.elb.amazonaws.com/migrator/v1/migrations
+curl -v -k -X POST -H "Content-Type: application/json" -d '{"mode": "apply", "response": "list"}' https://$address/migrator/v1/migrations
 ```
 
 Enjoy migrator!
@@ -202,6 +224,15 @@ kubectl delete -k .
 kubectl delete -f migrator-ingress.yaml
 kubectl delete -f migrator-service.yaml
 kubectl delete -f migrator-deployment.yaml
-kubectl delete -f alb-ingress-controller.yaml
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/rbac-role.yaml
+kubectl delete serviceaccount migrator-serviceaccount
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.7/docs/examples/rbac-role.yaml
+ingresscontroller=$(helm list --namespace kube-system | grep aws-alb-ingress-controller | awk '{print $1}')
+helm uninstall $ingresscontroller --namespace kube-system
+aws iam delete-policy --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/ALBIngressControllerIAMPolicy
+```
+
+and delete the whole cluster:
+
+```
+eksctl delete cluster --region=$AWS_REGION --name=$CLUSTER_NAME
 ```
