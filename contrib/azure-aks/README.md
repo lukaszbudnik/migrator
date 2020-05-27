@@ -13,6 +13,16 @@ ACR_NAME=migrator
 ACK_CLUSTER_NAME=awesome-product
 ```
 
+## Recommendations for production deployment
+
+For keeping secrets in production workloads I recommend using [Azure Key Vault Provider for Secrets Store CSI Driver](https://github.com/Azure/secrets-store-csi-driver-provider-azure). It allows you to get secret contents stored in an Azure Key Vault instance and use the Secrets Store CSI driver interface to mount them into Kubernetes pods. It can also sync secrets from Azure Key Vault to Kubernetes secrets. Further, Azure Key Vault Provider can use managed identity so there is no need to juggle any credentials.
+
+For as an ingress controller I recommend using Azure Application Gateway. For more information refer to: https://docs.microsoft.com/en-us/azure/developer/terraform/create-k8s-cluster-with-aks-applicationgateway-ingress and https://azure.github.io/application-gateway-kubernetes-ingress/.
+
+Another nice addition is to use [Service Catalog](https://svc-cat.io) and [Open Service Broker for Azure](https://osba.sh) to provision Azure Database and Azure Storage on your behalf. To use it check my gists: [Service Catalog with Open Service Broker for Azure to provision Azure Database](https://gist.github.com/lukaszbudnik/b2734c250e71b0c7f18dd93fb882cc42) and [Service Catalog with Open Service Broker for Azure to provision Azure Storage Account](https://gist.github.com/lukaszbudnik/c03549cfa9728d9e4957e6bc54ef3c6e). 
+
+In this tutorial I decided to keep things simple. Azure Key Vault Provider for Secrets Store CSI Driver and Azure Application Gateway are a little bit more complex to setup and are outside of the scope of this tutorial. Also, Azure Database and Azure Storage are created manually.
+
 ## Azure Blob Container - upload test migrations
 
 Create new Azure Storage Account and a new container. Then:
@@ -83,8 +93,6 @@ kubectl config current-context
 ```
 
 ## NGINX ingress controller
-
-On AKS you need to use NGINX ingress controller. AKS does not (yet) support integration with Application Gateways.
 
 Let's create a minimalistic (one replica) `nginx-ingress` controller, disable port 80 as we want to listen only on port 443. NGINX ingress will deploy self-signed cert (read documentation about how to set it up with your own existing certs or let's encrypt). Also, I'm allowing two specific IP address ranges for my app. And yes, comma needs to be escaped. For testing you may replace it with 0.0.0.0/0 or remove at all:
 
