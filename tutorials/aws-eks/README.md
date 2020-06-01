@@ -25,7 +25,7 @@ aws s3 cp --recursive migrations s3://your-bucket-migrator/migrations
 
 Update `baseLocation` property in `migrator.yaml` to your AWS S3 bucket. Now that `migrator.yaml` is ready, build the migrator image and push it to ECR.
 
-You can find detailed instructions in previous tutorial: [contrib/aws-ecs-ecr-secretsmanager-rds-s3](../aws-ecs-ecr-secretsmanager-rds-s3).
+You can find detailed instructions in previous tutorial: [tutorials/aws-ecs](../aws-ecs).
 
 ```
 aws ecr get-login --region $AWS_REGION
@@ -44,7 +44,7 @@ Then create the cluster with Fargate profile:
 ```
 eksctl create cluster \
   --name $CLUSTER_NAME \
-  --version 1.15 \
+  --version 1.16 \
   --region $AWS_REGION \
   --external-dns-access \
   --alb-ingress-access \
@@ -117,13 +117,12 @@ vpcid=$(eksctl get cluster -n $CLUSTER_NAME -r $AWS_REGION | tail -1 | awk '{pri
 # add helm repo
 helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
 # install the chart
-helm install incubator/aws-alb-ingress-controller \
+helm install alb-ingress-controller incubator/aws-alb-ingress-controller \
   --set clusterName=$CLUSTER_NAME \
   --set awsRegion=$AWS_REGION \
   --set awsVpcID=$vpcid \
   --set rbac.serviceAccount.create=false \
   --set rbac.serviceAccount.name=alb-ingress-controller \
-  --generate-name \
   --namespace kube-system
 ```
 
@@ -224,15 +223,15 @@ kubectl delete -k .
 kubectl delete -f migrator-ingress.yaml
 kubectl delete -f migrator-service.yaml
 kubectl delete -f migrator-deployment.yaml
-kubectl delete serviceaccount migrator-serviceaccount
+eksctl delete iamserviceaccount migrator-serviceaccount --cluster $CLUSTER_NAME
+eksctl delete iamserviceaccount alb-ingress-controller --namespace kube-system --cluster $CLUSTER_NAME
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.7/docs/examples/rbac-role.yaml
-ingresscontroller=$(helm list --namespace kube-system | grep aws-alb-ingress-controller | awk '{print $1}')
-helm uninstall $ingresscontroller --namespace kube-system
+helm uninstall alb-ingress-controller --namespace kube-system
 aws iam delete-policy --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/ALBIngressControllerIAMPolicy
 ```
 
 and delete the whole cluster:
 
 ```
-eksctl delete cluster --region=$AWS_REGION --name=$CLUSTER_NAME
+eksctl delete cluster --region $AWS_REGION --name $CLUSTER_NAME
 ```
