@@ -7,7 +7,8 @@ In all below commands I use these env variables:
 ```
 AWS_REGION=us-east-2
 CLUSTER_NAME=awesome-product
-AWS_ACCOUNT_ID=XXX
+identity=$(aws sts get-caller-identity)
+AWS_ACCOUNT_ID=$(echo $identity | jq -r '.Account')
 ```
 
 ## S3 - upload test migrations
