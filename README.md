@@ -817,19 +817,19 @@ In this section I provide links to more in-depth migrator tutorials.
 
 The goal of this tutorial is to deploy migrator to AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
 
-You can find it in [contrib/aws-ecs-ecr-secretsmanager-rds-s3](contrib/aws-ecs-ecr-secretsmanager-rds-s3).
+You can find it in [tutorials/aws-ecs](tutorials/aws-ecs).
 
 ## Deploying migrator to AWS EKS
 
 The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from AWS S3 and apply them to AWS RDS DB. The list of AWS services used is: IAM, EKS, ECR, RDS, and S3.
 
-You can find it in [contrib/kubernetes-aws-eks](contrib/kubernetes-aws-eks).
+You can find it in [tutorials/aws-eks](contrib/aws-eks).
 
 ## Deploying migrator to Azure AKS
 
 The goal of this tutorial is to publish migrator image to Azure ACR private container repository, deploy migrator to Azure AKS, load migrations from Azure Blob Container and apply them to Azure Database for PostgreSQL. The list of Azure services used is: AKS, ACR, Blob Storage, and Azure Database for PostgreSQL.
 
-You can find it in [contrib/azure-aks](contrib/azure-aks).
+You can find it in [tutorials/azure-aks](tutorials/azure-aks).
 
 # Configuration
 
