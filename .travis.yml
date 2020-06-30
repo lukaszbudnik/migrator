@@ -16,7 +16,6 @@ services:
   - mysql
 
 go:
-  - "1.12"
   - "1.13"
 
 before_script:

@@ -24,7 +24,7 @@ if not exists (select * from information_schema.tables where table_schema = '%v'
   create table %v.%v (
     id serial primary key,
     name varchar(200) not null,
-    created timestamp default now()
+    created timestamp with time zone default now()
   );
   alter table %v.%v add column version_id integer;
   create index migrator_versions_version_id_idx on %v.%v (version_id);
