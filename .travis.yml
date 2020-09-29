@@ -17,6 +17,8 @@ services:
 
 go:
   - "1.13"
+  - "1.14"
+  - "1.15"
 
 before_script:
   - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"
