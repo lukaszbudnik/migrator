@@ -11,11 +11,18 @@ import (
 )
 
 func TestAzureGetSourceMigrations(t *testing.T) {
+
+	accountName, accountKey := os.Getenv("AZURE_STORAGE_ACCOUNT"), os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+
+	if len(accountName) == 0 || len(accountKey) == 0 {
+		t.Skip("skipping test AZURE_STORAGE_ACCOUNT or AZURE_STORAGE_ACCESS_KEY not set")
+	}
+
 	// migrator implements env variable substitution and normally we would use:
 	// "https://${AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/mycontainer"
 	// however below we are creating the Config struct directly
 	// and that's why we need to build correct URL ourselves
-	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/mycontainer", os.Getenv("AZURE_STORAGE_ACCOUNT"))
+	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/mycontainer", accountName)
 
 	config := &config.Config{
 		BaseLocation:     baseLocation,

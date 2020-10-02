@@ -1,6 +1,6 @@
 baseLocation: test/migrations
 driver: sqlserver
-dataSource: "A"
+dataSource: "sqlserver://SA:Super5ecret@127.0.0.1/?database=migrator&connection+timeout=1&dial+timeout=1"
 singleMigrations:
   - ref
   - config

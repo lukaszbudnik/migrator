@@ -1,19 +1,11 @@
 language: go
 
-addons:
-  postgresql: '9.6'
+services:
+  - docker
 
 env:
-  matrix:
-    - DB=postgresql
-    - DB=mysql
-  global:
-    - secure: Wvmf5FAySAGXuugkWg/lNQuPfTDA7PYlZB8Izt+bhaVZDp3Re0xz8rhomUw/ZXP/2r81HHPTvDU+eNHxpneyBeHvSXvvhzMVyU+GFLeXdHA0rjvKittkkKq5XuUkj5oaSYJIh0YRn2UdfMaQ/R+y8ZgL2uP41slG6jWpfuMeFe+oqvJCgJ7qovQ7xUataDQdGCyWCpsTlBdpGz+YFUHNrcMK3ppvm4WhzDeMGXHPuTPcWZ+edO8QVWJkxVXamuWgq95tFB3EAXx5tfcg4CS5cC/l/K2tMH7MTsXvWOCRSU+f79cSNlrztP1Mhc/TPBZe87ubmkLOQGRK//ZBqbmSXjsyjv4qkq3z223Dmg+MRkt6ip01zsSVE6vmEvtVHGxtj8VKfWbwWusAXuLa1gtzXa/vVgisF++aj1ZEhApH5mu95gMqy9tOY/mX4Pm4iqalLujvlzVHKDDCmZsyF2O8mZCL2cDH7xlQTLeq9eyRPXNcm13WDDAcOhgVSpWNVObggUMZ67YDGV0yPQKGQBOCCqV3jCKgii/4m7n1H2mn1b8VpYOdK3ncA3U3bcHDPy3Nh44EmdJnj7QiUZtN+RyQGCz83h3X2owGjNG3qvGxrBPy87DbQU+FTN88zB4DdgO/TOYEzg3Wbz24D3thZUDR8rWvu9t9/PvH+CroTIpW4Iw=
-    - secure: d5+t1ysBsHPGKvrbxsN4M+4ns4Q3YHgAk3gapaPNxlX3pDKLgZ1Kd/XBnQ3dMSCP7FWejgmeLDxloGQMeieq6exEM9kmf8Ui/oFB97j2+ODXPv6+X69+aDDGMT94J77v5DwdJzyULI4vn3ZF2V6fM5/tlle4hf4uwCBNh30Svar7ZXsp/aZL7wpZzUG+efLFJJZ4oSD2NteWR9IeZbNqQtV0fUTHLk3g4Suze6Yt2OmZiFH4pn8Ihftjyr84nke65aPws8XKzoaVmghoZXmKNPNyiH3Dyu6uyGa2OhMspj0zjXHP+sMlgMrp5cvAGchRBz9NPL18VHtgID/hEPLfwb6ZZ6HypgXu5+4/O/J2vGHTFV0q2aluNBJi+sTzklYkHoCiBXtjdZxI/+mwK1VIeMejrhSjNtzdkryEbOQM/CoBcDacQIw4gUOloCG4AcFNXzQZifHZckIgc4JChYmNHhpEu3U1Zil8H7QDQ7MGqJG+HWuK/s/leoJx112jHLmCgPsq9hmMozDdQi8rVSS8Eo6bg7NTOuE9LK/uoweF31NJYITYV3vxmqluwT7+yn7V9avXRFTV1qTcavsjAYkMS3PlLX4f+w1HtZUIOjtdABcK5mg1JjZ92xHmNFudu8b2n6j3A3nOYuA0NsX5BlCuIG84MozNsMleOl6svbRKW+4=
-
-services:
-  - postgresql
-  - mysql
+  - secure: Wvmf5FAySAGXuugkWg/lNQuPfTDA7PYlZB8Izt+bhaVZDp3Re0xz8rhomUw/ZXP/2r81HHPTvDU+eNHxpneyBeHvSXvvhzMVyU+GFLeXdHA0rjvKittkkKq5XuUkj5oaSYJIh0YRn2UdfMaQ/R+y8ZgL2uP41slG6jWpfuMeFe+oqvJCgJ7qovQ7xUataDQdGCyWCpsTlBdpGz+YFUHNrcMK3ppvm4WhzDeMGXHPuTPcWZ+edO8QVWJkxVXamuWgq95tFB3EAXx5tfcg4CS5cC/l/K2tMH7MTsXvWOCRSU+f79cSNlrztP1Mhc/TPBZe87ubmkLOQGRK//ZBqbmSXjsyjv4qkq3z223Dmg+MRkt6ip01zsSVE6vmEvtVHGxtj8VKfWbwWusAXuLa1gtzXa/vVgisF++aj1ZEhApH5mu95gMqy9tOY/mX4Pm4iqalLujvlzVHKDDCmZsyF2O8mZCL2cDH7xlQTLeq9eyRPXNcm13WDDAcOhgVSpWNVObggUMZ67YDGV0yPQKGQBOCCqV3jCKgii/4m7n1H2mn1b8VpYOdK3ncA3U3bcHDPy3Nh44EmdJnj7QiUZtN+RyQGCz83h3X2owGjNG3qvGxrBPy87DbQU+FTN88zB4DdgO/TOYEzg3Wbz24D3thZUDR8rWvu9t9/PvH+CroTIpW4Iw=
+  - secure: d5+t1ysBsHPGKvrbxsN4M+4ns4Q3YHgAk3gapaPNxlX3pDKLgZ1Kd/XBnQ3dMSCP7FWejgmeLDxloGQMeieq6exEM9kmf8Ui/oFB97j2+ODXPv6+X69+aDDGMT94J77v5DwdJzyULI4vn3ZF2V6fM5/tlle4hf4uwCBNh30Svar7ZXsp/aZL7wpZzUG+efLFJJZ4oSD2NteWR9IeZbNqQtV0fUTHLk3g4Suze6Yt2OmZiFH4pn8Ihftjyr84nke65aPws8XKzoaVmghoZXmKNPNyiH3Dyu6uyGa2OhMspj0zjXHP+sMlgMrp5cvAGchRBz9NPL18VHtgID/hEPLfwb6ZZ6HypgXu5+4/O/J2vGHTFV0q2aluNBJi+sTzklYkHoCiBXtjdZxI/+mwK1VIeMejrhSjNtzdkryEbOQM/CoBcDacQIw4gUOloCG4AcFNXzQZifHZckIgc4JChYmNHhpEu3U1Zil8H7QDQ7MGqJG+HWuK/s/leoJx112jHLmCgPsq9hmMozDdQi8rVSS8Eo6bg7NTOuE9LK/uoweF31NJYITYV3vxmqluwT7+yn7V9avXRFTV1qTcavsjAYkMS3PlLX4f+w1HtZUIOjtdABcK5mg1JjZ92xHmNFudu8b2n6j3A3nOYuA0NsX5BlCuIG84MozNsMleOl6svbRKW+4=
 
 go:
   - "1.13"
@@ -21,11 +13,9 @@ go:
   - "1.15"
 
 before_script:
-  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -c 'create database migrator_test'; fi"
-  - sh -c "if [ '$DB' = 'postgresql' ]; then psql -U postgres -d migrator_test -f test/create-test-tenants.sql; fi"
-  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -e 'create database migrator_test'; fi"
-  - sh -c "if [ '$DB' = 'mysql' ]; then mysql -u root -D migrator_test < test/create-test-tenants.sql; fi"
-  - sh -c "cp test/migrator-$DB.yaml.travis test/migrator.yaml"
+  - docker-compose -f test/docker-compose.yaml pull
+  - docker-compose -f test/docker-compose.yaml up -d
+  - sleep 60
 
 script:
   - ./coverage.sh

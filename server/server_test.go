@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	configFile          = "../test/migrator.yaml"
+	configFile          = "../test/migrator-postgresql.yaml"
 	configFileOverrides = "../test/migrator-overrides.yaml"
 )
 
