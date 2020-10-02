@@ -15,7 +15,7 @@ func TestDBCreateDialectPostgreSQLDriver(t *testing.T) {
 }
 
 func TestPostgreSQLLastInsertIdSupported(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -26,7 +26,7 @@ func TestPostgreSQLLastInsertIdSupported(t *testing.T) {
 }
 
 func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -39,7 +39,7 @@ func TestPostgreSQLGetMigrationInsertSQL(t *testing.T) {
 }
 
 func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -53,7 +53,7 @@ func TestPostgreSQLGetTenantInsertSQLDefault(t *testing.T) {
 }
 
 func TestPostgreSQLGetVersionInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -65,7 +65,7 @@ func TestPostgreSQLGetVersionInsertSQL(t *testing.T) {
 }
 
 func TestPostgreSQLGetCreateVersionsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -101,7 +101,7 @@ end $$;
 }
 
 func TestPostgreSQLGetVersionsByFileSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -113,7 +113,7 @@ func TestPostgreSQLGetVersionsByFileSQL(t *testing.T) {
 }
 
 func TestPostgreSQLGetVersionByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"
@@ -125,7 +125,7 @@ func TestPostgreSQLGetVersionByIDSQL(t *testing.T) {
 }
 
 func TestPostgreSQLGetMigrationByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "postgres"

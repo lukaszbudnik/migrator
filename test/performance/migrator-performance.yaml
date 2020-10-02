@@ -1,8 +1,8 @@
-baseLocation: test/migrations
+baseLocation: test/performance/migrations
 driver: postgres
 dataSource: "user=postgres password=supersecret dbname=migrator host=127.0.0.1 port=5432 sslmode=disable connect_timeout=1"
 singleMigrations:
-  - ref
-  - config
+  - public
 tenantMigrations:
   - tenants
+schemaPlaceHolder: ":tenant"

@@ -8,10 +8,8 @@ import (
 )
 
 func TestBaseDialectGetCreateTenantsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
-
-	config.Driver = "postgres"
 
 	dialect := newDialect(config)
 
@@ -29,10 +27,8 @@ create table if not exists migrator.migrator_tenants (
 }
 
 func TestBaseDialectGetCreateMigrationsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
-
-	config.Driver = "postgres"
 
 	dialect := newDialect(config)
 
@@ -56,10 +52,8 @@ create table if not exists migrator.migrator_migrations (
 }
 
 func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
-
-	config.Driver = "postgres"
 
 	dialect := newDialect(config)
 
@@ -71,10 +65,8 @@ func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 }
 
 func TestBaseDialectGetVersionsSelectSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
 	assert.Nil(t, err)
-
-	config.Driver = "postgres"
 
 	dialect := newDialect(config)
 

@@ -15,7 +15,7 @@ func TestDBCreateDialectMysqlDriver(t *testing.T) {
 }
 
 func TestMySQLLastInsertIdSupported(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -26,7 +26,7 @@ func TestMySQLLastInsertIdSupported(t *testing.T) {
 }
 
 func TestMySQLGetMigrationInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -39,7 +39,7 @@ func TestMySQLGetMigrationInsertSQL(t *testing.T) {
 }
 
 func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -53,7 +53,7 @@ func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 }
 
 func TestMySQLGetVersionInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -65,7 +65,7 @@ func TestMySQLGetVersionInsertSQL(t *testing.T) {
 }
 
 func TestMySQLGetCreateVersionsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -105,7 +105,7 @@ end;
 }
 
 func TestMySQLGetVersionsByFileSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -117,7 +117,7 @@ func TestMySQLGetVersionsByFileSQL(t *testing.T) {
 }
 
 func TestMySQLGetVersionByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"
@@ -129,7 +129,7 @@ func TestMySQLGetVersionByIDSQL(t *testing.T) {
 }
 
 func TestMySQLGetMigrationByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mysql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "mysql"

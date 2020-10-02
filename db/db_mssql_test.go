@@ -15,7 +15,7 @@ func TestDBCreateDialectMSSQLDriver(t *testing.T) {
 }
 
 func TestMSSQLLastInsertIdSupported(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -27,7 +27,7 @@ func TestMSSQLLastInsertIdSupported(t *testing.T) {
 }
 
 func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -40,7 +40,7 @@ func TestMSSQLGetMigrationInsertSQL(t *testing.T) {
 }
 
 func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -54,7 +54,7 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 }
 
 func TestMSSQLDialectGetCreateTenantsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -78,7 +78,7 @@ END
 }
 
 func TestMSSQLDialectGetCreateMigrationsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -108,7 +108,7 @@ END
 }
 
 func TestMSSQLDialectGetCreateSchemaSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -128,7 +128,7 @@ END
 }
 
 func TestMSSQLGetVersionInsertSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -140,7 +140,7 @@ func TestMSSQLGetVersionInsertSQL(t *testing.T) {
 }
 
 func TestMSSQLGetCreateVersionsTableSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -181,7 +181,7 @@ end
 }
 
 func TestMSSQLGetVersionsByFileSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -193,7 +193,7 @@ func TestMSSQLGetVersionsByFileSQL(t *testing.T) {
 }
 
 func TestMSSQLGetVersionByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
@@ -205,7 +205,7 @@ func TestMSSQLGetVersionByIDSQL(t *testing.T) {
 }
 
 func TestMSSQLGetMigrationByIDSQL(t *testing.T) {
-	config, err := config.FromFile("../test/migrator.yaml")
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
 	assert.Nil(t, err)
 
 	config.Driver = "sqlserver"
