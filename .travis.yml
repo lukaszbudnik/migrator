@@ -13,8 +13,9 @@ go:
   - "1.15"
 
 before_script:
+  - docker-compose -f test/docker-compose.yaml pull
   - docker-compose -f test/docker-compose.yaml up -d
-  - sleep 300
+  - sleep 60
 
 script:
   - ./coverage.sh
