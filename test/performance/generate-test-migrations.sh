@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 remove_tenant_placeholder=0
 append=0
 
@@ -53,6 +55,19 @@ insert into ${tenantprefixplaceholder}table_for_inserts values ($i);
 EOL
 }
 
+function generate_public_table {
+  timestamp=$(date +'%Y%m%d%H%M%S%N')
+  file="migrations/public/V${timestamp}.sql"
+  cat > $file <<EOL
+create table public.table_for_inserts (
+a int,
+b float,
+c varchar(100)
+);
+insert into public.table_for_inserts values (0);
+EOL
+}
+
 function generate_alter_drop_inserts {
   i=$1
   counter=$2
@@ -73,10 +88,12 @@ function generate_alter_drop_inserts {
 }
 
 if [[ $append -eq 0 ]]; then
-  rm -rf migrations/tenants
+  rm -rf migrations
   mkdir -p migrations/tenants
+  mkdir -p migrations/public
 
   generate_first_table
+  generate_public_table
 
   i=0
   counter=0
@@ -96,7 +113,7 @@ while [[ $i -lt $end ]]; do
     echo "generate_table $i $counter"
     generate_table $i $counter
   else
-    echo "generate_alter_drop_inserts $i $counter"
+    #echo "generate_alter_drop_inserts $i $counter"
     generate_alter_drop_inserts $i $counter
   fi
   let i+=1
