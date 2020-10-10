@@ -57,7 +57,7 @@ func TestWithEnvFromFile(t *testing.T) {
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"", "/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}}
+	config := &Config{"", "/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}, `{"text": "Results are: ${summary}"}`}
 	// check if go naming convention applies
 	expected := `baseLocation: /opt/app/migrations
 driver: postgres
@@ -72,7 +72,8 @@ tenantMigrations:
 singleScripts:
 - procedures
 port: "8181"
-webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX`
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+webHookTemplate: '{"text": "Results are: ${summary}"}'`
 	actual := fmt.Sprintf("%v", config)
 	assert.Equal(t, expected, actual)
 }

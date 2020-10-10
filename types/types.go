@@ -157,6 +157,7 @@ type Summary = MigrationResults
 // deprecated in v2020.1.0 sunset in v2021.1.0
 // replaced by Stats
 type MigrationResults struct {
+	VersionID             int32        `json:"versionId"`
 	StartedAt             graphql.Time `json:"startedAt"`
 	Duration              int32        `json:"duration"`
 	Tenants               int32        `json:"tenants"`
