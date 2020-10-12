@@ -2,7 +2,6 @@ package coordinator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -303,9 +302,7 @@ func (c *coordinator) filterTenantMigrations(sourceMigrations []types.Migration)
 // errors are silently discarded, adding tenant or applying migrations
 // must not fail because of notification error
 func (c *coordinator) sendNotification(results *types.MigrationResults) {
-	bytes, _ := json.Marshal(results)
-	text := string(bytes)
-	if resp, err := c.notifier.Notify(text); err != nil {
+	if resp, err := c.notifier.Notify(results); err != nil {
 		common.LogError(c.ctx, "Notifier error: %v", err.Error())
 	} else {
 		common.LogInfo(c.ctx, "Notifier response: %v", resp)

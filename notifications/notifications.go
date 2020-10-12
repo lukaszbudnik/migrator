@@ -3,22 +3,26 @@ package notifications
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 
+	gojsonq "github.com/thedevsaddam/gojsonq/v2"
+
 	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 )
 
 const (
 	defaultContentType = "application/json"
-	textPlaceHolder    = "{text}"
 )
 
 // Notifier interface abstracts all notifications performed by migrator
 type Notifier interface {
-	Notify(string) (string, error)
+	Notify(*types.Summary) (string, error)
 }
 
 // baseNotifier type is a base struct embedded by all implementations of Notifier interface
@@ -26,9 +30,33 @@ type baseNotifier struct {
 	config *config.Config
 }
 
-func (bn *baseNotifier) Notify(message string) (string, error) {
-	reader := bytes.NewReader([]byte(message))
+func (bn *baseNotifier) Notify(summary *types.Summary) (string, error) {
+	summaryJSON, err := json.MarshalIndent(summary, "", "    ")
+	if err != nil {
+		return "", err
+	}
 
+	payload := string(summaryJSON)
+
+	if template := bn.config.WebHookTemplate; len(template) > 0 {
+		// ${summary} will be replaced with the JSON object
+		if strings.Contains(template, "${summary}") {
+			template = strings.Replace(template, "${summary}", strings.ReplaceAll(payload, "\"", "\\\""), -1)
+		}
+		// migrator also supports parsing individual fields using ${summary.field} syntax
+		if strings.Contains(template, "${summary.") {
+			r, _ := regexp.Compile("\\${summary.([a-zA-Z]+)}")
+			matches := r.FindAllStringSubmatch(template, -1)
+			for _, m := range matches {
+				value := gojsonq.New().FromString(payload).Find(m[1])
+				valueString := fmt.Sprintf("%v", value)
+				template = strings.Replace(template, m[0], valueString, -1)
+			}
+		}
+		payload = template
+	}
+
+	reader := bytes.NewReader([]byte(payload))
 	url := bn.config.WebHookURL
 
 	req, err := http.NewRequest(http.MethodPost, url, reader)
@@ -65,7 +93,7 @@ type noopNotifier struct {
 	baseNotifier
 }
 
-func (sn *noopNotifier) Notify(text string) (string, error) {
+func (sn *noopNotifier) Notify(summary *types.Summary) (string, error) {
 	return "noop", nil
 }
 

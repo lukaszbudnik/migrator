@@ -28,6 +28,7 @@ type Config struct {
 	PathPrefix        string   `yaml:"pathPrefix,omitempty"`
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
+	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`
 }
 
 func (config Config) String() string {

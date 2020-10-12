@@ -40,7 +40,7 @@ type mockedNotifier struct {
 	returnError bool
 }
 
-func (m *mockedNotifier) Notify(message string) (string, error) {
+func (m *mockedNotifier) Notify(summary *types.Summary) (string, error) {
 	if m.returnError {
 		return "", errors.New("algo salió terriblemente mal")
 	}
