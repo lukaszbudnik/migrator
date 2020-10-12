@@ -43,7 +43,7 @@ func (bn *baseNotifier) Notify(summary *types.Summary) (string, error) {
 		if strings.Contains(template, "${summary}") {
 			template = strings.Replace(template, "${summary}", strings.ReplaceAll(payload, "\"", "\\\""), -1)
 		}
-		// migrator also supports parsing individual properties using ${summary.property} syntax
+		// migrator also supports parsing individual fields using ${summary.field} syntax
 		if strings.Contains(template, "${summary.") {
 			r, _ := regexp.Compile("\\${summary.([a-zA-Z]+)}")
 			matches := r.FindAllStringSubmatch(template, -1)
