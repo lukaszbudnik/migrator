@@ -585,8 +585,9 @@ Currently migrator supports the following databases and their flavours. Please r
   * Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
   * Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
   * Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-* Microsoft SQL Server 2017 - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
-  * Microsoft SQL Server
+* Microsoft SQL Server - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
+  * Microsoft SQL Server 2017
+  * Microsoft SQL Server 2019
 
 # Customisation and legacy frameworks support
 
@@ -657,7 +658,7 @@ You can find it in [tutorials/aws-ecs](tutorials/aws-ecs).
 
 The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from AWS S3 and apply them to AWS RDS DB. The list of AWS services used is: IAM, EKS, ECR, RDS, and S3.
 
-You can find it in [tutorials/aws-eks](contrib/aws-eks).
+You can find it in [tutorials/aws-eks](tutorials/aws-eks).
 
 ## Deploying migrator to Azure AKS
 
