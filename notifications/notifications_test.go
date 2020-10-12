@@ -2,19 +2,24 @@ package notifications
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/graph-gophers/graphql-go"
 
 	"github.com/lukaszbudnik/migrator/config"
+	"github.com/lukaszbudnik/migrator/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNoopNotifier(t *testing.T) {
 	config := config.Config{}
 	notifier := New(context.TODO(), &config)
-	result, err := notifier.Notify("abc")
+	result, err := notifier.Notify(&types.Summary{})
 
 	assert.Equal(t, "noop", result)
 	assert.Nil(t, err)
@@ -22,30 +27,49 @@ func TestNoopNotifier(t *testing.T) {
 
 func TestWebHookNotifier(t *testing.T) {
 
-	var request []byte
 	var contentType string
+	var requestBody string
 
 	server := httptest.NewServer(func() http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			request, _ = ioutil.ReadAll(r.Body)
+			request, _ := ioutil.ReadAll(r.Body)
+			requestBody = string(request)
 			contentType = r.Header.Get("Content-Type")
-			w.Write([]byte(`{"result": "ok"}`))
+			w.Write([]byte("ok"))
 		}
 	}())
 
 	config := config.Config{}
 	config.WebHookURL = server.URL
+	config.WebHookTemplate = `{"text": "New version created: ${summary.versionId} started at: ${summary.startedAt} and took ${summary.duration}. Migrations/scripts total: ${summary.migrationsGrandTotal}/${summary.scriptsGrandTotal}. Full results are: ${summary}"}`
 
 	notifier := New(context.TODO(), &config)
 
-	message := `{"text": "abc","icon_emoji": ":white_check_mark:"}`
-	result, err := notifier.Notify(message)
+	summary := &types.Summary{
+		VersionID:            213,
+		StartedAt:            graphql.Time{Time: time.Now()},
+		Tenants:              123,
+		Duration:             3213,
+		MigrationsGrandTotal: 1024,
+		ScriptsGrandTotal:    74,
+	}
+	result, err := notifier.Notify(summary)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `{"result": "ok"}`, result)
-	assert.Equal(t, `{"text": "abc","icon_emoji": ":white_check_mark:"}`, string(request))
+	assert.Equal(t, "ok", result)
 	assert.Equal(t, "application/json", string(contentType))
+	// make sure placeholders were replaced
+	assert.NotContains(t, requestBody, "${summary")
+	// explicit placeholders ${summary.property}
+	assert.Contains(t, requestBody, fmt.Sprint(summary.VersionID))
+	startedAt, _ := summary.StartedAt.MarshalText()
+	assert.Contains(t, requestBody, fmt.Sprintf("%s", startedAt))
+	assert.Contains(t, requestBody, fmt.Sprint(summary.Duration))
+	assert.Contains(t, requestBody, fmt.Sprint(summary.MigrationsGrandTotal))
+	assert.Contains(t, requestBody, fmt.Sprint(summary.ScriptsGrandTotal))
+	// mapped as ${summary}
+	assert.Contains(t, requestBody, fmt.Sprint(summary.Tenants))
 }
 
 func TestWebHookNotifierCustomHeaders(t *testing.T) {
@@ -70,7 +94,7 @@ func TestWebHookNotifierCustomHeaders(t *testing.T) {
 
 	notifier := New(context.TODO(), &config)
 
-	result, err := notifier.Notify("abc")
+	result, err := notifier.Notify(&types.Summary{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, `{"result": "ok"}`, result)
@@ -83,7 +107,7 @@ func TestWebHookURLError(t *testing.T) {
 	config := config.Config{}
 	config.WebHookURL = "xczxcvv"
 	notifier := New(context.TODO(), &config)
-	result, err := notifier.Notify("abc")
+	result, err := notifier.Notify(&types.Summary{})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", result)

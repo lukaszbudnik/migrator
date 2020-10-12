@@ -70,7 +70,7 @@ Sample HTTP response:
 
 API v2 was introduced in migrator v2020.1.0. API v2 is a GraphQL API.
 
-API v2 also introduced a formal concept of DB versions. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
+API v2 introduced a formal concept of a DB version. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
 
 ## GET /v2/config
 
@@ -112,31 +112,6 @@ Sample request:
 ```
 curl -v http://localhost:8080/v2/schema
 ```
-
-Sample HTTP response (truncated):
-
-```
-< HTTP/1.1 200 OK
-< Content-Type: text/plain; charset=utf-8
-< Date: Mon, 02 Mar 2020 20:12:20 GMT
-< Transfer-Encoding: chunked
-<
-schema {
-  query: Query
-  mutation: Mutation
-}
-enum MigrationType {
-  SingleMigration
-  TenantMigration
-  SingleScript
-  TenantScript
-}
-...
-```
-
-## POST /v2/service
-
-This is a GraphQL endpoint which handles both query and mutation requests.
 
 The API v2 GraphQL schema and its description is as follows:
 
@@ -273,9 +248,13 @@ type Mutation {
 }
 ```
 
+## POST /v2/service
+
+This is a GraphQL endpoint which handles both query and mutation requests.
+
 There are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
 
-In Quick Start Guide there are a few curl examples to get you started.
+In [Quick Start Guide](#quick-start-guide) there are a few curl examples to get you started.
 
 ## /v1 - REST API
 
@@ -516,9 +495,11 @@ port: 8080
 # then all HTTP requests should be prefixed with that path, for example: /migrator/v1/config, /migrator/v1/migrations/source, etc.
 pathPrefix: /migrator
 # the webhook configuration section is optional
-# URL and template are required if at least one of them is empty noop notifier is used
-# the default content type header sent is application/json (can be overridden via webHookHeaders below)
+# the default Content-Type header is application/json but can be overridden via webHookHeaders below
 webHookURL: https://your.server.com/services/TTT/BBB/XXX
+# if the webhook expects a payload in a specific format there is an option to provide a payload template
+# see webhook template for more information
+webHookTemplate: '{"text": "New version: ${summary.versionId} started at: ${summary.startedAt} and took ${summary.duration}. Full results are: ${summary}"}'
 # should you need more control over HTTP headers use below
 webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
@@ -534,6 +515,21 @@ migrator supports env variables substitution in config file. All patterns matchi
 dataSource: "user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} host=${DB_HOST} port=${DB_PORT}"
 webHookHeaders:
   - "X-Security-Token: ${SECURITY_TOKEN}"
+```
+
+## WebHook template
+
+By default when a webhook is configured migrator will post a JSON representation of `Summary` struct to its endpoint.
+
+If your webhook expects a payload in a specific format (say Slack or MS Teams incoming webhooks) there is an option to configure a `webHookTemplate` property in migrator's configuration file. The template can have the following placeholders:
+
+* `${summary}` - will be replaced by a JSON representation of `Summary` struct, all double quotes will be escaped so that the template remains a valid JSON document
+* `${summary.field}` - will be replaced by a given field of `Summary` struct
+
+Placeholders can be mixed:
+
+```yaml
+webHookTemplate: '{"text": "New version created: ${summary.versionId} started at: ${summary.startedAt} and took ${summary.duration}. Migrations/scripts total: ${summary.migrationsGrandTotal}/${summary.scriptsGrandTotal}. Full results are: ${summary}"}'
 ```
 
 ## Source migrations
@@ -634,7 +630,7 @@ schemaPlaceHolder: :tenant
 
 Before switching from a legacy tool you need to synchronise source migrations to migrator. migrator has no knowledge of migrations applied by other tools and as such will attempt to apply all found source migrations.
 
-Synchronising will load all source migrations and mark them as applied. This can be done by `CreateVersion` operation with `action: "Sync"`.
+Synchronising will load all source migrations and mark them as applied. This can be done by `CreateVersion` operation with action set to `Sync`.
 
 Once the initial synchronisation is done you can use migrator for all the consecutive DB migrations.
 

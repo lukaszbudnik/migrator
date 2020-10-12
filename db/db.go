@@ -354,8 +354,8 @@ func (bc *baseConnector) CreateVersion(versionName string, action types.Action, 
 		}
 	}()
 
-	results, versionID := bc.applyMigrationsInTx(tx, versionName, action, tenants, migrations)
-	version := bc.getVersionByIDInTx(tx, int32(versionID))
+	results := bc.applyMigrationsInTx(tx, versionName, action, tenants, migrations)
+	version := bc.getVersionByIDInTx(tx, results.VersionID)
 
 	return results, version
 }
@@ -404,9 +404,9 @@ func (bc *baseConnector) CreateTenant(versionName string, action types.Action, d
 	}
 
 	tenantStruct := types.Tenant{Name: tenant}
-	results, versionID := bc.applyMigrationsInTx(tx, versionName, action, []types.Tenant{tenantStruct}, migrations)
+	results := bc.applyMigrationsInTx(tx, versionName, action, []types.Tenant{tenantStruct}, migrations)
 
-	version := bc.getVersionByIDInTx(tx, int32(versionID))
+	version := bc.getVersionByIDInTx(tx, results.VersionID)
 
 	return results, version
 }
@@ -437,7 +437,7 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, action types.Action, tenants []types.Tenant, migrations []types.Migration) (*types.MigrationResults, int64) {
+func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, action types.Action, tenants []types.Tenant, migrations []types.Migration) *types.MigrationResults {
 
 	results := &types.MigrationResults{
 		StartedAt: graphql.Time{Time: time.Now()},
@@ -514,5 +514,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, act
 
 	}
 
-	return results, versionID
+	results.VersionID = int32(versionID)
+
+	return results
 }
