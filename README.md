@@ -40,6 +40,7 @@ The official docker image is available on docker hub at [lukasz/migrator](https:
   * [Deploying migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
   * [Deploying migrator to AWS EKS](#deploying-migrator-to-aws-eks)
   * [Deploying migrator to Azure AKS](#deploying-migrator-to-azure-aks)
+  * [Securing migrator with OAuth2](#securing-migrator-with-oauth2)
 * [Performance](#performance)
 * [Change log](#change-log)
 * [Contributing, code style, running unit & integration tests](#contributing-code-style-running-unit--integration-tests)
@@ -665,6 +666,12 @@ You can find it in [tutorials/aws-eks](tutorials/aws-eks).
 The goal of this tutorial is to publish migrator image to Azure ACR private container repository, deploy migrator to Azure AKS, load migrations from Azure Blob Container and apply them to Azure Database for PostgreSQL. The list of Azure services used is: AKS, ACR, Blob Storage, and Azure Database for PostgreSQL.
 
 You can find it in [tutorials/azure-aks](tutorials/azure-aks).
+
+## Securing migrator with OAuth2
+
+The goal of this tutorial is to secure migrator with OAuth2. It shows how to deploy oauth2-proxy in front of migrator which will off-load and transparently handle authentication for migrator end-users.
+
+You can find it in [tutorials/oauth2-proxy](tutorials/oauth2-proxy).
 
 # Performance
 

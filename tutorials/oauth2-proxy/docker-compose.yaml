@@ -1,0 +1,56 @@
+version: '3.0'
+services:
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v6.1.1
+    command: --config /oauth2-proxy.cfg
+    hostname: gateway
+    volumes:
+      - "./oauth2-proxy-keycloak.cfg:/oauth2-proxy.cfg"
+    # oauth2-proxy dies when not able to connect to keycloak
+    restart: unless-stopped
+    networks:
+      keycloak: {}
+      migrator: {}
+      oauth2-proxy: {}
+    depends_on:
+      - migrator
+      - keycloak
+    ports:
+      - 4180:4180
+
+  migrator:
+    container_name: migrator
+    image: lukasz/migrator:latest
+    hostname: migrator
+    volumes:
+      - "./migrator.yaml:/data/migrator.yaml"
+    networks:
+      migrator: {}
+
+  keycloak:
+    image: jboss/keycloak:11.0.2
+    hostname: keycloak
+    command:
+      [
+        '-b',
+        '0.0.0.0',
+        '-Djboss.socket.binding.port-offset=1000',
+        '-Dkeycloak.migration.action=import',
+        '-Dkeycloak.migration.provider=dir',
+        '-Dkeycloak.migration.dir=/realm-config',
+        '-Dkeycloak.migration.strategy=IGNORE_EXISTING',
+      ]
+    volumes:
+      - ./keycloak:/realm-config
+    networks:
+      keycloak:
+        aliases:
+          - keycloak.localtest.me
+    ports:
+      - 9080:9080
+
+networks:
+  migrator: {}
+  keycloak: {}
+  oauth2-proxy: {}
