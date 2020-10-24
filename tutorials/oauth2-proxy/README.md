@@ -6,13 +6,15 @@ In this tutorial I will show you how to setup OAuth2 authentication in front of 
 
 ## oauth2-proxy
 
-I will use oauth2-proxy project. It supports multiple OAuth2 providers. To name a few: Google, Facebook, GitHub, LinkedIn, Azure, Keycloak, login.gov, any OpenID Connect compatibile provider, and much more. For the sake of simplicity I will re-use oauth2-proxy local-environment which creates and setups an embedded ready-to-use Keycloak server.
+I will use oauth2-proxy project. It supports multiple OAuth2 providers. To name a few: Google, Facebook, GitHub, LinkedIn, Azure, Keycloak, login.gov, or any OpenID Connect compatibile provider. For the sake of simplicity I will re-use oauth2-proxy local-environment which creates and setups an embedded ready-to-use Keycloak server.
 
-To learn more about how oauth2-proxy works visit their github repo: https://github.com/oauth2-proxy/oauth2-proxy. To learn more about Keycload visit their website: https://www.keycloak.org.
+To learn more about how oauth2-proxy works visit their github repo: https://github.com/oauth2-proxy/oauth2-proxy.
+
+To learn more about Keycloak visit their website: https://www.keycloak.org.
 
 ## Docker setup
 
-I re-used a docker-compose.yaml from oauth2-proxy local-environment and updated it to provision the following services:
+I re-used `docker-compose.yaml` from oauth2-proxy local-environment and updated it to provision the following services:
 
 * keycloak - the Identity and Access Management service, available at: http://keycloak.localtest.me:9080
 * oauth2-proxy - proxy that protects migrator and connects to keycloak for OAuth2/OIDC authentication, available at: http://gateway.localtest.me:4180
@@ -26,13 +28,13 @@ To build the test environment execute:
 docker-compose up -d
 ```
 
-Access http://gateway.localtest.me:4180/ to initiate a login cycle using the following credentials: user `admin@example.com` and password `password`.
+Access http://gateway.localtest.me:4180/ to initiate a login cycle and authenticate with user `admin@example.com` and password `password`. After a successful login you will see migrator.
 
 Access http://keycloak.localtest.me:9080 to play around with Keycloak.
 
 ## GitHub setup
 
-OAuth2 can be easily setup with GitHub, open `oauth2-proxy-keycloak.cfg` and then comment lines 9 and below. Follow https://docs.github.com/en/free-pro-team@latest/developers/apps/creating-an-oauth-app documentation to create OAuth2 application and then setup the following 3 parameters in Keycloak config file:
+OAuth2 can be easily setup in GitHub. Open `oauth2-proxy.cfg` and comment lines 9 and below. Follow https://docs.github.com/en/free-pro-team@latest/developers/apps/creating-an-oauth-app documentation to create OAuth2 application and then setup the following 3 parameters in the config file:
 
 ```
 provider="github"

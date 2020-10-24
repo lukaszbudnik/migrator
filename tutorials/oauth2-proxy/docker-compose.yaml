@@ -6,7 +6,7 @@ services:
     command: --config /oauth2-proxy.cfg
     hostname: gateway
     volumes:
-      - "./oauth2-proxy-keycloak.cfg:/oauth2-proxy.cfg"
+      - "./oauth2-proxy.cfg:/oauth2-proxy.cfg"
     # oauth2-proxy dies when not able to connect to keycloak
     restart: unless-stopped
     networks:
