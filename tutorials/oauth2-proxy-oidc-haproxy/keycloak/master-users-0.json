@@ -1,0 +1,73 @@
+{
+  "realm" : "master",
+  "users" : [ {
+    "id" : "3356c0a0-d4d5-4436-9c5a-2299c71c08ec",
+    "createdTimestamp" : 1591297959169,
+    "username" : "admin@example.com",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : true,
+    "email" : "admin@example.com",
+    "credentials" : [ {
+      "id" : "a1a06ecd-fdc0-4e67-92cd-2da22d724e32",
+      "type" : "password",
+      "createdDate" : 1591297959315,
+      "secretData" : "{\"value\":\"6rt5zuqHVHopvd0FTFE0CYadXTtzY0mDY2BrqnNQGS51/7DfMJeGgj0roNnGMGvDv30imErNmiSOYl+cL9jiIA==\",\"salt\":\"LI0kqr09JB7J9wvr2Hxzzg==\"}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "offline_access", "admin", "migrator_admin", "uma_authorization", "migrator_user" ],
+    "clientRoles" : {
+      "account" : [ "view-profile", "manage-account" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "cfe980a3-bab6-4e1e-bf3f-e69fb82e20ed",
+    "createdTimestamp" : 1603893240321,
+    "username" : "madmin@example.com",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : true,
+    "email" : "madmin@example.com",
+    "credentials" : [ {
+      "id" : "0a01d92c-e5d1-46eb-b573-e5f3dbefa826",
+      "type" : "password",
+      "createdDate" : 1603893517321,
+      "secretData" : "{\"value\":\"dB39suZtlpvVMdx5dxYQfHM4+6eab38l6te/Gg3Hs1ufk+KIu9uaozmzydbquEbnTel7R4rvwo8InOVySEez4w==\",\"salt\":\"CSKyC0uG9skSkYbIjcMgdQ==\"}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "offline_access", "migrator_admin", "uma_authorization", "migrator_user" ],
+    "clientRoles" : {
+      "account" : [ "view-profile", "manage-account" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "f79a6508-1318-43f3-b8bd-1d10d1043d32",
+    "createdTimestamp" : 1603893269815,
+    "username" : "muser@example.com",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : true,
+    "email" : "muser@example.com",
+    "credentials" : [ {
+      "id" : "409854c3-4255-4ef7-b9a4-c2844bd97376",
+      "type" : "password",
+      "createdDate" : 1603893540333,
+      "secretData" : "{\"value\":\"Exuex4gHetwasRLZno0abUsPvNJgJP6hpU5Ern1DNsiH7JF1QMJkbmk0aU3ne2mh0fYYAJ8BOBgnNlCBFMMVgw==\",\"salt\":\"SfUjhW51/D5BQER+zTmP4w==\"}",
+      "credentialData" : "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "offline_access", "uma_authorization", "migrator_user" ],
+    "clientRoles" : {
+      "account" : [ "view-profile", "manage-account" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  } ]
+}

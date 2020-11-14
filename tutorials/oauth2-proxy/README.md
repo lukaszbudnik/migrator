@@ -1,26 +1,24 @@
-# Setting up OAuth2 authentication
+# Securing migrator with OAuth2
 
-Following single-responsibility design pattern migrator does not provide any authentication mechanism.
-
-In this tutorial I will show you how to setup OAuth2 authentication in front of migrator.
+In this tutorial I will show you how to setup OAuth2 authorization in front of migrator.
 
 ## oauth2-proxy
 
-I will use oauth2-proxy project. It supports multiple OAuth2 providers. To name a few: Google, Facebook, GitHub, LinkedIn, Azure, Keycloak, login.gov, or any OpenID Connect compatibile provider. For the sake of simplicity I will re-use oauth2-proxy local-environment which creates and setups an embedded ready-to-use Keycloak server.
+I will use oauth2-proxy project. It supports multiple OAuth2 providers. To name a few: Google, Facebook, GitHub, LinkedIn, Azure, Keycloak, login.gov, or any OpenID Connect compatible provider. For the sake of simplicity I will re-use oauth2-proxy local-environment which creates and setups a ready-to-use Keycloak server.
 
-To learn more about how oauth2-proxy works visit their github repo: https://github.com/oauth2-proxy/oauth2-proxy.
+To learn more about oauth2-proxy visit https://github.com/oauth2-proxy/oauth2-proxy.
 
-To learn more about Keycloak visit their website: https://www.keycloak.org.
+To learn more about Keycloak visit https://www.keycloak.org.
 
 ## Docker setup
 
 I re-used `docker-compose.yaml` from oauth2-proxy local-environment and updated it to provision the following services:
 
 * keycloak - the Identity and Access Management service, available at: http://keycloak.localtest.me:9080
-* oauth2-proxy - proxy that protects migrator and connects to keycloak for OAuth2/OIDC authentication, available at: http://gateway.localtest.me:4180
-* migrator - deployed internally and accessible only from oauth2-proxy and only by authenticated users
+* oauth2-proxy - proxy that protects migrator and connects to keycloak for OAuth2 authorization, available at: http://gateway.localtest.me:4180
+* migrator - deployed internally and accessible only from oauth2-proxy and only by authorized users
 
-> Note: above setup doesn't have a database as this is to only ilustrate how to setup oauth2-proxy.
+> Note: above setup doesn't have a database as this is to only illustrate how to setup oauth2-proxy.
 
 To build the test environment execute:
 
