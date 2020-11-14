@@ -1,0 +1,8 @@
+baseLocation: /data/migrations
+driver: mysql
+dataSource: "root:supersecret@tcp(mysql:3306)/migrator?parseTime=true&timeout=1s"
+singleMigrations:
+  - ref
+  - config
+tenantMigrations:
+  - tenants
