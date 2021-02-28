@@ -15,7 +15,7 @@ require (
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
