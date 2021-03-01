@@ -9,9 +9,9 @@ env:
     - secure: d5+t1ysBsHPGKvrbxsN4M+4ns4Q3YHgAk3gapaPNxlX3pDKLgZ1Kd/XBnQ3dMSCP7FWejgmeLDxloGQMeieq6exEM9kmf8Ui/oFB97j2+ODXPv6+X69+aDDGMT94J77v5DwdJzyULI4vn3ZF2V6fM5/tlle4hf4uwCBNh30Svar7ZXsp/aZL7wpZzUG+efLFJJZ4oSD2NteWR9IeZbNqQtV0fUTHLk3g4Suze6Yt2OmZiFH4pn8Ihftjyr84nke65aPws8XKzoaVmghoZXmKNPNyiH3Dyu6uyGa2OhMspj0zjXHP+sMlgMrp5cvAGchRBz9NPL18VHtgID/hEPLfwb6ZZ6HypgXu5+4/O/J2vGHTFV0q2aluNBJi+sTzklYkHoCiBXtjdZxI/+mwK1VIeMejrhSjNtzdkryEbOQM/CoBcDacQIw4gUOloCG4AcFNXzQZifHZckIgc4JChYmNHhpEu3U1Zil8H7QDQ7MGqJG+HWuK/s/leoJx112jHLmCgPsq9hmMozDdQi8rVSS8Eo6bg7NTOuE9LK/uoweF31NJYITYV3vxmqluwT7+yn7V9avXRFTV1qTcavsjAYkMS3PlLX4f+w1HtZUIOjtdABcK5mg1JjZ92xHmNFudu8b2n6j3A3nOYuA0NsX5BlCuIG84MozNsMleOl6svbRKW+4=
 
 go:
-  - "1.13"
   - "1.14"
   - "1.15"
+  - "1.16"
 
 before_script:
   - docker-compose -f test/docker-compose.yaml pull
