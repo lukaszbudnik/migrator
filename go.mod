@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/graph-gophers/graphql-go v0.0.0-20200207002730-8334863f2c8b
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.9.0
 	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
