@@ -13,7 +13,7 @@ RUN cd /go/migrator && git checkout $SOURCE_BRANCH && \
   GIT_COMMIT_SHA=$(git rev-list -1 HEAD) && \
   go build -ldflags "-X main.GitCommitDate=$GIT_COMMIT_DATE -X main.GitCommitSha=$GIT_COMMIT_SHA -X main.GitBranch=$GIT_BRANCH"
 
-FROM alpine:3.10
+FROM alpine:3.13.2
 COPY --from=builder /go/migrator/migrator /bin
 
 VOLUME ["/data"]
