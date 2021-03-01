@@ -95,7 +95,7 @@ func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrati
 	for _, o := range objects {
 		blobURL := containerURL.NewBlobURL(o)
 
-		get, err := blobURL.Download(abl.ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+		get, err := blobURL.Download(abl.ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 		if err != nil {
 			panic(err.Error())
 		}
