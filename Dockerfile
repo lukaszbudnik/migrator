@@ -1,6 +1,6 @@
-FROM golang:1.13.5-alpine3.10 as builder
+FROM golang:1.16.0-alpine3.13 as builder
 
-MAINTAINER Łukasz Budnik lukasz.budnik@gmail.com
+LABEL maintainer="Łukasz Budnik lukasz.budnik@gmail.com"
 
 ARG SOURCE_BRANCH
 
