@@ -25,8 +25,8 @@ type Connector interface {
 	GetDBMigrationByID(ID int32) (*types.DBMigration, error)
 	// deprecated in v2020.1.0 sunset in v2021.1.0
 	GetAppliedMigrations() []types.MigrationDB
-	CreateVersion(string, types.Action, bool, []types.Migration) (*types.MigrationResults, *types.Version)
-	CreateTenant(string, types.Action, bool, string, []types.Migration) (*types.MigrationResults, *types.Version)
+	CreateVersion(string, types.Action, []types.Migration, bool) (*types.MigrationResults, *types.Version)
+	CreateTenant(string, string, types.Action, []types.Migration, bool) (*types.MigrationResults, *types.Version)
 	Dispose()
 }
 
@@ -320,7 +320,7 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 }
 
 // CreateVersion creates new DB version and applies passed migrations
-func (bc *baseConnector) CreateVersion(versionName string, action types.Action, dryRun bool, migrations []types.Migration) (*types.MigrationResults, *types.Version) {
+func (bc *baseConnector) CreateVersion(versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.MigrationResults, *types.Version) {
 	if len(migrations) == 0 {
 		return &types.MigrationResults{
 			StartedAt: graphql.Time{Time: time.Now()},
@@ -361,7 +361,7 @@ func (bc *baseConnector) CreateVersion(versionName string, action types.Action, 
 }
 
 // CreateTenant creates new tenant and applies passed tenant migrations
-func (bc *baseConnector) CreateTenant(versionName string, action types.Action, dryRun bool, tenant string, migrations []types.Migration) (*types.MigrationResults, *types.Version) {
+func (bc *baseConnector) CreateTenant(tenant string, versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.MigrationResults, *types.Version) {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()

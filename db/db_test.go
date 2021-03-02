@@ -83,7 +83,7 @@ func TestCreateVersionDryRunMode(t *testing.T) {
 	mock.ExpectRollback()
 
 	// however the results contain correct dry-run data like number of applied migrations/scripts
-	results, version := connector.CreateVersion("commit-sha", types.ActionApply, true, migrationsToApply)
+	results, version := connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, true)
 	assert.NotNil(t, version)
 	assert.True(t, version.ID > 0)
 	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
@@ -123,7 +123,7 @@ func TestCreateVersionSyncMode(t *testing.T) {
 	mock.ExpectCommit()
 
 	// sync the results contain correct data like number of applied migrations/scripts
-	results, version := connector.CreateVersion("commit-sha", types.ActionSync, false, migrationsToApply)
+	results, version := connector.CreateVersion("commit-sha", types.ActionSync, migrationsToApply, false)
 	assert.NotNil(t, version)
 	assert.True(t, version.ID > 0)
 	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
@@ -207,7 +207,7 @@ func TestCreateTenantDryRunMode(t *testing.T) {
 	mock.ExpectRollback()
 
 	// however the results contain correct dry-run data like number of applied migrations/scripts
-	results, version := connector.CreateTenant("commit-sha", types.ActionApply, true, tenant, migrationsToApply)
+	results, version := connector.CreateTenant(tenant, "commit-sha", types.ActionApply, migrationsToApply, true)
 	assert.NotNil(t, version)
 	assert.True(t, version.ID > 0)
 	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))
@@ -249,7 +249,7 @@ func TestCreateTenantSyncMode(t *testing.T) {
 	mock.ExpectCommit()
 
 	// sync results contain correct data like number of applied migrations/scripts
-	results, version := connector.CreateTenant("commit-sha", types.ActionSync, false, tenant, migrationsToApply)
+	results, version := connector.CreateTenant(tenant, "commit-sha", types.ActionSync, migrationsToApply, false)
 	assert.NotNil(t, version)
 	assert.True(t, version.ID > 0)
 	assert.Equal(t, results.MigrationsGrandTotal+results.ScriptsGrandTotal, int32(len(version.DBMigrations)))

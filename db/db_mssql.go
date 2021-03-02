@@ -100,14 +100,17 @@ func (md *msSQLDialect) GetCreateTenantsTableSQL() string {
 }
 
 // GetCreateMigrationsTableSQL returns migrator's create migrations table SQL statement.
-// This SQL is used by both MS SQL.
+// This SQL is used by MS SQL.
 func (md *msSQLDialect) GetCreateMigrationsTableSQL() string {
 	return fmt.Sprintf(createMigrationsTableMSSQLDialectSQL, migratorSchema, migratorMigrationsTable, migratorSchema, migratorMigrationsTable)
 }
 
 // GetCreateSchemaSQL returns create schema SQL statement.
-// This SQL is used by both MySQL and PostgreSQL.
+// This SQL is used by MS SQL.
 func (md *msSQLDialect) GetCreateSchemaSQL(schema string) string {
+	if !isValidIdentifier(schema) {
+		panic(fmt.Sprintf("Schema name contains invalid characters: %v", schema))
+	}
 	return fmt.Sprintf(createSchemaMSSQLDialectSQL, schema, schema)
 }
 

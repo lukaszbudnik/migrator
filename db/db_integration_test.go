@@ -83,7 +83,7 @@ func TestCreateVersion(t *testing.T) {
 
 			migrationsToApply := []types.Migration{public1, public2, public3, tenant1, tenant2, tenant3, public4, public5, tenant4}
 
-			results, version := connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+			results, version := connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 
 			assert.NotNil(t, version)
 			assert.True(t, version.ID > 0)
@@ -124,7 +124,7 @@ func TestCreateVersionEmptyMigrationArray(t *testing.T) {
 
 			migrationsToApply := []types.Migration{}
 
-			results, version := connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+			results, version := connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 			// empty migrations slice - no version created
 			assert.Nil(t, version)
 			assert.Equal(t, int32(0), results.MigrationsGrandTotal)
@@ -177,7 +177,7 @@ func TestCreateTenant(t *testing.T) {
 
 			uniqueTenant := fmt.Sprintf("new_test_tenant_%v", time.Now().UnixNano())
 
-			results, version := connector.CreateTenant("commit-sha", types.ActionApply, false, uniqueTenant, migrationsToApply)
+			results, version := connector.CreateTenant(uniqueTenant, "commit-sha", types.ActionApply, migrationsToApply, false)
 
 			assert.NotNil(t, version)
 			assert.True(t, version.ID > 0)
