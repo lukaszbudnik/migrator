@@ -2,9 +2,12 @@ package db
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/lukaszbudnik/migrator/config"
 )
+
+var isValidIdentifier = regexp.MustCompile(`^[A-Za-z0-9_-]+$`).MatchString
 
 // dialect returns SQL statements for given DB
 type dialect interface {
@@ -82,6 +85,9 @@ func (bd *baseDialect) GetMigrationSelectSQL() string {
 // GetCreateSchemaSQL returns create schema SQL statement.
 // This SQL is used by both MySQL and PostgreSQL.
 func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
+	if !isValidIdentifier(schema) {
+		panic(fmt.Sprintf("Schema name contains invalid characters: %v", schema))
+	}
 	return fmt.Sprintf(createSchemaSQL, schema)
 }
 

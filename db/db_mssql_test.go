@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
@@ -125,6 +126,17 @@ END
 `
 
 	assert.Equal(t, expected, createSchemaSQL)
+}
+
+func TestMSSQLDialectGetCreateSchemaSQLError(t *testing.T) {
+	config, err := config.FromFile("../test/migrator-mssql.yaml")
+	assert.Nil(t, err)
+
+	dialect := newDialect(config)
+
+	sqlInjection := "abc; drop schema [migrator];"
+	expectedValue := fmt.Sprintf("Schema name contains invalid characters: %v", sqlInjection)
+	assert.PanicsWithValue(t, expectedValue, func() { dialect.GetCreateSchemaSQL(sqlInjection) })
 }
 
 func TestMSSQLGetVersionInsertSQL(t *testing.T) {

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lukaszbudnik/migrator/config"
@@ -62,6 +63,17 @@ func TestBaseDialectGetCreateSchemaSQL(t *testing.T) {
 	expected := "create schema if not exists abc"
 
 	assert.Equal(t, expected, createSchemaSQL)
+}
+
+func TestBaseDialectGetCreateSchemaSQLError(t *testing.T) {
+	config, err := config.FromFile("../test/migrator-postgresql.yaml")
+	assert.Nil(t, err)
+
+	dialect := newDialect(config)
+
+	sqlInjection := "abc; drop schema migrator;"
+	expectedValue := fmt.Sprintf("Schema name contains invalid characters: %v", sqlInjection)
+	assert.PanicsWithValue(t, expectedValue, func() { dialect.GetCreateSchemaSQL(sqlInjection) })
 }
 
 func TestBaseDialectGetVersionsSelectSQL(t *testing.T) {
