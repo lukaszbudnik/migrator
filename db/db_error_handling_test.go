@@ -213,7 +213,7 @@ func TestCreateVersionTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -241,7 +241,7 @@ func TestCreateVersionInsertVersionPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement for version: trouble maker", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -273,7 +273,7 @@ func TestCreateVersionInsertMigrationPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement for migration: trouble maker", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -306,7 +306,7 @@ func TestCreateVersionMigrationSQLError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, fmt.Sprintf("SQL migration %v failed with error: trouble maker", tenant1.File), func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -341,7 +341,7 @@ func TestCreateVersionInsertMigrationError(t *testing.T) {
 	mock.ExpectRollback()
 
 	assert.PanicsWithValue(t, "Failed to add migration entry: trouble maker", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -377,7 +377,7 @@ func TestCreateVersionGetVersionError(t *testing.T) {
 	mock.ExpectQuery("select").WillReturnError(errors.New("get version trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not query versions: get version trouble maker", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -414,7 +414,7 @@ func TestCreateVersionVersionNotFound(t *testing.T) {
 	mock.ExpectQuery("select").WillReturnRows(rows)
 
 	assert.PanicsWithValue(t, "Version not found ID: 0", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -452,7 +452,7 @@ func TestCreateVersionMigrationsCommitError(t *testing.T) {
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.CreateVersion("commit-sha", types.ActionApply, false, migrationsToApply)
+		connector.CreateVersion("commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -476,7 +476,7 @@ func TestCreateTenantTransactionBeginError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not start transaction: trouble maker tx.Begin()", func() {
-		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
+		connector.CreateTenant("newtenant", "commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -502,7 +502,7 @@ func TestCreateTenantCreateSchemaError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Create schema failed: trouble maker", func() {
-		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
+		connector.CreateTenant("newtenant", "commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -529,7 +529,7 @@ func TestCreateTenantInsertTenantPreparedStatementError(t *testing.T) {
 	migrationsToApply := []types.Migration{tenant1}
 
 	assert.PanicsWithValue(t, "Could not create prepared statement: trouble maker", func() {
-		connector.CreateTenant("commit-sha", types.ActionApply, false, "newtenant", migrationsToApply)
+		connector.CreateTenant("newtenant", "commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -559,7 +559,7 @@ func TestCreateTenantInsertTenantError(t *testing.T) {
 	migrationsToApply := []types.Migration{m1}
 
 	assert.PanicsWithValue(t, "Failed to add tenant entry: trouble maker", func() {
-		connector.CreateTenant("commit-sha", types.ActionApply, false, tenant, migrationsToApply)
+		connector.CreateTenant(tenant, "commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -599,7 +599,7 @@ func TestCreateTenantCommitError(t *testing.T) {
 	mock.ExpectCommit().WillReturnError(errors.New("tx trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: tx trouble maker", func() {
-		connector.CreateTenant("commit-sha", types.ActionApply, false, tenant, migrationsToApply)
+		connector.CreateTenant(tenant, "commit-sha", types.ActionApply, migrationsToApply, false)
 	})
 
 	if err := mock.ExpectationsWereMet(); err != nil {

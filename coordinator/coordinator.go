@@ -157,7 +157,7 @@ func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.Mig
 	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
 	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
 
-	results, _ := c.connector.CreateVersion(versionName, action, dryRun, migrationsToApply)
+	results, _ := c.connector.CreateVersion(versionName, action, migrationsToApply, dryRun)
 
 	c.sendNotification(results)
 
@@ -171,7 +171,7 @@ func (c *coordinator) CreateVersion(versionName string, action types.Action, dry
 	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
 	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
 
-	summary, version := c.connector.CreateVersion(versionName, action, dryRun, migrationsToApply)
+	summary, version := c.connector.CreateVersion(versionName, action, migrationsToApply, dryRun)
 
 	c.sendNotification(summary)
 
@@ -195,7 +195,7 @@ func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType,
 	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
 	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
 
-	summary, _ := c.connector.CreateTenant(versionName, action, dryRun, tenant, migrationsToApply)
+	summary, _ := c.connector.CreateTenant(tenant, versionName, action, migrationsToApply, dryRun)
 
 	c.sendNotification(summary)
 
@@ -209,7 +209,7 @@ func (c *coordinator) CreateTenant(versionName string, action types.Action, dryR
 	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
 	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
 
-	summary, version := c.connector.CreateTenant(versionName, action, dryRun, tenant, migrationsToApply)
+	summary, version := c.connector.CreateTenant(tenant, versionName, action, migrationsToApply, dryRun)
 
 	c.sendNotification(summary)
 
