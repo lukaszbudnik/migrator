@@ -88,6 +88,8 @@ func (bd *baseDialect) GetCreateSchemaSQL(schema string) string {
 	if !isValidIdentifier(schema) {
 		panic(fmt.Sprintf("Schema name contains invalid characters: %v", schema))
 	}
+	inValidCharacters := regexp.MustCompile(`[^A-Za-z0-9_-]+`)
+	schema = inValidCharacters.ReplaceAllString(schema, "")
 	return fmt.Sprintf(createSchemaSQL, schema)
 }
 
