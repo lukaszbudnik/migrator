@@ -10,21 +10,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestFromFileBackwardCompatibile(t *testing.T) {
-	config, err := FromFile("../test/migrator-test-backward-compatibile.yaml")
-	assert.Nil(t, err)
-	assert.Equal(t, "test/migrations", config.BaseLocation)
-	assert.Equal(t, "select name from migrator.migrator_tenants", config.TenantSelectSQL)
-	assert.Equal(t, "postgres", config.Driver)
-	assert.Equal(t, "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable", config.DataSource)
-	assert.Equal(t, []string{"tenants"}, config.TenantMigrations)
-	assert.Equal(t, []string{"public", "ref", "config"}, config.SingleMigrations)
-	assert.Equal(t, "8811", config.Port)
-	assert.Equal(t, "{schema}", config.SchemaPlaceHolder)
-	assert.Equal(t, "https://slack.com/api/api.test", config.WebHookURL)
-	assert.Equal(t, []string{"Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l", "Content-Type: application/json", "X-CustomHeader: value1,value2"}, config.WebHookHeaders)
-}
-
 func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
 	assert.Nil(t, err)
@@ -57,7 +42,7 @@ func TestWithEnvFromFile(t *testing.T) {
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"", "/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}, `{"text": "Results are: ${summary}"}`}
+	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}, `{"text": "Results are: ${summary}"}`}
 	// check if go naming convention applies
 	expected := `baseLocation: /opt/app/migrations
 driver: postgres

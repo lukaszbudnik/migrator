@@ -6,14 +6,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/lukaszbudnik/migrator/common"
 	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
 )
 
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	BaseDir           string   `yaml:"baseDir,omitempty"`
 	BaseLocation      string   `yaml:"baseLocation" validate:"required"`
 	Driver            string   `yaml:"driver" validate:"required"`
 	DataSource        string   `yaml:"dataSource" validate:"required"`
@@ -53,11 +51,6 @@ func FromBytes(contents []byte) (*Config, error) {
 
 	if err := yaml.Unmarshal(contents, &config); err != nil {
 		return nil, err
-	}
-
-	if len(config.BaseDir) > 0 && len(config.BaseLocation) == 0 {
-		common.Log("WARN", "Deprecated: config property `baseDir` will be removed in migrator v2021.1.0, please rename it to `baseLocation`")
-		config.BaseLocation = config.BaseDir
 	}
 
 	validate := validator.New()
