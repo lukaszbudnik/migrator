@@ -63,7 +63,7 @@ func TestRoot(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v1"]}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestRootWithPathPrefix(t *testing.T) {
@@ -80,7 +80,7 @@ func TestRootWithPathPrefix(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v1"]}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
 // /v1 API
