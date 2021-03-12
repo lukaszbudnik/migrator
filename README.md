@@ -29,7 +29,7 @@ The official docker image is available on docker hub at [lukasz/migrator](https:
   - [Source migrations](#source-migrations)
     - [Local storage](#local-storage)
     - [AWS S3](#aws-s3)
-    - [Azure Blob](#azure-blob)
+    - [Azure Blob Containers](#azure-blob-containers)
   - [Supported databases](#supported-databases)
 - [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
   - [Custom tenants support](#custom-tenants-support)
@@ -44,7 +44,7 @@ The official docker image is available on docker hub at [lukasz/migrator](https:
   - [Securing migrator with OIDC](#securing-migrator-with-oidc)
 - [Performance](#performance)
 - [Change log](#change-log)
-- [Contributing, code style, running unit & integration tests](#contributing-code-style-running-unit--integration-tests)
+- [Contributing, code style, running unit & integration tests](CONTRIBUTING.md)
 - [License](#license)
 
 # API
@@ -53,7 +53,7 @@ migrator exposes a REST and GraphQL APIs described below.
 
 To return build information together with a list of supported API versions execute:
 
-```
+```bash
 curl -v http://localhost:8080/
 ```
 
@@ -70,7 +70,7 @@ Sample HTTP response:
 
 ## /v2 - GraphQL API
 
-API v2 was introduced in migrator v2020.1.0. API v2 is a GraphQL API.
+API v2 is a GraphQL API. API v2 was introduced in migrator v2020.1.0. 
 
 API v2 introduced a formal concept of a DB version. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
 
@@ -80,7 +80,7 @@ Returns migrator's config as `application/x-yaml`.
 
 Sample request:
 
-```
+```bash
 curl -v http://localhost:8080/v2/config
 ```
 
@@ -111,7 +111,7 @@ Although migrator supports GraphQL introspection it is much more convenient to g
 
 Sample request:
 
-```
+```bash
 curl -v http://localhost:8080/v2/schema
 ```
 
@@ -260,7 +260,7 @@ In [Quick Start Guide](#quick-start-guide) there are a few curl examples to get 
 
 ## /v1 - REST API
 
-**As of migrator v2020.1.0 API v1 is deprecated and will sunset in v2021.1.0.**
+API v1 was sunset in v2021.0.0.
 
 API v1 is available in migrator v4.x and v2020.x.
 
@@ -280,7 +280,7 @@ The quick start guide shows you how to either use the official docker image or b
 
 Get the source code the usual go way:
 
-```
+```bash
 go get -d -v github.com/lukaszbudnik/migrator
 cd $GOPATH/src/github.com/lukaszbudnik/migrator
 ```
@@ -291,7 +291,7 @@ migrator aims to support 3 latest Go versions (built automatically on Travis).
 
 Start and setup test DB containers:
 
-```
+```bash
 docker-compose -f ./test/dokcer-compose.yaml up
 ```
 
@@ -312,7 +312,7 @@ The docker-compose which starts test DB containers also starts latest migrator w
 
 migrator uses go modules to manage dependencies. When building & running migrator from source code simply execute:
 
-```
+```bash
 go build
 ./migrator -configFile test/migrator-postgresql.yaml
 ```
@@ -326,13 +326,13 @@ If you started migrator in point 4 - migrator listens on port 8080 and connects 
 
 Set the port accordingly:
 
-```
+```bash
 MIGRATOR_PORT=8181
 ```
 
 Create new version, return version id and name together with operation summary:
 
-```
+```bash
 # versionName parameter is required and can be:
 # 1. your version number
 # 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
@@ -370,7 +370,7 @@ curl -d @create_version.txt http://localhost:$MIGRATOR_PORT/v2/service
 
 Create new tenant, run in dry-run mode, run `Sync` action (instead of default `Apply`), return version id and name, DB migrations, and operation summary:
 
-```
+```bash
 # versionName parameter is required and can be:
 # 1. your version number
 # 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
@@ -418,7 +418,7 @@ curl -d @create_tenant.txt http://localhost:$MIGRATOR_PORT/v2/service
 
 Migrator supports multiple operations in a single GraphQL query. Let's fetch source single migrations, source tenant migrations, and tenants in a single GraphQL query:
 
-```
+```bash
 # new lines are used for readability but have to be removed from the actual request
 cat <<EOF | tr -d "\n" > query.txt
 {
@@ -474,7 +474,7 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 # optional, override only if you have a specific way of creating tenants, default is:
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: { schema }
+schemaPlaceHolder: {schema}
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
 singleMigrations:
   - public
@@ -710,7 +710,7 @@ Please navigate to [migrator/releases](https://github.com/lukaszbudnik/migrator/
 
 # License
 
-Copyright 2016-2020 Łukasz Budnik
+Copyright 2016-2021 Łukasz Budnik
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
