@@ -21,13 +21,13 @@ func (m *mockedCoordinator) safeString(value *string) string {
 
 func (m *mockedCoordinator) CreateTenant(string, types.Action, bool, string) *types.CreateResults {
 	version, _ := m.GetVersionByID(0)
-	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: version}
+	return &types.CreateResults{Summary: &types.Summary{}, Version: version}
 }
 
 func (m *mockedCoordinator) CreateVersion(string, types.Action, bool) *types.CreateResults {
 	// re-use mocked version from GetVersionByID...
 	version, _ := m.GetVersionByID(0)
-	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: version}
+	return &types.CreateResults{Summary: &types.Summary{}, Version: version}
 }
 
 func (m *mockedCoordinator) GetSourceMigrations(filters *coordinator.SourceMigrationFilters) []types.Migration {
@@ -78,26 +78,26 @@ func (m *mockedCoordinator) GetVersionsByFile(file string) []types.Version {
 func (m *mockedCoordinator) GetVersionByID(ID int32) (*types.Version, error) {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	db1 := types.MigrationDB{Migration: m1, Schema: "source", Created: graphql.Time{Time: d1}}
+	db1 := types.DBMigration{Migration: m1, Schema: "source", Created: graphql.Time{Time: d1}}
 
 	m2 := types.Migration{Name: "202002180000.sql", SourceDir: "config", File: "config/202002180000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d2 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
-	db2 := types.MigrationDB{Migration: m2, Schema: "source", Created: graphql.Time{Time: d2}}
+	db2 := types.DBMigration{Migration: m2, Schema: "source", Created: graphql.Time{Time: d2}}
 
 	m3 := types.Migration{Name: "202002180000.sql", SourceDir: "tenants", File: "tenants/202002180000.sql", MigrationType: types.MigrationTypeTenantMigration, Contents: "select abc"}
 	d3 := time.Date(2020, 02, 18, 16, 41, 1, 123, time.UTC)
-	db3 := types.MigrationDB{Migration: m3, Schema: "abc", Created: graphql.Time{Time: d3}}
-	db4 := types.MigrationDB{Migration: m3, Schema: "def", Created: graphql.Time{Time: d3}}
-	db5 := types.MigrationDB{Migration: m3, Schema: "xyz", Created: graphql.Time{Time: d3}}
+	db3 := types.DBMigration{Migration: m3, Schema: "abc", Created: graphql.Time{Time: d3}}
+	db4 := types.DBMigration{Migration: m3, Schema: "def", Created: graphql.Time{Time: d3}}
+	db5 := types.DBMigration{Migration: m3, Schema: "xyz", Created: graphql.Time{Time: d3}}
 
-	a := types.Version{ID: ID, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}, DBMigrations: []types.MigrationDB{db1, db2, db3, db4, db5}}
+	a := types.Version{ID: ID, Name: "a", Created: graphql.Time{Time: time.Now().AddDate(0, 0, -2)}, DBMigrations: []types.DBMigration{db1, db2, db3, db4, db5}}
 
 	return &a, nil
 }
 
 // not used in GraphQL
-func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
-	return []types.MigrationDB{}
+func (m *mockedCoordinator) GetAppliedMigrations() []types.DBMigration {
+	return []types.DBMigration{}
 }
 
 func (m *mockedCoordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
@@ -105,14 +105,6 @@ func (m *mockedCoordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, er
 	d := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	db := types.DBMigration{Migration: migration, ID: ID, Schema: "source", Created: graphql.Time{Time: d}}
 	return &db, nil
-}
-
-func (m *mockedCoordinator) ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, []types.Migration{}
-}
-
-func (m *mockedCoordinator) AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, []types.Migration{}
 }
 
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {

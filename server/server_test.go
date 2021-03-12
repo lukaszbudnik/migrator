@@ -32,7 +32,7 @@ func newTestRequestV2(method, url string, body io.Reader) (*http.Request, error)
 }
 
 func testSetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
-	versionInfo := &types.VersionInfo{Release: "GitBranch", CommitSha: "GitCommitSha", CommitDate: "2020-01-08T09:56:41+01:00", APIVersions: []string{"v1"}}
+	versionInfo := &types.VersionInfo{Release: "GitBranch", CommitSha: "GitCommitSha", CommitDate: "2020-01-08T09:56:41+01:00", APIVersions: []types.APIVersion{types.APIV2}}
 	gin.SetMode(gin.ReleaseMode)
 	return SetupRouter(versionInfo, config, newCoordinator)
 }
