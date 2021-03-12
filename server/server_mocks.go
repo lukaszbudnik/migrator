@@ -32,11 +32,11 @@ func (m *mockedCoordinator) Dispose() {
 }
 
 func (m *mockedCoordinator) CreateTenant(string, types.Action, bool, string) *types.CreateResults {
-	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: &types.Version{}}
+	return &types.CreateResults{Summary: &types.Summary{}, Version: &types.Version{}}
 }
 
 func (m *mockedCoordinator) CreateVersion(string, types.Action, bool) *types.CreateResults {
-	return &types.CreateResults{Summary: &types.MigrationResults{}, Version: &types.Version{}}
+	return &types.CreateResults{Summary: &types.Summary{}, Version: &types.Version{}}
 }
 
 func (m *mockedCoordinator) GetSourceMigrations(_ *coordinator.SourceMigrationFilters) []types.Migration {

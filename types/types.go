@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/graph-gophers/graphql-go"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 // MigrationType stores information about type of migration
@@ -63,48 +62,6 @@ func (t *MigrationType) UnmarshalGraphQL(input interface{}) error {
 	return fmt.Errorf("Wrong type for MigrationType: %T", input)
 }
 
-// MigrationsResponseType represents type of response either full or summary
-type MigrationsResponseType string
-
-const (
-	// ResponseTypeSummary instructs migrator to only return JSON representation of Results struct
-	ResponseTypeSummary MigrationsResponseType = "summary"
-	// ResponseTypeFull instructs migrator to return JSON representation of both Results struct and all applied migrations/scripts
-	ResponseTypeFull MigrationsResponseType = "full"
-	// ResponseTypeList instructs migrator to return JSON representation of both Results struct and all applied migrations/scripts but without their contents
-	ResponseTypeList MigrationsResponseType = "list"
-)
-
-// MigrationsModeType represents mode in which migrations should be applied
-type MigrationsModeType string
-
-const (
-	// ModeTypeApply instructs migrator to apply migrations
-	ModeTypeApply MigrationsModeType = "apply"
-	// ModeTypeDryRun instructs migrator to perform apply operation in dry-run mode, instead of committing transaction it is rollbacked
-	ModeTypeDryRun MigrationsModeType = "dry-run"
-	// ModeTypeSync instructs migrator to only synchronise migrations
-	ModeTypeSync MigrationsModeType = "sync"
-)
-
-// ValidateMigrationsModeType validates MigrationsModeType used by binding package
-func ValidateMigrationsModeType(fl validator.FieldLevel) bool {
-	mode, ok := fl.Field().Interface().(MigrationsModeType)
-	if ok {
-		return mode == ModeTypeApply || mode == ModeTypeSync || mode == ModeTypeDryRun
-	}
-	return false
-}
-
-// ValidateMigrationsResponseType validates MigrationsResponseType used by binding package
-func ValidateMigrationsResponseType(fl validator.FieldLevel) bool {
-	response, ok := fl.Field().Interface().(MigrationsResponseType)
-	if ok {
-		return response == ResponseTypeSummary || response == ResponseTypeFull || response == ResponseTypeList
-	}
-	return false
-}
-
 // Tenant contains basic information about tenant
 type Tenant struct {
 	Name string `json:"name"`
@@ -129,13 +86,7 @@ type Migration struct {
 }
 
 // DBMigration embeds Migration and adds DB-specific fields
-// replaces deprecated MigrationDB
-type DBMigration = MigrationDB
-
-// MigrationDB embeds Migration and adds DB-specific fields
-// deprecated in v2020.1.0 sunset in v2021.1.0
-// replaced by DBMigration
-type MigrationDB struct {
+type DBMigration struct {
 	Migration
 	ID     int32  `json:"id"`
 	Schema string `json:"schema"`
@@ -149,14 +100,8 @@ type MigrationDB struct {
 	Created graphql.Time `json:"created"`
 }
 
-// Summary contains summary information about created version
-// replaces deprecated MigrationDB
-type Summary = MigrationResults
-
-// MigrationResults contains summary information about executed migrations
-// deprecated in v2020.1.0 sunset in v2021.1.0
-// replaced by Stats
-type MigrationResults struct {
+// Summary contains summary information about executed migrations
+type Summary struct {
 	VersionID             int32        `json:"versionId"`
 	StartedAt             graphql.Time `json:"startedAt"`
 	Duration              int32        `json:"duration"`
@@ -221,12 +166,14 @@ func (a *Action) UnmarshalGraphQL(input interface{}) error {
 	return fmt.Errorf("Wrong type for Action: %T", input)
 }
 
+// VersionInput is used by GraphQL to create new version in DB
 type VersionInput struct {
 	VersionName string
 	Action      Action
 	DryRun      bool
 }
 
+// TenantInput is used by GraphQL to create a new tenant in DB
 type TenantInput struct {
 	VersionName string
 	Action      Action
@@ -234,10 +181,20 @@ type TenantInput struct {
 	TenantName  string
 }
 
+// APIVersion represents migrator API versions
+type APIVersion string
+
+const (
+	// APIV1 - REST API - removed in v2021.0.0
+	APIV1 APIVersion = "v1"
+	// APIV2 - GraphQL API - current
+	APIV2 APIVersion = "v2"
+)
+
 // VersionInfo contains build information and supported API versions
 type VersionInfo struct {
-	Release     string   `json:"release"`
-	CommitSha   string   `json:"commitSha"`
-	CommitDate  string   `json:"commitDate"`
-	APIVersions []string `json:"apiVersions"`
+	Release     string       `json:"release"`
+	CommitSha   string       `json:"commitSha"`
+	CommitDate  string       `json:"commitDate"`
+	APIVersions []APIVersion `json:"apiVersions"`
 }

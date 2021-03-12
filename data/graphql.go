@@ -185,7 +185,7 @@ func (r *RootResolver) SourceMigration(args struct {
 // DBMigration resolves DB migration by ID
 func (r *RootResolver) DBMigration(args struct {
 	ID int32
-}) (*types.MigrationDB, error) {
+}) (*types.DBMigration, error) {
 	return r.Coordinator.GetDBMigrationByID(args.ID)
 }
 

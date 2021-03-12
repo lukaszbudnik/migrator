@@ -23,10 +23,9 @@ type Connector interface {
 	GetVersionsByFile(file string) []types.Version
 	GetVersionByID(ID int32) (*types.Version, error)
 	GetDBMigrationByID(ID int32) (*types.DBMigration, error)
-	// deprecated in v2020.1.0 sunset in v2021.1.0
-	GetAppliedMigrations() []types.MigrationDB
-	CreateVersion(string, types.Action, []types.Migration, bool) (*types.MigrationResults, *types.Version)
-	CreateTenant(string, string, types.Action, []types.Migration, bool) (*types.MigrationResults, *types.Version)
+	GetAppliedMigrations() []types.DBMigration
+	CreateVersion(string, types.Action, []types.Migration, bool) (*types.Summary, *types.Version)
+	CreateTenant(string, string, types.Action, []types.Migration, bool) (*types.Summary, *types.Version)
 	Dispose()
 }
 
@@ -242,7 +241,7 @@ func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
 
 		version := versionsMap[vid]
 		migration := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		version.DBMigrations = append(version.DBMigrations, types.MigrationDB{Migration: migration, ID: int32(mid), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
+		version.DBMigrations = append(version.DBMigrations, types.DBMigration{Migration: migration, ID: int32(mid), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
 	}
 
 	// map to versions
@@ -283,16 +282,16 @@ func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error
 		panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 	}
 	m := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-	db := types.MigrationDB{Migration: m, ID: int32(id), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}}
+	db := types.DBMigration{Migration: m, ID: int32(id), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}}
 
 	return &db, nil
 }
 
 // GetAppliedMigrations returns a list of all applied DB migrations
-func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
+func (bc *baseConnector) GetAppliedMigrations() []types.DBMigration {
 	query := bc.dialect.GetMigrationSelectSQL()
 
-	dbMigrations := []types.MigrationDB{}
+	dbMigrations := []types.DBMigration{}
 
 	rows, err := bc.db.Query(query)
 	if err != nil {
@@ -314,15 +313,15 @@ func (bc *baseConnector) GetAppliedMigrations() []types.MigrationDB {
 			panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		dbMigrations = append(dbMigrations, types.MigrationDB{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
+		dbMigrations = append(dbMigrations, types.DBMigration{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
 	}
 	return dbMigrations
 }
 
 // CreateVersion creates new DB version and applies passed migrations
-func (bc *baseConnector) CreateVersion(versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.MigrationResults, *types.Version) {
+func (bc *baseConnector) CreateVersion(versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.Summary, *types.Version) {
 	if len(migrations) == 0 {
-		return &types.MigrationResults{
+		return &types.Summary{
 			StartedAt: graphql.Time{Time: time.Now()},
 			Duration:  0,
 		}, nil
@@ -361,7 +360,7 @@ func (bc *baseConnector) CreateVersion(versionName string, action types.Action, 
 }
 
 // CreateTenant creates new tenant and applies passed tenant migrations
-func (bc *baseConnector) CreateTenant(tenant string, versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.MigrationResults, *types.Version) {
+func (bc *baseConnector) CreateTenant(tenant string, versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.Summary, *types.Version) {
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -437,9 +436,9 @@ func (bc *baseConnector) getSchemaPlaceHolder() string {
 	return schemaPlaceHolder
 }
 
-func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, action types.Action, tenants []types.Tenant, migrations []types.Migration) *types.MigrationResults {
+func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, action types.Action, tenants []types.Tenant, migrations []types.Migration) *types.Summary {
 
-	results := &types.MigrationResults{
+	results := &types.Summary{
 		StartedAt: graphql.Time{Time: time.Now()},
 		Tenants:   int32(len(tenants)),
 	}

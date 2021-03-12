@@ -245,7 +245,7 @@ func (c *coordinator) filterTenantMigrations(sourceMigrations []types.Migration)
 
 // errors are silently discarded, adding tenant or applying migrations
 // must not fail because of notification error
-func (c *coordinator) sendNotification(results *types.MigrationResults) {
+func (c *coordinator) sendNotification(results *types.Summary) {
 	if resp, err := c.notifier.Notify(results); err != nil {
 		common.LogError(c.ctx, "Notifier error: %v", err.Error())
 	} else {
