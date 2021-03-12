@@ -57,10 +57,10 @@ func (m *mockedCoordinator) GetSourceMigrationByFile(file string) (*types.Migrat
 	return &m1, nil
 }
 
-func (m *mockedCoordinator) GetAppliedMigrations() []types.MigrationDB {
+func (m *mockedCoordinator) GetAppliedMigrations() []types.DBMigration {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc", CheckSum: "sha256"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}, Created: graphql.Time{Time: d1}}}
+	ms := []types.DBMigration{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}, Created: graphql.Time{Time: d1}}}
 	return ms
 }
 
@@ -98,12 +98,4 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 	}
 	m.counter++
 	return true, nil
-}
-
-func (m *mockedCoordinator) ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, m.GetSourceMigrations(nil)
-}
-
-func (m *mockedCoordinator) AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration) {
-	return &types.MigrationResults{}, m.GetSourceMigrations(nil)[1:]
 }

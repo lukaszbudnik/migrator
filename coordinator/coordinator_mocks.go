@@ -94,10 +94,6 @@ func (m *mockedConnector) CreateVersion(string, types.Action, []types.Migration,
 	return &types.MigrationResults{}, &types.Version{}
 }
 
-func (m *mockedConnector) AddTenantAndApplyMigrations(types.MigrationsModeType, string, []types.Migration) *types.MigrationResults {
-	return &types.MigrationResults{}
-}
-
 func (m *mockedConnector) GetTenants() []types.Tenant {
 	a := types.Tenant{Name: "a"}
 	b := types.Tenant{Name: "b"}
@@ -122,10 +118,10 @@ func (m *mockedConnector) GetVersionByID(ID int32) (*types.Version, error) {
 	return &a, nil
 }
 
-func (m *mockedConnector) GetAppliedMigrations() []types.MigrationDB {
+func (m *mockedConnector) GetAppliedMigrations() []types.DBMigration {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
-	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}}
+	ms := []types.DBMigration{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}}
 	return ms
 }
 
@@ -136,10 +132,6 @@ func (m *mockedConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, erro
 	return &db, nil
 }
 
-func (m *mockedConnector) ApplyMigrations(types.MigrationsModeType, []types.Migration) *types.MigrationResults {
-	return &types.MigrationResults{}
-}
-
 func newMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedConnector{}
 }
@@ -148,12 +140,12 @@ type mockedDifferentScriptCheckSumMockedConnector struct {
 	mockedConnector
 }
 
-func (m *mockedDifferentScriptCheckSumMockedConnector) GetAppliedMigrations() []types.MigrationDB {
+func (m *mockedDifferentScriptCheckSumMockedConnector) GetAppliedMigrations() []types.DBMigration {
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	d1 := time.Date(2016, 02, 22, 16, 41, 1, 123, time.UTC)
 	m2 := types.Migration{Name: "recreate-indexes.sql", SourceDir: "tenants-scripts", File: "tenants-scripts/recreate-indexes.sql", MigrationType: types.MigrationTypeTenantScript, Contents: "select abc", CheckSum: "sha256-2"}
 	d2 := time.Date(2016, 02, 22, 16, 41, 1, 456, time.UTC)
-	ms := []types.MigrationDB{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}, {Migration: m2, Schema: "customer1", AppliedAt: graphql.Time{Time: d2}}}
+	ms := []types.DBMigration{{Migration: m1, Schema: "source", AppliedAt: graphql.Time{Time: d1}}, {Migration: m2, Schema: "customer1", AppliedAt: graphql.Time{Time: d2}}}
 	return ms
 }
 

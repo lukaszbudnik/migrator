@@ -30,14 +30,7 @@ type Coordinator interface {
 	GetDBMigrationByID(int32) (*types.DBMigration, error)
 	GetSourceMigrations(*SourceMigrationFilters) []types.Migration
 	GetSourceMigrationByFile(string) (*types.Migration, error)
-	// deprecated in v2020.1.0 sunset in v2021.1.0
-	// Version now contains slice of DBMigration
-	GetAppliedMigrations() []types.MigrationDB
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
-	// Deprecated, uses CreateVersion under the hood
-	ApplyMigrations(types.MigrationsModeType) (*types.MigrationResults, []types.Migration)
-	// Deprecated, uses CreateTenant under the hood
-	AddTenantAndApplyMigrations(types.MigrationsModeType, string) (*types.MigrationResults, []types.Migration)
 	CreateVersion(string, types.Action, bool) *types.CreateResults
 	CreateTenant(string, types.Action, bool, string) *types.CreateResults
 	Dispose()
@@ -108,7 +101,7 @@ func (c *coordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
 	return c.connector.GetDBMigrationByID(ID)
 }
 
-func (c *coordinator) GetAppliedMigrations() []types.MigrationDB {
+func (c *coordinator) GetAppliedMigrations() []types.DBMigration {
 	return c.connector.GetAppliedMigrations()
 }
 
@@ -139,31 +132,6 @@ func (c *coordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration
 	return result, offendingMigrations
 }
 
-func (c *coordinator) ApplyMigrations(mode types.MigrationsModeType) (*types.MigrationResults, []types.Migration) {
-
-	// convert to new API params
-	versionName := "API v1 ApplyMigrations"
-	action := types.ActionApply
-	dryRun := false
-	if mode == types.ModeTypeDryRun {
-		dryRun = true
-	} else if mode == types.ModeTypeSync {
-		action = types.ActionSync
-	}
-
-	sourceMigrations := c.GetSourceMigrations(nil)
-	appliedMigrations := c.GetAppliedMigrations()
-
-	migrationsToApply := c.computeMigrationsToApply(sourceMigrations, appliedMigrations)
-	common.LogInfo(c.ctx, "Found migrations to apply: %d", len(migrationsToApply))
-
-	results, _ := c.connector.CreateVersion(versionName, action, migrationsToApply, dryRun)
-
-	c.sendNotification(results)
-
-	return results, migrationsToApply
-}
-
 func (c *coordinator) CreateVersion(versionName string, action types.Action, dryRun bool) *types.CreateResults {
 	sourceMigrations := c.GetSourceMigrations(nil)
 	appliedMigrations := c.GetAppliedMigrations()
@@ -176,30 +144,6 @@ func (c *coordinator) CreateVersion(versionName string, action types.Action, dry
 	c.sendNotification(summary)
 
 	return &types.CreateResults{Summary: summary, Version: version}
-}
-
-func (c *coordinator) AddTenantAndApplyMigrations(mode types.MigrationsModeType, tenant string) (*types.MigrationResults, []types.Migration) {
-	// convert to new API params
-	versionName := "API v1 AddTenantAndApplyMigrations"
-	action := types.ActionApply
-	dryRun := false
-	if mode == types.ModeTypeDryRun {
-		dryRun = true
-	} else if mode == types.ModeTypeSync {
-		action = types.ActionSync
-	}
-
-	sourceMigrations := c.GetSourceMigrations(nil)
-
-	// filter only tenant schemas
-	migrationsToApply := c.filterTenantMigrations(sourceMigrations)
-	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
-
-	summary, _ := c.connector.CreateTenant(tenant, versionName, action, migrationsToApply, dryRun)
-
-	c.sendNotification(summary)
-
-	return summary, migrationsToApply
 }
 
 func (c *coordinator) CreateTenant(versionName string, action types.Action, dryRun bool, tenant string) *types.CreateResults {
@@ -220,7 +164,7 @@ func (c *coordinator) Dispose() {
 	c.connector.Dispose()
 }
 
-func (c *coordinator) flattenAppliedMigrations(appliedMigrations []types.MigrationDB) []types.Migration {
+func (c *coordinator) flattenAppliedMigrations(appliedMigrations []types.DBMigration) []types.Migration {
 	var flattened []types.Migration
 	var previousMigration types.Migration
 	for i, m := range appliedMigrations {
@@ -277,7 +221,7 @@ func (c *coordinator) difference(sourceMigrations []types.Migration, flattenedAp
 }
 
 // computeMigrationsToApply computes which source migrations should be applied to DB based on migrations already present in DB
-func (c *coordinator) computeMigrationsToApply(sourceMigrations []types.Migration, appliedMigrations []types.MigrationDB) []types.Migration {
+func (c *coordinator) computeMigrationsToApply(sourceMigrations []types.Migration, appliedMigrations []types.DBMigration) []types.Migration {
 	flattenedAppliedMigrations := c.flattenAppliedMigrations(appliedMigrations)
 
 	len := len(flattenedAppliedMigrations)
