@@ -14,8 +14,8 @@ RUN mkdir -p /go/migrator
 COPY . /go/migrator
 
 # B - install migrator from $SOURCE_BRANCH branch
-#RUN git clone https://github.com/lukaszbudnik/migrator.git
-#RUN cd /go/migrator && git checkout $SOURCE_BRANCH
+# RUN git clone https://github.com/lukaszbudnik/migrator.git
+# RUN cd /go/migrator && git checkout $SOURCE_BRANCH
 
 RUN cd /go/migrator && \
   GIT_BRANCH=$(git branch | awk -v FS=' ' '/\*/{print $NF}' | sed 's|[()]||g') && \

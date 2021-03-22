@@ -1,7 +1,7 @@
-version: "3.4"
+version: "3.6"
 services:
   postgres:
-    image: "postgres"
+    image: postgres
     ports:
       - "5432:5432"
     environment:
@@ -9,16 +9,16 @@ services:
       - POSTGRES_DB=migrator
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
-  pgadmin:
-    image: "thajeztah/pgadmin4"
-    depends_on:
-      - postgres
-    ports:
-      - "5050:5050"
-    links:
-      - postgres
+  # pgadmin:
+  #   image: thajeztah/pgadmin4
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "5050:5050"
+  #   links:
+  #     - postgres
   mysql:
-    image: "mysql"
+    image: mysql
     ports:
       - "3306:3306"
     environment:
@@ -26,7 +26,7 @@ services:
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
   mariadb:
-    image: "mariadb"
+    image: mariadb
     ports:
       - "13306:3306"
     environment:
@@ -34,46 +34,46 @@ services:
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
   percona:
-    image: "percona"
+    image: percona
     ports:
       - "23306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=supersecret
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
-  phpmyadmin:
-    image: "phpmyadmin/phpmyadmin"
-    depends_on:
-      - mysql
-      - mariadb
-      - percona
-    ports:
-      - "8888:80"
-    environment:
-      - PMA_HOSTS=mysql,mariadb,percona
-      - PMA_USER=root
-      - PMA_PASSWORD=supersecret
-    links:
-      - mysql
-      - mariadb
-      - percona
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   depends_on:
+  #     - mysql
+  #     - mariadb
+  #     - percona
+  #   ports:
+  #     - "8888:80"
+  #   environment:
+  #     - PMA_HOSTS=mysql,mariadb,percona
+  #     - PMA_USER=root
+  #     - PMA_PASSWORD=supersecret
+  #   links:
+  #     - mysql
+  #     - mariadb
+  #     - percona
   mssql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     ports:
       - "1433:1433"
-    environment: 
+    environment:
       - SA_PASSWORD=Super5ecret
       - ACCEPT_EULA=Y
     volumes:
       - ./create-test-tenants-mssql.sql:/docker-entrypoint-initdb.d/create-test-tenants-mssql.sql
     command:
       - /bin/bash
-      - -c 
+      - -c
       - |
         /opt/mssql/bin/sqlservr &
         PID=$$!
         is_up=-1
-        while [ $$is_up -ne 0 ] && [ $$is_up -ne 16 ] ; do 
+        while [ $$is_up -ne 0 ] && [ $$is_up -ne 16 ] ; do
           /opt/mssql-tools/bin/sqlcmd -l 30 -S localhost -h-1 -V1 -U sa -P $$SA_PASSWORD -Q "CREATE DATABASE migrator"
           is_up=$$?
           sleep 5
@@ -85,12 +85,13 @@ services:
         fi
         wait $$PID
   migrator:
-    image: "lukasz/migrator"
+    image: lukasz/migrator
     depends_on:
       - mysql
       - mariadb
       - percona
       - postgres
+      - mssql
     ports:
       - "8181:8080"
     environment:
@@ -102,3 +103,27 @@ services:
       - mariadb
       - percona
       - postgres
+      - mssql
+  migrator-dev:
+    image: migrator-dev
+    build: 
+      context: ..
+      dockerfile: test/migrator-dev/Dockerfile
+    depends_on:
+      - mysql
+      - mariadb
+      - percona
+      - postgres
+      - mssql
+    ports:
+      - "8282:8080"
+    environment:
+      - MIGRATOR_YAML=/data/migrator-docker.yaml
+    volumes:
+      - .:/data
+    links:
+      - mysql
+      - mariadb
+      - percona
+      - postgres
+      - mssql
