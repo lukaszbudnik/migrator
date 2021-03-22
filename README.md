@@ -19,10 +19,9 @@ The official docker image is available on docker hub at [lukasz/migrator](https:
   - [Request tracing](#request-tracing)
 - [Quick Start Guide](#quick-start-guide)
   - [1. Get the migrator project](#1-get-the-migrator-project)
-  - [2. Start test DB containers](#2-start-test-db-containers)
-  - [3. Run migrator from official docker image](#3-run-migrator-from-official-docker-image)
-  - [4. Build and run migrator](#4-build-and-run-migrator)
-  - [5. Play around with migrator](#5-play-around-with-migrator)
+  - [2. Start migrator and test DB containers](#2-start-migrator-and-test-db-containers)
+  - [3. migrator and migrator-dev services](#3-migrator-and-migrator-dev-services)
+  - [4. Play around with migrator](#4-play-around-with-migrator)
 - [Configuration](#configuration)
   - [migrator.yaml](#migratoryaml)
   - [Env variables substitution](#env-variables-substitution)
@@ -44,7 +43,7 @@ The official docker image is available on docker hub at [lukasz/migrator](https:
   - [Securing migrator with OIDC](#securing-migrator-with-oidc)
 - [Performance](#performance)
 - [Change log](#change-log)
-- [Contributing, code style, running unit & integration tests](CONTRIBUTING.md)
+- [Contributing](#contributing)
 - [License](#license)
 
 # API
@@ -62,15 +61,15 @@ Sample HTTP response:
 ```
 < HTTP/1.1 200 OK
 < Content-Type: application/json; charset=utf-8
-< Date: Mon, 02 Mar 2020 19:48:45 GMT
-< Content-Length: 150
+< Date: Tue, 16 Mar 2021 08:58:45 GMT
+< Content-Length: 137
 <
-{"release":"dev-v2020.1.0","commitSha":"c871b176f6e428e186dfe5114a9c86d52a4350f2","commitDate":"2020-03-01T20:58:32+01:00","apiVersions":["v1","v2"]}
+{"release":"master","commitSha":"19ca4ed6a911094b9c1f37419c800a873a9429f1","commitDate":"2021-03-13T00:04:30+01:00","apiVersions":["v2"]}
 ```
 
 ## /v2 - GraphQL API
 
-API v2 is a GraphQL API. API v2 was introduced in migrator v2020.1.0. 
+API v2 is a GraphQL API. API v2 was introduced in migrator v2020.1.0.
 
 API v2 introduced a formal concept of a DB version. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
 
@@ -272,9 +271,7 @@ migrator uses request tracing via `X-Request-ID` header. This header can be used
 
 # Quick Start Guide
 
-You can apply your first migrations with migrator in literally a couple of minutes. There are some test migrations which are located in `test` directory as well as docker-compose for setting up test databases.
-
-The quick start guide shows you how to either use the official docker image or build migrator locally.
+You can apply your first migrations with migrator in literally a few seconds. There is a ready-to-use docker-compose file which sets up migrator and test databases.
 
 ## 1. Get the migrator project
 
@@ -287,42 +284,42 @@ cd $GOPATH/src/github.com/lukaszbudnik/migrator
 
 migrator aims to support 3 latest Go versions (built automatically on Travis).
 
-## 2. Start test DB containers
+## 2. Start migrator and test DB containers
 
-Start and setup test DB containers:
+Start migrator and setup test DB containers using docker-compose:
 
 ```bash
-docker-compose -f ./test/dokcer-compose.yaml up
+docker-compose -f ./test/docker-compose.yaml up
 ```
 
-docker-compose will start and configure 5 different database containers (3 MySQL flavours, PostgreSQL, and MSSQL). Every database container has a ready-to-use migrator config in `test` directory.
+docker-compose will start and configure the following services:
 
-## 3. Run migrator from official docker image
+1. `migrator` - service using latest official migrator image, listening on port `8181`
+2. `migrator-dev` - service built from local branch, listening on port `8282`
+3. `postgres` - PostgreSQL service, listening on port `54325`
+4. `mysql` - MySQL service, listening on port `3306`
+5. `mariadb` - MariaDB (MySQL flavour), listening on port `13306`
+6. `percona` - Percona (MySQL flavour), listening on port `23306`
+7. `mssql` - MS SQL Server, listening on port `1433`
 
-The official migrator docker image is available on docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator).
+> Note: Every database container has a ready-to-use migrator config in `test` directory. You can edit `test/docker-compose.yaml` file and switch to a different database. By default `migrator` and `migrator-dev` services use `test/migrator-docker.yaml` which connects to `mysql` service.
+
+## 3. migrator and migrator-dev services
+
+docker-compose will start 2 migrator services. The first one `migrator` will use the latest official migrator docker image from docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator). The second one `migrator-dev` will be built automatically by docker-compose from your local branch.
 
 In order to run the docker container remember to:
 
 1. mount a volume with migrations, for example: `/data`
 2. specify location of migrator configuration file, for convenience it is usually located under `/data` directory; it defaults to `/data/migrator.yaml` and can be overridden by setting environment variable `MIGRATOR_YAML`
 
-The docker-compose which starts test DB containers also starts latest migrator with sample configuration and test migrations. See `docker-compose.yaml` for details.
+The docker-compose will mount volumes with sample configuration and test migrations for you. See `test/docker-compose.yaml` for details.
 
-## 4. Build and run migrator
+> Note: For production deployments please see [Tutorials](#tutorials) section. It contains walkthoughs of deployments to AWS ECS, AWS EKS, and Azure AKS.
 
-migrator uses go modules to manage dependencies. When building & running migrator from source code simply execute:
+## 4. Play around with migrator
 
-```bash
-go build
-./migrator -configFile test/migrator-postgresql.yaml
-```
-
-> Note: There are 3 git variables injected into the production build. When migrator is built like above it prints empty branch/tag, commit sha, and commit date. This is OK for local development. If you want to inject proper values take a look at `Dockerfile` for details.
-
-## 5. Play around with migrator
-
-If you started migrator in point 3 - migrator listens on port 8181 and connects to mysql server.
-If you started migrator in point 4 - migrator listens on port 8080 and connects to postgresql server.
+The docker-compose will start 2 migrator services as listed above. The latest stable migrator version listens on port `8181`. migrator built from the local branch listens on port `8282`.
 
 Set the port accordingly:
 
@@ -506,7 +503,7 @@ webHookTemplate: '{"text": "New version: ${summary.versionId} started at: ${summ
 webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
   - "Content-Type: application/json"
-  - "X-CustomHeader: value1,value2"
+  - "X-Custom-Header: value1,value2"
 ```
 
 ## Env variables substitution
@@ -707,6 +704,12 @@ The other thing to consider is the fact that migrator is written in go which is 
 # Change log
 
 Please navigate to [migrator/releases](https://github.com/lukaszbudnik/migrator/releases) for a complete list of versions, features, and change log.
+
+# Contributing
+
+Contributions are most welcomed!
+
+For contributing, code style, running unit & integration tests please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # License
 
