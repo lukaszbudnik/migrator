@@ -36,6 +36,9 @@ jobs:
       run: docker-compose -f test/docker-compose.yaml up -d
 
     - name: Build and test migrator
+      env:
+        AZURE_STORAGE_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCESS_KEY }}
+        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
       run: ./coverage.sh
 
     - name: Run HTTP integration tests
