@@ -1,4 +1,4 @@
-# migrator [![Build Status](https://travis-ci.org/lukaszbudnik/migrator.svg?branch=master)](https://travis-ci.org/lukaszbudnik/migrator) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
+# migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
 Super fast and lightweight DB migration tool written in go. migrator consumes 6MB of memory and outperforms other DB migration/evolution frameworks by a few orders of magnitude.
 
@@ -282,7 +282,7 @@ go get -d -v github.com/lukaszbudnik/migrator
 cd $GOPATH/src/github.com/lukaszbudnik/migrator
 ```
 
-migrator aims to support 3 latest Go versions (built automatically on Travis).
+migrator aims to support 3 latest Go versions (built automatically on GitHub Actions).
 
 ## 2. Start migrator and test DB containers
 
