@@ -2,14 +2,15 @@
 
 echo "Running custom build hook"
 
+SOURCE_DATE=$(git log -n1 --date=iso-strict | grep 'Date:' | sed 's|Date:\s*||g')
+
 echo "SOURCE_BRANCH: $SOURCE_BRANCH"
 echo "SOURCE_COMMIT: $SOURCE_COMMIT"
+echo "SOURCE_DATE: $SOURCE_DATE"
 echo "DOCKERFILE_PATH: $DOCKERFILE_PATH"
 echo "DOCKER_REPO: $DOCKER_REPO"
 echo "CACHE_TAG: $CACHE_TAG"
 echo "IMAGE_NAME: $IMAGE_NAME"
-
-SOURCE_DATE=$(git log -n1 --date=iso-strict | grep 'Date:' | sed 's|Date:\s*||g')
 
 docker build \
     --build-arg SOURCE_BRANCH=$SOURCE_BRANCH \

@@ -17,5 +17,3 @@ if [[ $SOURCE_BRANCH != dev-* ]]; then
 else
     echo "Detected dev branch, not pushing $IMAGE_NAME to latest"
 fi
-
-
