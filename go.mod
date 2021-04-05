@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.38.8
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
 	github.com/gin-gonic/gin v1.6.3
-	github.com/go-sql-driver/mysql v1.5.0
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/graph-gophers/graphql-go v0.0.0-20200207002730-8334863f2c8b
 	github.com/lib/pq v1.10.0
 	github.com/stretchr/testify v1.7.0
