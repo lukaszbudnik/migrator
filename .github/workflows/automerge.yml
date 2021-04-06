@@ -1,18 +1,5 @@
-name: automerge
+name: Automerge
 on:
-  pull_request:
-    types:
-      - labeled
-      - unlabeled
-      - synchronize
-      - opened
-      - edited
-      - ready_for_review
-      - reopened
-      - unlocked
-#   pull_request_review:
-#     types:
-#       - submitted
   check_suite:
     types:
       - completed
@@ -21,9 +8,10 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
     steps:
-      - name: automerge
+      - name: Automerge
         uses: "pascalgn/automerge-action@v0.13.1"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          MERGE_LABELS: "dependencies,!do not merge"
+          MERGE_LABELS: "dependencies"
+          MERGE_FILTER_AUTHOR: "dependabot"
           MERGE_FORKS: "false"
