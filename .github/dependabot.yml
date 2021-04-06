@@ -5,13 +5,16 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
   # Maintain dependencies for go lang
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "saturday"
