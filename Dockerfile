@@ -13,7 +13,7 @@ COPY . /go/migrator
 RUN cd /go/migrator && \
   go build -ldflags "-X main.GitCommitDate=$SOURCE_DATE -X main.GitCommitSha=$SOURCE_COMMIT -X main.GitBranch=$SOURCE_BRANCH"
 
-FROM alpine:3.13.4
+FROM alpine:3.13.5
 COPY --from=builder /go/migrator/migrator /bin
 
 VOLUME ["/data"]
