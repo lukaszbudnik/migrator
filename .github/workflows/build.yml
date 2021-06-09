@@ -1,7 +1,14 @@
 name: Build and Test
 
 on:
-  pull_request_target
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_run:
+    workflows: ["Dependabot PR Check"]
+    types:
+      - completed
 
 jobs:
   build:
