@@ -3,7 +3,7 @@ module github.com/lukaszbudnik/migrator
 go 1.13
 
 require (
-	github.com/Azure/azure-storage-blob-go v0.13.0
+	github.com/Azure/azure-storage-blob-go v0.14.0
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/aws/aws-sdk-go v1.38.68
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e
