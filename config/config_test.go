@@ -26,9 +26,10 @@ func TestFromFile(t *testing.T) {
 }
 
 func TestWithEnvFromFile(t *testing.T) {
+	os.Setenv("COMMIT_SHA", "62fd74506651982fe317721d7e07145f8c2fa166")
 	config, err := FromFile("../test/migrator-test-envs.yaml")
 	assert.Nil(t, err)
-	assert.Equal(t, os.Getenv("TERM"), config.BaseLocation)
+	assert.Equal(t, "s3://bucket-name/application-x/"+os.Getenv("TERM")+"/"+os.Getenv("COMMIT_SHA"), config.BaseLocation)
 	assert.Equal(t, os.Getenv("PATH"), config.TenantSelectSQL)
 	assert.Equal(t, os.Getenv("GOPATH"), config.TenantInsertSQL)
 	assert.Equal(t, os.Getenv("PWD"), config.Driver)

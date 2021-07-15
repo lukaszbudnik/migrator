@@ -548,11 +548,11 @@ baseLocation: /project/migrations
 
 ### AWS S3
 
-If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseLocation` property is treated as a bucket name:
+If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseLocation` property is treated as a bucket name followed by optional prefix:
 
 ```
 # S3 bucket
-baseLocation: s3://your-bucket-migrator
+baseLocation: s3://your-bucket-migrator/application-x/prod
 ```
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.

@@ -3,11 +3,10 @@ package loader
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-
-	"fmt"
 
 	"github.com/lukaszbudnik/migrator/types"
 )
