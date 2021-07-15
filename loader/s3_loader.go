@@ -32,37 +32,50 @@ func (s3l *s3Loader) GetSourceMigrations() []types.Migration {
 func (s3l *s3Loader) doGetSourceMigrations(client s3iface.S3API) []types.Migration {
 	migrations := []types.Migration{}
 
-	singleMigrationsObjects := s3l.getObjectList(client, s3l.config.SingleMigrations)
-	tenantMigrationsObjects := s3l.getObjectList(client, s3l.config.TenantMigrations)
-	singleScriptsObjects := s3l.getObjectList(client, s3l.config.SingleScripts)
-	tenantScriptsObjects := s3l.getObjectList(client, s3l.config.TenantScripts)
+	bucketWithPrefixes := strings.Split(strings.Replace(strings.TrimRight(s3l.config.BaseLocation, "/"), "s3://", "", 1), "/")
+
+	bucket := bucketWithPrefixes[0]
+	optionalPrefixes := ""
+	if len(bucketWithPrefixes) > 1 {
+		optionalPrefixes = strings.Join(bucketWithPrefixes[1:], "/")
+	}
+
+	singleMigrationsObjects := s3l.getObjectList(client, bucket, optionalPrefixes, s3l.config.SingleMigrations)
+	tenantMigrationsObjects := s3l.getObjectList(client, bucket, optionalPrefixes, s3l.config.TenantMigrations)
+	singleScriptsObjects := s3l.getObjectList(client, bucket, optionalPrefixes, s3l.config.SingleScripts)
+	tenantScriptsObjects := s3l.getObjectList(client, bucket, optionalPrefixes, s3l.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
-	s3l.getObjects(client, migrationsMap, singleMigrationsObjects, types.MigrationTypeSingleMigration)
-	s3l.getObjects(client, migrationsMap, tenantMigrationsObjects, types.MigrationTypeTenantMigration)
+	s3l.getObjects(client, bucket, migrationsMap, singleMigrationsObjects, types.MigrationTypeSingleMigration)
+	s3l.getObjects(client, bucket, migrationsMap, tenantMigrationsObjects, types.MigrationTypeTenantMigration)
 	s3l.sortMigrations(migrationsMap, &migrations)
 
 	migrationsMap = make(map[string][]types.Migration)
-	s3l.getObjects(client, migrationsMap, singleScriptsObjects, types.MigrationTypeSingleScript)
+	s3l.getObjects(client, bucket, migrationsMap, singleScriptsObjects, types.MigrationTypeSingleScript)
 	s3l.sortMigrations(migrationsMap, &migrations)
 
 	migrationsMap = make(map[string][]types.Migration)
-	s3l.getObjects(client, migrationsMap, tenantScriptsObjects, types.MigrationTypeTenantScript)
+	s3l.getObjects(client, bucket, migrationsMap, tenantScriptsObjects, types.MigrationTypeTenantScript)
 	s3l.sortMigrations(migrationsMap, &migrations)
 
 	return migrations
 }
 
-func (s3l *s3Loader) getObjectList(client s3iface.S3API, prefixes []string) []*string {
+func (s3l *s3Loader) getObjectList(client s3iface.S3API, bucket, optionalPrefixes string, prefixes []string) []*string {
 	objects := []*string{}
-
-	bucket := strings.Replace(s3l.config.BaseLocation, "s3://", "", 1)
 
 	for _, prefix := range prefixes {
 
+		var fullPrefix string
+		if optionalPrefixes != "" {
+			fullPrefix = optionalPrefixes + "/" + prefix
+		} else {
+			fullPrefix = prefix
+		}
+
 		input := &s3.ListObjectsV2Input{
 			Bucket:  aws.String(bucket),
-			Prefix:  aws.String(prefix),
+			Prefix:  aws.String(fullPrefix),
 			MaxKeys: aws.Int64(1000),
 		}
 
@@ -84,9 +97,7 @@ func (s3l *s3Loader) getObjectList(client s3iface.S3API, prefixes []string) []*s
 	return objects
 }
 
-func (s3l *s3Loader) getObjects(client s3iface.S3API, migrationsMap map[string][]types.Migration, objects []*string, migrationType types.MigrationType) {
-	bucket := strings.Replace(s3l.config.BaseLocation, "s3://", "", 1)
-
+func (s3l *s3Loader) getObjects(client s3iface.S3API, bucket string, migrationsMap map[string][]types.Migration, objects []*string, migrationType types.MigrationType) {
 	objectInput := &s3.GetObjectInput{Bucket: aws.String(bucket)}
 	for _, o := range objects {
 		objectInput.Key = o

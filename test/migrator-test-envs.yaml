@@ -1,5 +1,5 @@
 # migrator configuration
-baseLocation: ${TERM}
+baseLocation: s3://bucket-name/application-x/${TERM}/${COMMIT_SHA}
 driver: ${PWD}
 dataSource: "lets_assume_password=${HOME}&and_something_else=${USER}&param=value"
 # override only if you have own specific way of determining tenants
