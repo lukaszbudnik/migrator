@@ -28,29 +28,45 @@ func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
 	}
 
 	credential, err := azblob.NewSharedKeyCredential(accountName, accountKey)
-
-	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
-	u, err := url.Parse(abl.config.BaseLocation)
 	if err != nil {
 		panic(err.Error())
 	}
 
+	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+
 	// migrator expects that container as a part of the service url
-	// for example: https://lukaszbudniktest.blob.core.windows.net/mycontainer
-	// Azure SDK will correctly parse the account and the container
+	// the URL can contain optional prefixes like prod/artefacts
+	// for example:
+	// https://lukaszbudniktest.blob.core.windows.net/mycontainer/
+	// https://lukaszbudniktest.blob.core.windows.net/mycontainer/prod/artefacts/
+
+	// check if optional prefixes are provided
+	baseLocation := strings.TrimRight(abl.config.BaseLocation, "/")
+	indx := findNthIndex(baseLocation, '/', 4)
+
+	optionalPrefixes := ""
+	if indx > -1 {
+		optionalPrefixes = baseLocation[indx+1:]
+		baseLocation = baseLocation[:indx]
+	}
+
+	u, err := url.Parse(baseLocation)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	containerURL := azblob.NewContainerURL(*u, p)
 
-	return abl.doGetSourceMigrations(containerURL)
+	return abl.doGetSourceMigrations(containerURL, optionalPrefixes)
 }
 
-func (abl *azureBlobLoader) doGetSourceMigrations(containerURL azblob.ContainerURL) []types.Migration {
+func (abl *azureBlobLoader) doGetSourceMigrations(containerURL azblob.ContainerURL, optionalPrefixes string) []types.Migration {
 	migrations := []types.Migration{}
 
-	singleMigrationsObjects := abl.getObjectList(containerURL, abl.config.SingleMigrations)
-	tenantMigrationsObjects := abl.getObjectList(containerURL, abl.config.TenantMigrations)
-	singleScriptsObjects := abl.getObjectList(containerURL, abl.config.SingleScripts)
-	tenantScriptsObjects := abl.getObjectList(containerURL, abl.config.TenantScripts)
+	singleMigrationsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.SingleMigrations)
+	tenantMigrationsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.TenantMigrations)
+	singleScriptsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.SingleScripts)
+	tenantScriptsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
 	abl.getObjects(containerURL, migrationsMap, singleMigrationsObjects, types.MigrationTypeSingleMigration)
@@ -68,14 +84,21 @@ func (abl *azureBlobLoader) doGetSourceMigrations(containerURL azblob.ContainerU
 	return migrations
 }
 
-func (abl *azureBlobLoader) getObjectList(containerURL azblob.ContainerURL, prefixes []string) []string {
+func (abl *azureBlobLoader) getObjectList(containerURL azblob.ContainerURL, optionalPrefixes string, prefixes []string) []string {
 	objects := []string{}
 
 	for _, prefix := range prefixes {
 
-		for marker := (azblob.Marker{}); marker.NotDone(); { // The parens around Marker{} are required to avoid compiler error.
+		for marker := (azblob.Marker{}); marker.NotDone(); {
 
-			listBlob, err := containerURL.ListBlobsFlatSegment(abl.ctx, marker, azblob.ListBlobsSegmentOptions{Prefix: prefix + "/"})
+			var fullPrefix string
+			if optionalPrefixes != "" {
+				fullPrefix = optionalPrefixes + "/" + prefix + "/"
+			} else {
+				fullPrefix = prefix + "/"
+			}
+
+			listBlob, err := containerURL.ListBlobsFlatSegment(abl.ctx, marker, azblob.ListBlobsSegmentOptions{Prefix: fullPrefix})
 			if err != nil {
 				panic(err.Error())
 			}
@@ -124,4 +147,17 @@ func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrati
 		migrationsMap[m.Name] = e
 
 	}
+}
+
+func findNthIndex(str string, c byte, n int) int {
+	occur := 0
+	for i := 0; i < len(str); i++ {
+		if str[i] == c {
+			occur += 1
+		}
+		if occur == n {
+			return i
+		}
+	}
+	return -1
 }

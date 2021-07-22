@@ -552,18 +552,22 @@ If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In 
 
 ```
 # S3 bucket
-baseLocation: s3://your-bucket-migrator/application-x/prod
+baseLocation: s3://your-bucket-migrator
+# S3 bucket with optional prefix
+baseLocation: s3://your-bucket-migrator/appcodename/prod/artefacts
 ```
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
 
 ### Azure Blob Containers
 
-If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL:
+If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL. The URL can have optional prefix too:
 
 ```
 # Azure Blob container URL
 baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
+# Azure Blob container URL with optional prefix
+baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer/appcodename/prod/artefacts
 ```
 
 migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of the Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.

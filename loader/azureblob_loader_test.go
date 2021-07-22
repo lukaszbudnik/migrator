@@ -22,7 +22,7 @@ func TestAzureGetSourceMigrations(t *testing.T) {
 	// "https://${AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/mycontainer"
 	// however below we are creating the Config struct directly
 	// and that's why we need to build correct URL ourselves
-	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/mycontainer", accountName)
+	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/myothercontainer/prod/artefacts/", accountName)
 
 	config := &config.Config{
 		BaseLocation:     baseLocation,
