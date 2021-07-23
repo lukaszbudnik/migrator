@@ -32,3 +32,13 @@ func TestLog(t *testing.T) {
 	message := Log("INFO", "param=%v", 456)
 	assert.Equal(t, "param=456", message)
 }
+
+func TestFindNthIndex(t *testing.T) {
+	indx := FindNthIndex("https://lukaszbudniktest.blob.core.windows.net/mycontainer/prod/artefacts", '/', 4)
+	assert.Equal(t, 58, indx)
+}
+
+func TestFindNthIndexNotFound(t *testing.T) {
+	indx := FindNthIndex("https://lukaszbudniktest.blob.core.windows.net/mycontainer", '/', 4)
+	assert.Equal(t, -1, indx)
+}

@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/go-autorest/autorest/azure/auth"
 
+	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -21,13 +23,8 @@ type azureBlobLoader struct {
 
 // GetSourceMigrations returns all migrations from Azure Blob location
 func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
-	accountName, accountKey := os.Getenv("AZURE_STORAGE_ACCOUNT"), os.Getenv("AZURE_STORAGE_ACCESS_KEY")
 
-	if len(accountName) == 0 || len(accountKey) == 0 {
-		panic("Either the AZURE_STORAGE_ACCOUNT or AZURE_STORAGE_ACCESS_KEY environment variable is not set")
-	}
-
-	credential, err := azblob.NewSharedKeyCredential(accountName, accountKey)
+	credential, err := abl.getAzureStorageCredentials()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -42,7 +39,7 @@ func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
 
 	// check if optional prefixes are provided
 	baseLocation := strings.TrimRight(abl.config.BaseLocation, "/")
-	indx := findNthIndex(baseLocation, '/', 4)
+	indx := common.FindNthIndex(baseLocation, '/', 4)
 
 	optionalPrefixes := ""
 	if indx > -1 {
@@ -149,15 +146,29 @@ func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrati
 	}
 }
 
-func findNthIndex(str string, c byte, n int) int {
-	occur := 0
-	for i := 0; i < len(str); i++ {
-		if str[i] == c {
-			occur += 1
-		}
-		if occur == n {
-			return i
-		}
+func (abl *azureBlobLoader) getAzureStorageCredentials() (azblob.Credential, error) {
+	// try shared key credentials first
+	accountName, accountKey := os.Getenv("AZURE_STORAGE_ACCOUNT"), os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+
+	if len(accountName) > 0 && len(accountKey) > 0 {
+		return azblob.NewSharedKeyCredential(accountName, accountKey)
 	}
-	return -1
+
+	// then try MSI and token credentials
+	msiConfig := auth.NewMSIConfig()
+	msiConfig.Resource = "https://storage.azure.com"
+
+	azureServicePrincipalToken, err := msiConfig.ServicePrincipalToken()
+	if err != nil {
+		return nil, err
+	}
+
+	err = azureServicePrincipalToken.Refresh()
+	if err != nil {
+		return nil, err
+	}
+	token := azureServicePrincipalToken.Token()
+
+	credential := azblob.NewTokenCredential(token.AccessToken, nil)
+	return credential, nil
 }
