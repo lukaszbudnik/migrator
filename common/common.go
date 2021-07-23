@@ -46,3 +46,17 @@ func logLevel(ctx context.Context, level string, format string, a ...interface{}
 	log.Printf("[%v:%v] %v requestId=%v %v", file, line, level, requestID, message)
 	return message
 }
+
+// FindNthIndex finds index of nth occurance of a character c in string str
+func FindNthIndex(str string, c byte, n int) int {
+	occur := 0
+	for i := 0; i < len(str); i++ {
+		if str[i] == c {
+			occur += 1
+		}
+		if occur == n {
+			return i
+		}
+	}
+	return -1
+}

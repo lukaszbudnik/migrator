@@ -570,7 +570,7 @@ baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
 baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer/appcodename/prod/artefacts
 ```
 
-migrator uses official Azure Blob SDK for Go. Unfortunately as of the time of writing Azure Blob implementation the SDK only supported authentication using Storage Accounts and not for example much more flexible Active Directory (which is supported by the rest of the Azure Go SDK). Issue to watch: [Authorization via Azure AD / RBAC](https://github.com/Azure/azure-storage-blob-go/issues/160). I plan to revisit the authorization once Azure team updates their Azure Blob SDK.
+migrator uses official Azure SDK for Go and supports authentication using Storage Account Key (via `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` env variables) as well as much more flexible (and recommended) Azure Active Directory Managed Identity.
 
 ## Supported databases
 
