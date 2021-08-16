@@ -9,7 +9,7 @@ on:
 
 jobs:
   push_to_registries:
-    name: Push Docker image to Docker hub and GHCR registries
+    name: Push Docker image to Docker Hub and ghcr.io registries
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -38,6 +38,12 @@ jobs:
           images: |
             lukasz/migrator
             ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
       
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
