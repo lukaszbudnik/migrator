@@ -63,16 +63,16 @@ AWS RDS will be our database.
 
 Navigate to AWS RDS start page and provision a new AWS RDS database.
 
-When provisioning don't forget to run it in the same VPC as the ECS cluster. Ask AWS to generate the master password. Copy the credentials. Unfold the "Additional connectivity configuration". Make sure DB will not have a public IP assigned, create a new Security Group for our DB. Call it `database`. For now, leave the inbound rules empty (ECS services does not exist yet).
+When provisioning don't forget to run it in the same VPC as the ECS cluster. Ask AWS to generate the admin password. Copy the credentials. Unfold the "Additional connectivity configuration". Make sure DB will not have a public IP assigned, create a new Security Group for our DB. Call it `database`. For now, leave the inbound rules empty (ECS services does not exist yet).
 
 ## AWS Secrets Manager
 
 If you take a look at the provided migrator config file it requires the following 4 env variables to be present:
 
-* DATABASE_USERNAME
-* DATABASE_PASSWORD
-* DATABASE_NAME
-* DATABASE_HOST
+- DATABASE_USERNAME
+- DATABASE_PASSWORD
+- DATABASE_NAME
+- DATABASE_HOST
 
 All above can be stored in AWS Secrets Manager DB credentials type of secret. It is a JSON which contains all of the above information. However, AWS ECS cannot at present parse & inject JSON secrets: [[ECS] [secrets]: support parameter name from AWS Secrets Manager #385](https://github.com/aws/containers-roadmap/issues/385).
 
@@ -123,9 +123,9 @@ Last step is the review. If all looks good, click "Create Service".
 
 We created 3 SGs:
 
-* `database` - edit it and add inbound allow traffic to DB port from `migrator-service` SG
-* `migrator-service` - edit it and add inbound allow traffic to `8080` from `frontend` SG
-* `frontend` - review that inbound rules have allow traffic to port `443` from you IP addresses
+- `database` - edit it and add inbound allow traffic to DB port from `migrator-service` SG
+- `migrator-service` - edit it and add inbound allow traffic to `8080` from `frontend` SG
+- `frontend` - review that inbound rules have allow traffic to port `443` from you IP addresses
 
 ## Accessing migrator
 

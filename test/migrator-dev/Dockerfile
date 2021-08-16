@@ -4,7 +4,7 @@ LABEL maintainer="Łukasz Budnik lukasz.budnik@gmail.com"
 
 # use "--build-arg SOURCE_BRANCH=dev" to override at build time
 # docker build -f TestDockerfile --build-arg SOURCE_BRANCH=dev -t migrator-local:dev .
-ARG SOURCE_BRANCH=master
+ARG SOURCE_BRANCH=main
 
 # git is required
 RUN apk add git
