@@ -117,7 +117,7 @@ func TestComputeMigrationsToApply(t *testing.T) {
 
 func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	// use case:
-	// development done in parallel, 2 devs fork from master
+	// development done in parallel, 2 devs fork from main
 	// dev1 adds migrations on Monday
 	// dev2 adds migrations on Tuesday
 	// dev2 merges and deploys his code on Tuesday
