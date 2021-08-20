@@ -2,8 +2,7 @@ name: Publish Docker image
 
 on:
   push:
-    branches:
-      - 'main'
+    branches: [main]
   release:
     types: [published]
 
@@ -39,6 +38,7 @@ jobs:
             lukasz/migrator
             ghcr.io/${{ github.repository }}
           tags: |
+            type=edge
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
