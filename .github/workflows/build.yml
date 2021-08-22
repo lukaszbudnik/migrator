@@ -38,4 +38,4 @@ jobs:
     - name: Run HTTP integration tests
       run: ./test/http-integration-tests.sh
 
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v2.0.2
