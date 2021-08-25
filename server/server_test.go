@@ -32,7 +32,7 @@ func newTestRequestV2(method, url string, body io.Reader) (*http.Request, error)
 }
 
 func testSetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
-	versionInfo := &types.VersionInfo{Release: "GitBranch", CommitSha: "GitCommitSha", CommitDate: "2020-01-08T09:56:41+01:00", APIVersions: []types.APIVersion{types.APIV2}}
+	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
 	gin.SetMode(gin.ReleaseMode)
 	return SetupRouter(versionInfo, config, newCoordinator)
 }
@@ -63,7 +63,7 @@ func TestRoot(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"release":"GitRef","sha":"GitSha","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
 func TestRootWithPathPrefix(t *testing.T) {
@@ -80,7 +80,7 @@ func TestRootWithPathPrefix(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
-	assert.Equal(t, `{"release":"GitBranch","commitSha":"GitCommitSha","commitDate":"2020-01-08T09:56:41+01:00","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"release":"GitRef","sha":"GitSha","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
 // /v1 API
