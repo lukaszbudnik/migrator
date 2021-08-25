@@ -38,7 +38,7 @@ jobs:
             lukasz/migrator
             ghcr.io/${{ github.repository }}
           tags: |
-            type=branch
+            type=ref,event=branch
             type=edge
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
