@@ -85,7 +85,7 @@ services:
         fi
         wait $$PID
   migrator:
-    image: lukasz/migrator
+    image: lukasz/migrator:latest
     depends_on:
       - mysql
       - mariadb
@@ -106,7 +106,7 @@ services:
       - mssql
   migrator-dev:
     image: migrator-dev
-    build: 
+    build:
       context: ..
       dockerfile: test/migrator-dev/Dockerfile
     depends_on:
