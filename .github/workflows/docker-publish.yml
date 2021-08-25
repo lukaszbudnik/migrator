@@ -28,7 +28,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
       
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -38,6 +38,7 @@ jobs:
             lukasz/migrator
             ghcr.io/${{ github.repository }}
           tags: |
+            type=ref,event=branch
             type=edge
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -50,3 +51,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_REF=${{ github.ref }}
+            GIT_SHA=${{ github.sha }}
