@@ -194,7 +194,6 @@ const (
 // VersionInfo contains build information and supported API versions
 type VersionInfo struct {
 	Release     string       `json:"release"`
-	CommitSha   string       `json:"commitSha"`
-	CommitDate  string       `json:"commitDate"`
+	Sha         string       `json:"sha"`
 	APIVersions []APIVersion `json:"apiVersions"`
 }

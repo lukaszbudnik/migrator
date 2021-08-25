@@ -22,18 +22,15 @@ const (
 	DefaultConfigFile = "migrator.yaml"
 )
 
-// GitBranch stores git branch/tag, value injected during production build
-var GitBranch string
+// GitRef stores git branch/tag, value injected during production build
+var GitRef string
 
-// GitCommitSha stores git commit sha, value injected during production build
-var GitCommitSha string
-
-// GitCommitDate stores git commit date time, value injected during production build
-var GitCommitDate string
+// GitSha stores git commit sha, value injected during production build
+var GitSha string
 
 func main() {
 
-	common.Log("INFO", "migrator version %v, build %v, date %v", GitBranch, GitCommitSha, GitCommitDate)
+	common.Log("INFO", "migrator version: %v (%v)", GitRef, GitSha)
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)
@@ -59,7 +56,7 @@ func main() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	versionInfo := &types.VersionInfo{Release: GitBranch, CommitSha: GitCommitSha, CommitDate: GitCommitDate, APIVersions: []types.APIVersion{types.APIV2}}
+	versionInfo := &types.VersionInfo{Release: GitRef, Sha: GitSha, APIVersions: []types.APIVersion{types.APIV2}}
 	g := server.SetupRouter(versionInfo, cfg, createCoordinator)
 	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)
