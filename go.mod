@@ -1,6 +1,6 @@
 module github.com/lukaszbudnik/migrator
 
-go 1.14
+go 1.15
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.14.0
