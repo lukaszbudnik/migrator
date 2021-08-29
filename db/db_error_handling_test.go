@@ -42,7 +42,7 @@ func TestInitCannotCreateMigratorSchema(t *testing.T) {
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("create schema").WillReturnError(errors.New("trouble maker"))
+	mock.ExpectExec("create schema").WillReturnError(errors.New("trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not create migrator schema: trouble maker", func() {
 		connector.init()
@@ -64,8 +64,8 @@ func TestInitCannotCreateMigratorMigrationsTable(t *testing.T) {
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("create schema").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnError(errors.New("trouble maker"))
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnError(errors.New("trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not create migrations table: trouble maker", func() {
 		connector.init()
@@ -87,10 +87,10 @@ func TestInitCannotCreateMigratorVersionsTable(t *testing.T) {
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("create schema").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnRows()
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnResult(sqlmock.NewResult(0, 0))
 	// create versions table is a script
-	mock.ExpectQuery("begin").WillReturnError(errors.New("trouble maker"))
+	mock.ExpectExec("begin").WillReturnError(errors.New("trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not create versions table: trouble maker", func() {
 		connector.init()
@@ -112,11 +112,11 @@ func TestInitCannotCreateMigratorTenantsTable(t *testing.T) {
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("create schema").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnRows()
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnResult(sqlmock.NewResult(0, 0))
 	// create versions table is a script
-	mock.ExpectQuery("begin").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnError(errors.New("trouble maker"))
+	mock.ExpectExec("begin").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnError(errors.New("trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not create default tenants table: trouble maker", func() {
 		connector.init()
@@ -138,10 +138,10 @@ func TestInitCannotCommitTransaction(t *testing.T) {
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
-	mock.ExpectQuery("create schema").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnRows()
-	mock.ExpectQuery("begin").WillReturnRows()
-	mock.ExpectQuery("create table").WillReturnRows()
+	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("begin").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("create table").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit().WillReturnError(errors.New("trouble maker"))
 
 	assert.PanicsWithValue(t, "Could not commit transaction: trouble maker", func() {
