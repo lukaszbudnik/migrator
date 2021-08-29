@@ -8,7 +8,7 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       matrix:
-        go: [ '1.17', '1.16', '1.15', '1.14' ]
+        go: [ '1.17', '1.16', '1.15' ]
     name: Go ${{ matrix.go }}
 
     steps:

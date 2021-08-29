@@ -79,20 +79,20 @@ func (bc *baseConnector) init() {
 
 	// make sure migrator schema exists
 	createSchema := bc.dialect.GetCreateSchemaSQL(migratorSchema)
-	if _, err := bc.db.Query(createSchema); err != nil {
+	if _, err := bc.db.Exec(createSchema); err != nil {
 		panic(fmt.Sprintf("Could not create migrator schema: %v", err))
 	}
 
 	// make sure migrations table exists
 	createMigrationsTable := bc.dialect.GetCreateMigrationsTableSQL()
-	if _, err := bc.db.Query(createMigrationsTable); err != nil {
+	if _, err := bc.db.Exec(createMigrationsTable); err != nil {
 		panic(fmt.Sprintf("Could not create migrations table: %v", err))
 	}
 
 	// make sure versions table exists
 	createVersionsTableSQLs := bc.dialect.GetCreateVersionsTableSQL()
 	for _, createVersionsTableSQL := range createVersionsTableSQLs {
-		if _, err := bc.db.Query(createVersionsTableSQL); err != nil {
+		if _, err := bc.db.Exec(createVersionsTableSQL); err != nil {
 			panic(fmt.Sprintf("Could not create versions table: %v", err))
 		}
 	}
@@ -100,7 +100,7 @@ func (bc *baseConnector) init() {
 	// if using default migrator tenants table make sure it exists
 	if bc.config.TenantSelectSQL == "" {
 		createTenantsTable := bc.dialect.GetCreateTenantsTableSQL()
-		if _, err := bc.db.Query(createTenantsTable); err != nil {
+		if _, err := bc.db.Exec(createTenantsTable); err != nil {
 			panic(fmt.Sprintf("Could not create default tenants table: %v", err))
 		}
 	}
@@ -138,6 +138,7 @@ func (bc *baseConnector) GetTenants() []types.Tenant {
 	if err != nil {
 		panic(fmt.Sprintf("Could not query tenants: %v", err))
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var name string
@@ -157,6 +158,7 @@ func (bc *baseConnector) GetVersions() []types.Version {
 	if err != nil {
 		panic(fmt.Sprintf("Could not query versions: %v", err))
 	}
+	defer rows.Close()
 
 	return bc.readVersions(rows)
 }
@@ -168,6 +170,7 @@ func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
 	if err != nil {
 		panic(fmt.Sprintf("Could not query versions: %v", err))
 	}
+	defer rows.Close()
 
 	return bc.readVersions(rows)
 }
@@ -179,6 +182,7 @@ func (bc *baseConnector) GetVersionByID(ID int32) (*types.Version, error) {
 	if err != nil {
 		panic(fmt.Sprintf("Could not query versions: %v", err))
 	}
+	defer rows.Close()
 
 	// readVersions is generic and returns a slice of Version objects
 	// we are querying by ID and are interested in only the first one
@@ -198,6 +202,7 @@ func (bc *baseConnector) getVersionByIDInTx(tx *sql.Tx, ID int32) *types.Version
 	if err != nil {
 		panic(fmt.Sprintf("Could not query versions: %v", err))
 	}
+	defer rows.Close()
 
 	// readVersions is generic and returns a slice of Version objects
 	// we are querying by ID and are interested in only the first one
@@ -262,6 +267,7 @@ func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error
 	if err != nil {
 		panic(fmt.Sprintf("Could not query DB migrations: %v", err.Error()))
 	}
+	defer rows.Close()
 
 	if !rows.Next() {
 		return nil, fmt.Errorf("DB migration not found ID: %v", ID)
@@ -297,6 +303,7 @@ func (bc *baseConnector) GetAppliedMigrations() []types.DBMigration {
 	if err != nil {
 		panic(fmt.Sprintf("Could not query DB migrations: %v", err.Error()))
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var (

@@ -1,6 +1,6 @@
 # migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration tool written in go. migrator consumes 6MB of memory and outperforms other DB migration/evolution frameworks by a few orders of magnitude.
+Super fast and lightweight DB migration tool written in go. migrator outperforms other DB migration/evolution frameworks by a few orders of magnitude.
 
 migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support (ideal for multi-schema multi-tenant SaaS products).
 
