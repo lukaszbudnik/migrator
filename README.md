@@ -4,47 +4,22 @@ Super fast and lightweight DB migration tool written in go. migrator consumes 6M
 
 migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support (ideal for multi-schema multi-tenant SaaS products).
 
-migrator runs as a HTTP REST service and can be easily integrated into your continuous integration and continuous delivery pipeline.
+migrator runs as a HTTP GrapQL service and can be easily integrated into existing continuous integration and continuous delivery pipelines. migrator can also sync existing migrations from legacy frameworks making the technology switch even more straightforward.
 
-The official docker image is available on docker hub at [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator). It is ultra lightweight and has a size of 15MB. Ideal for micro-services deployments!
+migrator supports reading DB migrations from:
 
-# Table of contents
+- local folder (any Docker/Kubernetes deployments)
+- AWS S3
+- Azure Blob Containers
 
-- [API](#api)
-  - [/v2 - GraphQL API](#v2---graphql-api)
-    - [GET /v2/config](#get-v2config)
-    - [GET /v2/schema](#get-v2schema)
-    - [POST /v2/service](#post-v2service)
-  - [/v1 - REST API](#v1---rest-api)
-  - [Request tracing](#request-tracing)
-- [Quick Start Guide](#quick-start-guide)
-  - [1. Get the migrator project](#1-get-the-migrator-project)
-  - [2. Start migrator and test DB containers](#2-start-migrator-and-test-db-containers)
-  - [3. migrator and migrator-dev services](#3-migrator-and-migrator-dev-services)
-  - [4. Play around with migrator](#4-play-around-with-migrator)
-- [Configuration](#configuration)
-  - [migrator.yaml](#migratoryaml)
-  - [Env variables substitution](#env-variables-substitution)
-  - [Source migrations](#source-migrations)
-    - [Local storage](#local-storage)
-    - [AWS S3](#aws-s3)
-    - [Azure Blob Containers](#azure-blob-containers)
-  - [Supported databases](#supported-databases)
-- [Customisation and legacy frameworks support](#customisation-and-legacy-frameworks-support)
-  - [Custom tenants support](#custom-tenants-support)
-  - [Custom schema placeholder](#custom-schema-placeholder)
-  - [Synchonising legacy migrations to migrator](#synchonising-legacy-migrations-to-migrator)
-  - [Final comments](#final-comments)
-- [Tutorials](#tutorials)
-  - [Deploying migrator to AWS ECS](#deploying-migrator-to-aws-ecs)
-  - [Deploying migrator to AWS EKS](#deploying-migrator-to-aws-eks)
-  - [Deploying migrator to Azure AKS](#deploying-migrator-to-azure-aks)
-  - [Securing migrator with OAuth2](#securing-migrator-with-oauth2)
-  - [Securing migrator with OIDC](#securing-migrator-with-oidc)
-- [Performance](#performance)
-- [Change log](#change-log)
-- [Contributing](#contributing)
-- [License](#license)
+migrator support the following multi-tenant databases:
+
+- PostgreSQL 9.3+ (and all its flavours)
+- MySQL 5.6+ (and all its flavours)
+- Microsoft SQL Server 2017+
+
+The official docker image is available on docker hub at [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) or on the alternative mirror at [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator).
+It is ultra lightweight and has a size of 30MB. Ideal for micro-services deployments!
 
 # API
 
@@ -53,18 +28,13 @@ migrator exposes a REST and GraphQL APIs described below.
 To return build information together with a list of supported API versions execute:
 
 ```bash
-curl -v http://localhost:8080/
+curl http://localhost:8080/
 ```
 
 Sample HTTP response:
 
 ```
-< HTTP/1.1 200 OK
-< Content-Type: application/json; charset=utf-8
-< Date: Tue, 16 Mar 2021 08:58:45 GMT
-< Content-Length: 137
-<
-{"release":"master","commitSha":"19ca4ed6a911094b9c1f37419c800a873a9429f1","commitDate":"2021-03-13T00:04:30+01:00","apiVersions":["v2"]}
+{"release":"v2020.1.3","commitSha":"b56a2694fcdb523e0c3f3e79b2d7a1b61f28a91f","commitDate":"2020-10-12T13:22:57+02:00","apiVersions":["v1","v2"]}
 ```
 
 ## /v2 - GraphQL API
@@ -80,17 +50,12 @@ Returns migrator's config as `application/x-yaml`.
 Sample request:
 
 ```bash
-curl -v http://localhost:8080/v2/config
+curl http://localhost:8080/v2/config
 ```
 
 Sample HTTP response:
 
 ```
-< HTTP/1.1 200 OK
-< Content-Type: application/x-yaml; charset=utf-8
-< Date: Mon, 02 Mar 2020 20:03:13 GMT
-< Content-Length: 244
-<
 baseLocation: test/migrations
 driver: sqlserver
 dataSource: sqlserver://SA:YourStrongPassw0rd@127.0.0.1:32774/?database=migratortest&connection+timeout=1&dial+timeout=1
@@ -111,7 +76,7 @@ Although migrator supports GraphQL introspection it is much more convenient to g
 Sample request:
 
 ```bash
-curl -v http://localhost:8080/v2/schema
+curl http://localhost:8080/v2/schema
 ```
 
 The API v2 GraphQL schema and its description is as follows:
@@ -557,7 +522,7 @@ baseLocation: s3://your-bucket-migrator
 baseLocation: s3://your-bucket-migrator/appcodename/prod/artefacts
 ```
 
-migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html). Please setup your env variables accordingly.
+migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html).
 
 ### Azure Blob Containers
 
