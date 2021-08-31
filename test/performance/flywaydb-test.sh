@@ -27,6 +27,12 @@ end=`date +%s`
 
 echo "Test took $((end-start)) seconds"
 
+rm -rf test/performance/migrations/
+
 # append test
+# 1. comment out above rm command
+# 2. RUN TEST
+# 3. generate new migrations:
 # ./test/performance/generate-test-migrations.sh -a -f -n $NO_OF_MIGRATIONS
+# 4. execute flyway migrate command, measure start and end times:
 # start=`date +%s` && flyway -configFiles=./test/performance/flyway.conf migrate > /dev/null && end=`date +%s`

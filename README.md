@@ -1,6 +1,6 @@
 # migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration tool written in go. migrator outperforms other DB migration/evolution frameworks by a few orders of magnitude.
+Super fast and lightweight DB migration tool written in go. migrator outperforms other DB migration/evolution frameworks by a few orders of magnitude when comparing both execution time and memory consumption.
 
 migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support (ideal for multi-schema multi-tenant SaaS products).
 
@@ -18,7 +18,11 @@ migrator support the following multi-tenant databases:
 - MySQL 5.6+ (and all its flavours)
 - Microsoft SQL Server 2017+
 
-The official docker image is available on docker hub at [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) or on the alternative mirror at [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator).
+The official docker image is available on:
+
+- docker hub at: [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator)
+- alternative mirror at: [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator)
+
 It is ultra lightweight and has a size of 30MB. Ideal for micro-services deployments!
 
 # API
@@ -648,27 +652,7 @@ You can find it in [tutorials/oauth2-proxy-oidc-haproxy](tutorials/oauth2-proxy-
 
 # Performance
 
-As a benchmarks I used 2 migrations frameworks:
-
-- proprietary Ruby framework - used at my company
-- flyway - leading market feature rich DB migration framework: https://flywaydb.org
-
-There is a performance test generator shipped with migrator (`test/performance/generate-test-migrations.sh`). In order to generate flyway-compatible migrations you need to pass `-f` param (see script for details).
-
-Execution times are following:
-
-| # Tenants | # Existing Migrations | # Migrations to apply | migrator | Ruby | Flyway |
-| --------- | --------------------- | --------------------- | -------- | ---- | ------ |
-| 10        | 0                     | 10001                 | 154s     | 670s | 2360s  |
-| 10        | 10001                 | 20                    | 2s       | 455s | 340s   |
-
-migrator is the undisputed winner.
-
-The Ruby framework has an undesired functionality of making a DB call each time to check if given migration was already applied. migrator fetches all applied migrations at once and compares them in memory. This is the primary reason why migrator is so much better in the second test.
-
-flyway results are... very surprising. I was so shocked that I had to re-run flyway as well as all other tests. Yes, flyway is 15 times slower than migrator in the first test. In the second test flyway was faster than Ruby. Still a couple orders of magnitude slower than migrator.
-
-The other thing to consider is the fact that migrator is written in go which is known to be much faster than Ruby and Java.
+Performance benchmarks were moved to a dedicated [PERFORMANCE.md](PERFORMANCE.md) document.
 
 # Change log
 
