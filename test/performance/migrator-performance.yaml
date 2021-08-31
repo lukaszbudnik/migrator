@@ -6,3 +6,4 @@ singleMigrations:
 tenantMigrations:
   - tenants
 schemaPlaceHolder: ":tenant"
+port: 8888

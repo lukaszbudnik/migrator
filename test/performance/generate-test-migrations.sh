@@ -44,7 +44,7 @@ function generate_table {
   i=$1
   counter=$2
   timestamp=$(date +'%Y%m%d%H%M%S%N')
-  file="migrations/tenants/V${timestamp}.1__${i}.sql"
+  file="migrations/tenants/V${timestamp}.${counter}_${i}.sql"
   cat > $file <<EOL
 create table ${tenantprefixplaceholder}table_${counter} (
 a int,
@@ -59,7 +59,7 @@ function generate_public_table {
   timestamp=$(date +'%Y%m%d%H%M%S%N')
   file="migrations/public/V${timestamp}.sql"
   cat > $file <<EOL
-create table public.table_for_inserts (
+create table if not exists public.table_for_inserts (
 a int,
 b float,
 c varchar(100)
@@ -72,7 +72,7 @@ function generate_alter_drop_inserts {
   i=$1
   counter=$2
   timestamp=$(date +'%Y%m%d%H%M%S%N')
-  file="migrations/tenants/V${timestamp}.1__${i}.sql"
+  file="migrations/tenants/V${timestamp}.${counter}_${i}.sql"
   # if [[ $i%2 -eq 1 ]]; then
   #   echo "alter table ${tenantprefixplaceholder}table_${counter} add column d int, add column e varchar, add column f int;" > $file
   # else
@@ -98,7 +98,7 @@ if [[ $append -eq 0 ]]; then
   i=0
   counter=0
 else
-  i=$(ls -t migrations/tenants | head -1 | cut -d '_' -f 3 | cut -d '.' -f 1)
+  i=$(ls -t migrations/tenants | head -1 | cut -d '_' -f 2 | cut -d '.' -f 1)
   counter=$((i/10+1))
   i=$((i+1))
 fi
@@ -106,6 +106,10 @@ fi
 end=$((i+no_of_migrations))
 
 echo "About to generate $no_of_migrations migrations"
+echo "is append? $append"
+echo "is without tenant prefix? $remove_tenant_placeholder"
+echo "counter = $counter"
+echo "i = $i"
 
 while [[ $i -lt $end ]]; do
   if [[ $i%10 -eq 0 ]]; then
