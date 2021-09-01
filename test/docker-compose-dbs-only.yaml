@@ -9,14 +9,6 @@ services:
       - POSTGRES_DB=migrator
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
-  # pgadmin:
-  #   image: thajeztah/pgadmin4
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "5050:5050"
-  #   links:
-  #     - postgres
   mysql:
     image: mysql
     ports:
@@ -25,18 +17,6 @@ services:
       - MYSQL_ROOT_PASSWORD=supersecret
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   depends_on:
-  #     - mysql
-  #   ports:
-  #     - "8888:80"
-  #   environment:
-  #     - PMA_HOSTS=mysql
-  #     - PMA_USER=root
-  #     - PMA_PASSWORD=supersecret
-  #   links:
-  #     - mysql
   mssql:
     image: mcr.microsoft.com/mssql/server:2017-latest
     ports:
@@ -64,38 +44,3 @@ services:
           done
         fi
         wait $$PID
-  migrator:
-    image: lukasz/migrator:latest
-    depends_on:
-      - mysql
-      - postgres
-      - mssql
-    ports:
-      - "8181:8080"
-    environment:
-      - MIGRATOR_YAML=/data/migrator-docker.yaml
-    volumes:
-      - .:/data
-    links:
-      - mysql
-      - postgres
-      - mssql
-  migrator-dev:
-    image: migrator-dev
-    build:
-      context: ..
-      dockerfile: test/migrator-dev/Dockerfile
-    depends_on:
-      - mysql
-      - postgres
-      - mssql
-    ports:
-      - "8282:8080"
-    environment:
-      - MIGRATOR_YAML=/data/migrator-docker.yaml
-    volumes:
-      - .:/data
-    links:
-      - mysql
-      - postgres
-      - mssql

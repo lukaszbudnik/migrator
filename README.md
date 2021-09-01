@@ -267,9 +267,7 @@ docker-compose will start and configure the following services:
 2. `migrator-dev` - service built from local branch, listening on port `8282`
 3. `postgres` - PostgreSQL service, listening on port `54325`
 4. `mysql` - MySQL service, listening on port `3306`
-5. `mariadb` - MariaDB (MySQL flavour), listening on port `13306`
-6. `percona` - Percona (MySQL flavour), listening on port `23306`
-7. `mssql` - MS SQL Server, listening on port `1433`
+5. `mssql` - MS SQL Server, listening on port `1433`
 
 > Note: Every database container has a ready-to-use migrator config in `test` directory. You can edit `test/docker-compose.yaml` file and switch to a different database. By default `migrator` and `migrator-dev` services use `test/migrator-docker.yaml` which connects to `mysql` service.
 
