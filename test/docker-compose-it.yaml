@@ -44,3 +44,22 @@ services:
           done
         fi
         wait $$PID
+  migrator-dev:
+    image: migrator-dev
+    build:
+      context: ..
+      dockerfile: test/migrator-dev/Dockerfile
+    depends_on:
+      - mysql
+      - postgres
+      - mssql
+    ports:
+      - "8282:8080"
+    environment:
+      - MIGRATOR_YAML=/data/migrator-docker.yaml
+    volumes:
+      - .:/data
+    links:
+      - mysql
+      - postgres
+      - mssql

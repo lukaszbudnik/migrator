@@ -26,7 +26,7 @@ jobs:
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Start docker-compose services
-      run: docker-compose -f test/docker-compose-dbs-only.yaml up -d
+      run: docker-compose -f test/docker-compose-it.yaml up -d
 
     - name: Build and test migrator
       env:
