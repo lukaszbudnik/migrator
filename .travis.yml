@@ -8,7 +8,7 @@ before_script:
 - docker-compose -f test/docker-compose-it.yaml up -d
 script:
 - "./coverage.sh"
-- "./test/./test/http-integration-tests.sh"
+- "./test/http-integration-tests.sh"
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 env:
