@@ -97,7 +97,7 @@ if [ "$version_create_name" != "$VERSION_NAME" ]; then
     exit 1
 fi
 echo "New version successfully created"
-echo $version_create | jq
+echo $version_create | jq '.'
 
 # 4. Fetch migrator versions - will now contain version created above
 
@@ -155,7 +155,7 @@ if [ "$tenant_create_version_name" != "$VERSION_NAME" ]; then
     exit 1
 fi
 echo "New tenant successfully created"
-echo $tenant_create | jq
+echo $tenant_create | jq '.'
 
 # 6. Fetch tenants - will now contain tenant create above
 
