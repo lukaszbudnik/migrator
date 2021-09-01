@@ -11,7 +11,7 @@ import (
 )
 
 func getSupportedDatabases() []string {
-	return []string{"postgresql", "mysql", "mariadb", "percona", "mssql"}
+	return []string{"postgresql", "mysql", "mssql"}
 }
 
 func TestGetTenants(t *testing.T) {
