@@ -44,8 +44,6 @@ func (bl *baseLoader) sortMigrations(migrationsMap map[string][]types.Migration,
 
 	for _, key := range keys {
 		ms := migrationsMap[key]
-		for _, m := range ms {
-			*migrations = append(*migrations, m)
-		}
+		*migrations = append(*migrations, ms...)
 	}
 }

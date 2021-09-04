@@ -59,7 +59,7 @@ func (t *MigrationType) UnmarshalGraphQL(input interface{}) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("Wrong type for MigrationType: %T", input)
+	return fmt.Errorf("wrong type for MigrationType: %T", input)
 }
 
 // Tenant contains basic information about tenant
@@ -88,15 +88,8 @@ type Migration struct {
 // DBMigration embeds Migration and adds DB-specific fields
 type DBMigration struct {
 	Migration
-	ID     int32  `json:"id"`
-	Schema string `json:"schema"`
-	// appliedAt is deprecated the SQL column is already called created
-	// API v1 uses AppliedAt
-	// this field is ignored by GrapQL
-	AppliedAt graphql.Time `json:"appliedAt"`
-	// API v2 uses Created
-	// this field is returned together with appliedAt
-	// however it does not break API contract as this is a new field
+	ID      int32        `json:"id"`
+	Schema  string       `json:"schema"`
 	Created graphql.Time `json:"created"`
 }
 
@@ -159,11 +152,11 @@ func (a *Action) UnmarshalGraphQL(input interface{}) error {
 		case "Apply":
 			*a = ActionApply
 		default:
-			panic(fmt.Sprintf("Unknown Action literal: %v", str))
+			return fmt.Errorf("unknown Action literal: %v", str)
 		}
 		return nil
 	}
-	return fmt.Errorf("Wrong type for Action: %T", input)
+	return fmt.Errorf("wrong type for Action: %T", input)
 }
 
 // VersionInput is used by GraphQL to create new version in DB

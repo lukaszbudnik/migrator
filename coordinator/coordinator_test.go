@@ -13,15 +13,15 @@ import (
 
 func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.DBMigration{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
+	db1 := types.DBMigration{Migration: m1, Schema: "public", Created: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.DBMigration{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
+	db2 := types.DBMigration{Migration: m2, Schema: "abc", Created: graphql.Time{Time: time.Now()}}
 
-	db3 := types.DBMigration{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
+	db3 := types.DBMigration{Migration: m2, Schema: "def", Created: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.DBMigration{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
+	db4 := types.DBMigration{Migration: m4, Schema: "ref", Created: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.DBMigration{db1, db2, db3, db4}
 
@@ -37,12 +37,12 @@ func TestMigrationsFlattenMigrationDBs1(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.DBMigration{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
+	db2 := types.DBMigration{Migration: m2, Schema: "abc", Created: graphql.Time{Time: time.Now()}}
 
-	db3 := types.DBMigration{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
+	db3 := types.DBMigration{Migration: m2, Schema: "def", Created: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.DBMigration{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
+	db4 := types.DBMigration{Migration: m4, Schema: "ref", Created: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.DBMigration{db2, db3, db4}
 
@@ -54,26 +54,26 @@ func TestMigrationsFlattenMigrationDBs2(t *testing.T) {
 
 func TestMigrationsFlattenMigrationDBs3(t *testing.T) {
 	m1 := types.Migration{Name: "001.sql", SourceDir: "public", File: "public/001.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db1 := types.DBMigration{Migration: m1, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
+	db1 := types.DBMigration{Migration: m1, Schema: "public", Created: graphql.Time{Time: time.Now()}}
 
 	m2 := types.Migration{Name: "002.sql", SourceDir: "tenants", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db2 := types.DBMigration{Migration: m2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
+	db2 := types.DBMigration{Migration: m2, Schema: "abc", Created: graphql.Time{Time: time.Now()}}
 
-	db3 := types.DBMigration{Migration: m2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
+	db3 := types.DBMigration{Migration: m2, Schema: "def", Created: graphql.Time{Time: time.Now()}}
 
 	m4 := types.Migration{Name: "003.sql", SourceDir: "ref", File: "ref/003.sql", MigrationType: types.MigrationTypeSingleMigration}
-	db4 := types.DBMigration{Migration: m4, Schema: "ref", AppliedAt: graphql.Time{Time: time.Now()}}
+	db4 := types.DBMigration{Migration: m4, Schema: "ref", Created: graphql.Time{Time: time.Now()}}
 
 	m5 := types.Migration{Name: "global-stored-procedure1.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure1.sql", MigrationType: types.MigrationTypeSingleScript}
-	db5 := types.DBMigration{Migration: m5, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
+	db5 := types.DBMigration{Migration: m5, Schema: "public", Created: graphql.Time{Time: time.Now()}}
 
 	m6 := types.Migration{Name: "global-stored-procedure2.sql", SourceDir: "public", File: "public-scripts/global-stored-procedure2sql", MigrationType: types.MigrationTypeSingleScript}
-	db6 := types.DBMigration{Migration: m6, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}
+	db6 := types.DBMigration{Migration: m6, Schema: "public", Created: graphql.Time{Time: time.Now()}}
 
 	m7 := types.Migration{Name: "002.sql", SourceDir: "tenants-scripts", File: "tenants/002.sql", MigrationType: types.MigrationTypeTenantMigration}
-	db7 := types.DBMigration{Migration: m7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}
+	db7 := types.DBMigration{Migration: m7, Schema: "abc", Created: graphql.Time{Time: time.Now()}}
 
-	db8 := types.DBMigration{Migration: m7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}
+	db8 := types.DBMigration{Migration: m7, Schema: "def", Created: graphql.Time{Time: time.Now()}}
 
 	dbs := []types.DBMigration{db1, db2, db3, db4, db5, db6, db7, db8}
 
@@ -93,7 +93,7 @@ func TestComputeMigrationsToApply(t *testing.T) {
 	mdef7 := types.Migration{Name: "g", SourceDir: "g", File: "g", MigrationType: types.MigrationTypeTenantScript}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, mdef4, mdef5, mdef6, mdef7}
-	dbMigrations := []types.DBMigration{{Migration: mdef1, Schema: "a", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef5, Schema: "e", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef6, Schema: "f", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}}
+	dbMigrations := []types.DBMigration{{Migration: mdef1, Schema: "a", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "abc", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "def", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef5, Schema: "e", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef6, Schema: "f", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "abc", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef7, Schema: "def", Created: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),
@@ -137,7 +137,7 @@ func TestComputeMigrationsToApplyDifferentTimestamps(t *testing.T) {
 	dev2p := types.Migration{Name: "20181120", SourceDir: "public", File: "public/20181120", MigrationType: types.MigrationTypeSingleMigration}
 
 	diskMigrations := []types.Migration{mdef1, mdef2, mdef3, dev1, dev1p1, dev1p2, dev2, dev2p}
-	dbMigrations := []types.DBMigration{{Migration: mdef1, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef1, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: mdef3, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "abc", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "def", AppliedAt: graphql.Time{Time: time.Now()}}, {Migration: dev2p, Schema: "public", AppliedAt: graphql.Time{Time: time.Now()}}}
+	dbMigrations := []types.DBMigration{{Migration: mdef1, Schema: "abc", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef1, Schema: "def", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef2, Schema: "public", Created: graphql.Time{Time: time.Now()}}, {Migration: mdef3, Schema: "public", Created: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "abc", Created: graphql.Time{Time: time.Now()}}, {Migration: dev2, Schema: "def", Created: graphql.Time{Time: time.Now()}}, {Migration: dev2p, Schema: "public", Created: graphql.Time{Time: time.Now()}}}
 
 	coordinator := &coordinator{
 		ctx:       context.TODO(),

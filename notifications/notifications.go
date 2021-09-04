@@ -40,12 +40,11 @@ func (bn *baseNotifier) Notify(summary *types.Summary) (string, error) {
 
 	if template := bn.config.WebHookTemplate; len(template) > 0 {
 		// ${summary} will be replaced with the JSON object
-		if strings.Contains(template, "${summary}") {
-			template = strings.Replace(template, "${summary}", strings.ReplaceAll(payload, "\"", "\\\""), -1)
-		}
+		template = strings.Replace(template, "${summary}", strings.ReplaceAll(payload, "\"", "\\\""), -1)
+
 		// migrator also supports parsing individual fields using ${summary.field} syntax
 		if strings.Contains(template, "${summary.") {
-			r, _ := regexp.Compile("\\${summary.([a-zA-Z]+)}")
+			r, _ := regexp.Compile(`\${summary.([a-zA-Z]+)}`)
 			matches := r.FindAllStringSubmatch(template, -1)
 			for _, m := range matches {
 				value := gojsonq.New().FromString(payload).Find(m[1])
@@ -85,8 +84,7 @@ func (bn *baseNotifier) Notify(summary *types.Summary) (string, error) {
 		return "", err
 	}
 
-	response := fmt.Sprintf("%s", b)
-	return response, nil
+	return string(b), nil
 }
 
 type noopNotifier struct {
