@@ -298,7 +298,7 @@ func TestGetSourceMigrationByFileNotFound(t *testing.T) {
 	file := "xyz/201602220001.sql"
 	_, err := coordinator.GetSourceMigrationByFile(file)
 	assert.NotNil(t, err)
-	assert.Equal(t, "Source migration not found: xyz/201602220001.sql", err.Error())
+	assert.Equal(t, "source migration not found: xyz/201602220001.sql", err.Error())
 }
 
 func TestGetSourceMigrationsFilterMigrationType(t *testing.T) {

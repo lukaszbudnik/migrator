@@ -275,7 +275,7 @@ func TestGetVersionByIDNotFound(t *testing.T) {
 
 			version, err := connector.GetVersionByID(-1)
 			assert.Nil(t, version)
-			assert.Equal(t, "Version not found ID: -1", err.Error())
+			assert.Equal(t, "version not found ID: -1", err.Error())
 		})
 	}
 }
