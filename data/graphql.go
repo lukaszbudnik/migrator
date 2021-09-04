@@ -86,19 +86,19 @@ type Summary {
   duration: Int!
   // number of tenants in the system
   tenants: Int!
-  // number of applied single schema migrations
+  // number of loaded and applied single schema migrations
   singleMigrations: Int!
-  // number of applied multi-tenant schema migrations
+  // number of loaded multi-tenant schema migrations
   tenantMigrations: Int!
-  // number of all applied multi-tenant schema migrations (equals to tenants * tenantMigrations)
+  // number of applied multi-tenant schema migrations (equals to tenants * tenantMigrations)
   tenantMigrationsTotal: Int!
   // sum of singleMigrations and tenantMigrationsTotal
   migrationsGrandTotal: Int!
-  // number of applied single schema scripts
+  // number of loaded and applied single schema scripts
   singleScripts: Int!
-  // number of applied multi-tenant schema scripts
+  // number of loaded multi-tenant schema scripts
   tenantScripts: Int!
-  // number of all applied multi-tenant schema migrations (equals to tenants * tenantScripts)
+  // number of applied multi-tenant schema migrations (equals to tenants * tenantScripts)
   tenantScriptsTotal: Int!
   // sum of singleScripts and tenantScriptsTotal
   scriptsGrandTotal: Int!
@@ -109,24 +109,28 @@ type CreateResults {
 }
 type Query {
   // returns array of SourceMigration objects
-  // note that if input query includes contents field this operation can produce large amounts of data - see sourceMigration(file: String!)
   // all parameters are optional and can be used to filter source migrations
+  // note that if the input query includes "contents" field this operation can produce large amounts of data 
+  // if you want to return "contents" field it may be better to get individual source migrations using sourceMigration(file: String!)
   sourceMigrations(filters: SourceMigrationFilters): [SourceMigration!]!
   // returns a single SourceMigration
-  // this operation can be used to fetch a complete SourceMigration including its contents field
-  // file is the unique identifier for a source migration which you can get from sourceMigrations() operation
+  // this operation can be used to fetch a complete SourceMigration including "contents" field
+  // file is the unique identifier for a source migration file which you can get from sourceMigrations()
   sourceMigration(file: String!): SourceMigration
   // returns array of Version objects
-  // note that if input query includes DBMigration array this operation can produce large amounts of data - see version(id: Int!) or dbMigration(id: Int!)
-  // file is optional and can be used to return versions in which given source migration was applied
+  // file is optional and can be used to return versions in which given source migration file was applied
+  // note that if input query includes DBMigration array and "contents" field this operation can produce large amounts of data
+  // if you want to return "contents" field it may be better to get individual versions using either 
+  // version(id: Int!) or even get individual DB migration using dbMigration(id: Int!)
   versions(file: String): [Version!]!
   // returns a single Version
-  // note that if input query includes contents field this operation can produce large amounts of data - see dbMigration(id: Int!)
-  // id is the unique identifier of a version which you can get from versions() operation
+  // id is the unique identifier of a version which you can get from versions()
+  // note that if input query includes "contents" field this operation can produce large amounts of data
+  // if you want to return "contents" field it may be better to get individual DB migration using dbMigration(id: Int!)
   version(id: Int!): Version
   // returns a single DBMigration
-  // this operation can be used to fetch a complete SourceMigration including its contents field
-  // id is the unique identifier of a version which you can get from versions(file: String) or version(id: Int!) operations
+  // this operation can be used to fetch a complete DBMigration including "contents" field
+  // id is the unique identifier of a DB migration which you can get from versions(file: String) or version(id: Int!)
   dbMigration(id: Int!): DBMigration
   // returns array of Tenant objects
   tenants(): [Tenant!]!

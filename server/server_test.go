@@ -62,7 +62,7 @@ func TestRoot(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, `{"release":"GitRef","sha":"GitSha","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
@@ -79,7 +79,7 @@ func TestRootWithPathPrefix(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, `{"release":"GitRef","sha":"GitSha","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
 }
 
@@ -112,7 +112,7 @@ func TestGraphQLSchema(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "text/plain; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, strings.TrimSpace(data.SchemaDefinition), strings.TrimSpace(w.Body.String()))
 }
 
@@ -133,7 +133,7 @@ func TestGraphQLQueryWithVariables(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, `{"data":{"sourceMigration":{"name":"201602220001.sql","migrationType":"SingleMigration","sourceDir":"source","file":"source/201602220001.sql"}}}`, strings.TrimSpace(w.Body.String()))
 }
 
@@ -153,6 +153,6 @@ func TestGraphQLQueryError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, "application/json; charset=utf-8", w.HeaderMap["Content-Type"][0])
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
 }

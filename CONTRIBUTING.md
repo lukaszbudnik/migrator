@@ -4,11 +4,11 @@ Contributions are most welcomed.
 
 If you would like to help me and implement a new feature, enhance existing one, or spotted and fixed bug please send me a pull request.
 
-Code should be formatted, checked, and tested using the following commands:
+Code should be formatted, staticchecked, and tested using the following commands:
 
 ```
+./staticcheck.sh
 docker-compose -f test/docker-compose.yaml up
-./fmt-lint-vet.sh
 ./coverage.sh
 ./test/http-integration-tests.sh
 ```

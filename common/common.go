@@ -52,7 +52,7 @@ func FindNthIndex(str string, c byte, n int) int {
 	occur := 0
 	for i := 0; i < len(str); i++ {
 		if str[i] == c {
-			occur += 1
+			occur++
 		}
 		if occur == n {
 			return i

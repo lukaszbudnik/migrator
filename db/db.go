@@ -189,7 +189,7 @@ func (bc *baseConnector) GetVersionByID(ID int32) (*types.Version, error) {
 	versions := bc.readVersions(rows)
 
 	if len(versions) == 0 {
-		return nil, fmt.Errorf("Version not found ID: %v", ID)
+		return nil, fmt.Errorf("version not found ID: %v", ID)
 	}
 
 	return &versions[0], nil
@@ -246,7 +246,7 @@ func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
 
 		version := versionsMap[vid]
 		migration := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		version.DBMigrations = append(version.DBMigrations, types.DBMigration{Migration: migration, ID: int32(mid), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
+		version.DBMigrations = append(version.DBMigrations, types.DBMigration{Migration: migration, ID: int32(mid), Schema: schema, Created: graphql.Time{Time: created}})
 	}
 
 	// map to versions
@@ -288,7 +288,7 @@ func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error
 		panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 	}
 	m := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-	db := types.DBMigration{Migration: m, ID: int32(id), Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}}
+	db := types.DBMigration{Migration: m, ID: int32(id), Schema: schema, Created: graphql.Time{Time: created}}
 
 	return &db, nil
 }
@@ -320,7 +320,7 @@ func (bc *baseConnector) GetAppliedMigrations() []types.DBMigration {
 			panic(fmt.Sprintf("Could not read DB migration: %v", err.Error()))
 		}
 		mdef := types.Migration{Name: name, SourceDir: sourceDir, File: filename, MigrationType: migrationType, Contents: contents, CheckSum: checksum}
-		dbMigrations = append(dbMigrations, types.DBMigration{Migration: mdef, Schema: schema, AppliedAt: graphql.Time{Time: created}, Created: graphql.Time{Time: created}})
+		dbMigrations = append(dbMigrations, types.DBMigration{Migration: mdef, Schema: schema, Created: graphql.Time{Time: created}})
 	}
 	return dbMigrations
 }
@@ -451,7 +451,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, act
 	}
 
 	defer func() {
-		results.Duration = int32(time.Now().Sub(results.StartedAt.Time))
+		results.Duration = int32(time.Since(results.StartedAt.Time))
 		results.MigrationsGrandTotal = results.TenantMigrationsTotal + results.SingleMigrations
 		results.ScriptsGrandTotal = results.TenantScriptsTotal + results.SingleScripts
 	}()

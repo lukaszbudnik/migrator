@@ -63,8 +63,9 @@ func TestWebHookNotifier(t *testing.T) {
 	assert.NotContains(t, requestBody, "${summary")
 	// explicit placeholders ${summary.property}
 	assert.Contains(t, requestBody, fmt.Sprint(summary.VersionID))
+	// graphql.Time fields needs to be marshalled first
 	startedAt, _ := summary.StartedAt.MarshalText()
-	assert.Contains(t, requestBody, fmt.Sprintf("%s", startedAt))
+	assert.Contains(t, requestBody, string(startedAt))
 	assert.Contains(t, requestBody, fmt.Sprint(summary.Duration))
 	assert.Contains(t, requestBody, fmt.Sprint(summary.MigrationsGrandTotal))
 	assert.Contains(t, requestBody, fmt.Sprint(summary.ScriptsGrandTotal))

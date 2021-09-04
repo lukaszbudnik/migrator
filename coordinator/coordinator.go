@@ -36,7 +36,7 @@ type Coordinator interface {
 	Dispose()
 }
 
-// coordinator struct is a struct for implementing DB specific dialects
+// coordinator struct is a struct for coordinator implementation
 type coordinator struct {
 	ctx       context.Context
 	connector db.Connector
@@ -46,7 +46,7 @@ type coordinator struct {
 }
 
 // Factory creates new Coordinator instance
-type Factory func(context.Context, *config.Config) Coordinator
+// type Factory func(context.Context, *config.Congofig) Coordinator
 
 // New creates instance of Coordinator
 func New(ctx context.Context, config *config.Config, newConnector db.Factory, newLoader loader.Factory, newNotifier notifications.Factory) Coordinator {
@@ -92,7 +92,7 @@ func (c *coordinator) GetSourceMigrationByFile(file string) (*types.Migration, e
 	}
 	filteredMigrations := c.filterMigrations(allSourceMigrations, &filters)
 	if len(filteredMigrations) == 0 {
-		return nil, fmt.Errorf("Source migration not found: %v", file)
+		return nil, fmt.Errorf("source migration not found: %v", file)
 	}
 	return &filteredMigrations[0], nil
 }
