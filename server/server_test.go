@@ -49,6 +49,15 @@ func TestGetDefaultPortOverrides(t *testing.T) {
 	assert.Equal(t, "8811", GetPort(config))
 }
 
+func TestCreateRouterAndPrometheus(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
+	gin.SetMode(gin.ReleaseMode)
+	r := CreateRouterAndPrometheus(versionInfo, config, newMockedCoordinator)
+	assert.NotNil(t, r)
+}
+
 // section /
 
 func TestRoot(t *testing.T) {
