@@ -9,6 +9,7 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
+	"github.com/lukaszbudnik/migrator/metrics"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/types"
 )
@@ -43,13 +44,14 @@ type coordinator struct {
 	loader    loader.Loader
 	notifier  notifications.Notifier
 	config    *config.Config
+	metrics   metrics.Metrics
 }
 
-// Factory creates new Coordinator instance
-// type Factory func(context.Context, *config.Congofig) Coordinator
+// Factory is a factory method for creating Coorginator instance
+type Factory func(ctx context.Context, config *config.Config, metrics metrics.Metrics) Coordinator
 
 // New creates instance of Coordinator
-func New(ctx context.Context, config *config.Config, newConnector db.Factory, newLoader loader.Factory, newNotifier notifications.Factory) Coordinator {
+func New(ctx context.Context, config *config.Config, metrics metrics.Metrics, newConnector db.Factory, newLoader loader.Factory, newNotifier notifications.Factory) Coordinator {
 	connector := newConnector(ctx, config)
 	loader := newLoader(ctx, config)
 	notifier := newNotifier(ctx, config)
@@ -59,6 +61,7 @@ func New(ctx context.Context, config *config.Config, newConnector db.Factory, ne
 		notifier:  notifier,
 		config:    config,
 		ctx:       ctx,
+		metrics:   metrics,
 	}
 	return coordinator
 }
@@ -141,6 +144,8 @@ func (c *coordinator) CreateVersion(versionName string, action types.Action, dry
 
 	summary, version := c.connector.CreateVersion(versionName, action, migrationsToApply, dryRun)
 
+	c.recordVersionMetrics(summary)
+
 	c.sendNotification(summary)
 
 	return &types.CreateResults{Summary: summary, Version: version}
@@ -154,6 +159,8 @@ func (c *coordinator) CreateTenant(versionName string, action types.Action, dryR
 	common.LogInfo(c.ctx, "Migrations to apply for new tenant: %d", len(migrationsToApply))
 
 	summary, version := c.connector.CreateTenant(tenant, versionName, action, migrationsToApply, dryRun)
+
+	c.recordTenantMetrics(summary)
 
 	c.sendNotification(summary)
 
@@ -287,4 +294,20 @@ func (c *coordinator) matchMigration(m types.Migration, filters *SourceMigration
 		}
 	}
 	return match
+}
+
+func (c *coordinator) recordTenantMetrics(summary *types.Summary) {
+	c.metrics.IncrementGaugeValue("tenants_created", []string{})
+	// creating tenant creates new version
+	c.recordVersionMetrics(summary)
+}
+
+func (c *coordinator) recordVersionMetrics(summary *types.Summary) {
+	c.metrics.IncrementGaugeValue("versions_created", []string{})
+	c.metrics.AddGaugeValue("migrations_applied", []string{"single_scripts"}, float64(summary.SingleScripts))
+	// total is for all tenants in the system
+	c.metrics.AddGaugeValue("migrations_applied", []string{"tenant_scripts_total"}, float64(summary.TenantScriptsTotal))
+	c.metrics.AddGaugeValue("migrations_applied", []string{"single_migrations"}, float64(summary.SingleMigrations))
+	// total is for all tenants in the system
+	c.metrics.AddGaugeValue("migrations_applied", []string{"tenant_migrations_total"}, float64(summary.TenantMigrationsTotal))
 }

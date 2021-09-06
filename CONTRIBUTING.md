@@ -13,4 +13,4 @@ docker-compose -f test/docker-compose.yaml up
 ./test/http-integration-tests.sh
 ```
 
-The `db/db_integration_test.go` uses go subtests and runs all tests agains 5 different database containers (3 MySQL flavours, PostgreSQL, and MSSQL). These databases are automatically provisioned by the docker-compose tool.
+The `db/db_integration_test.go` uses go subtests and runs all tests agains 3 database containers (MySQL, PostgreSQL, and MSSQL). These databases are automatically provisioned by the docker-compose tool.

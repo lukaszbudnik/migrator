@@ -216,7 +216,7 @@ func TestIntersect(t *testing.T) {
 }
 
 func TestVerifySourceMigrationsCheckSumsOK(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
 	assert.True(t, verified)
@@ -224,7 +224,7 @@ func TestVerifySourceMigrationsCheckSumsOK(t *testing.T) {
 }
 
 func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newBrokenCheckSumMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newBrokenCheckSumMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
 	assert.False(t, verified)
@@ -232,7 +232,7 @@ func TestVerifySourceMigrationsCheckSumsKO(t *testing.T) {
 }
 
 func TestVerifySourceMigrationsAndScriptsCheckSumsOK(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newDifferentScriptCheckSumMockedConnector, newDifferentScriptCheckSumMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newDifferentScriptCheckSumMockedConnector, newDifferentScriptCheckSumMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	verified, offendingMigrations := coordinator.VerifySourceMigrationsCheckSums()
 	assert.True(t, verified)
@@ -240,7 +240,7 @@ func TestVerifySourceMigrationsAndScriptsCheckSumsOK(t *testing.T) {
 }
 
 func TestGetTenants(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	tenants := coordinator.GetTenants()
 	a := types.Tenant{Name: "a"}
@@ -250,7 +250,7 @@ func TestGetTenants(t *testing.T) {
 }
 
 func TestGetVersions(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	versions := coordinator.GetVersions()
 
@@ -260,7 +260,7 @@ func TestGetVersions(t *testing.T) {
 }
 
 func TestGetVersionByID(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	version, _ := coordinator.GetVersionByID(123)
 
@@ -268,7 +268,7 @@ func TestGetVersionByID(t *testing.T) {
 }
 
 func TestGetVersionsByFile(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	versions := coordinator.GetVersionsByFile("tenants/abc.sql")
 
@@ -276,7 +276,7 @@ func TestGetVersionsByFile(t *testing.T) {
 }
 
 func TestGetMigrationByID(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newMockedNotifier)
 	defer coordinator.Dispose()
 	migration, _ := coordinator.GetDBMigrationByID(456)
 
@@ -284,7 +284,7 @@ func TestGetMigrationByID(t *testing.T) {
 }
 
 func TestGetSourceMigrationByFile(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	file := "source/201602220001.sql"
 	migration, err := coordinator.GetSourceMigrationByFile(file)
@@ -293,7 +293,7 @@ func TestGetSourceMigrationByFile(t *testing.T) {
 }
 
 func TestGetSourceMigrationByFileNotFound(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	file := "xyz/201602220001.sql"
 	_, err := coordinator.GetSourceMigrationByFile(file)
@@ -302,7 +302,7 @@ func TestGetSourceMigrationByFileNotFound(t *testing.T) {
 }
 
 func TestGetSourceMigrationsFilterMigrationType(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	migrationType := types.MigrationTypeSingleMigration
 	filters := SourceMigrationFilters{
@@ -313,7 +313,7 @@ func TestGetSourceMigrationsFilterMigrationType(t *testing.T) {
 }
 
 func TestGetSourceMigrationsFilterMigrationTypeSourceDir(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	migrationType := types.MigrationTypeSingleMigration
 	sourceDir := "source"
@@ -326,7 +326,7 @@ func TestGetSourceMigrationsFilterMigrationTypeSourceDir(t *testing.T) {
 }
 
 func TestGetSourceMigrationsFilterMigrationTypeName(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	migrationType := types.MigrationTypeSingleMigration
 	name := "201602220001.sql"
@@ -339,7 +339,7 @@ func TestGetSourceMigrationsFilterMigrationTypeName(t *testing.T) {
 }
 
 func TestGetSourceMigrationsFilterFile(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	file := "source/201602220001.sql"
 	filters := SourceMigrationFilters{
@@ -350,7 +350,7 @@ func TestGetSourceMigrationsFilterFile(t *testing.T) {
 }
 
 func TestCreateVersion(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	results := coordinator.CreateVersion("commit-sha", types.ActionApply, false)
 	assert.NotNil(t, results)
@@ -359,7 +359,7 @@ func TestCreateVersion(t *testing.T) {
 }
 
 func TestCreateTenant(t *testing.T) {
-	coordinator := New(context.TODO(), nil, newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	results := coordinator.CreateTenant("commit-sha", types.ActionSync, true, "NewTenant")
 	assert.NotNil(t, results)

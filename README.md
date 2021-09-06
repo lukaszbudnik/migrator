@@ -502,11 +502,11 @@ Placeholders can be mixed:
 webHookTemplate: '{"text": "New version created: ${summary.versionId} started at: ${summary.startedAt} and took ${summary.duration}. Migrations/scripts total: ${summary.migrationsGrandTotal}/${summary.scriptsGrandTotal}. Full results are: ${summary}"}'
 ```
 
-## Source migrations
+# Source migrations
 
 Migrations can be read from local disk, AWS S3, Azure Blob Containers. I'm open to contributions to add more cloud storage options.
 
-### Local storage
+## Local storage
 
 If `baseLocation` property is a path (either relative or absolute) local storage implementation is used:
 
@@ -517,7 +517,7 @@ baseLocation: test/migrations
 baseLocation: /project/migrations
 ```
 
-### AWS S3
+## AWS S3
 
 If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseLocation` property is treated as a bucket name followed by optional prefix:
 
@@ -530,7 +530,7 @@ baseLocation: s3://your-bucket-migrator/appcodename/prod/artefacts
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html).
 
-### Azure Blob Containers
+## Azure Blob Containers
 
 If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL. The URL can have optional prefix too:
 
@@ -543,25 +543,42 @@ baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer/appco
 
 migrator uses official Azure SDK for Go and supports authentication using Storage Account Key (via `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` env variables) as well as much more flexible (and recommended) Azure Active Directory Managed Identity.
 
-## Supported databases
+# Supported databases
 
-Currently migrator supports the following databases and their flavours. Please review the Go driver implementation for information about supported features and how `dataSource` configuration property should look like:
+Currently migrator supports the following databases including their flavours (like Percona, MariaDB for MySQL, etc.). Please review the Go driver implementation for information about all supported features and how `dataSource` configuration property should look like.
 
-- PostgreSQL 9.3+ - schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq
-  - PostgreSQL
-  - Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  - Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-  - Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
-- MySQL 5.6+ - database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql
-  - MySQL
-  - MariaDB - enhanced near linearly scalable multi-master MySQL
-  - Percona - an enhanced drop-in replacement for MySQL
-  - Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
-  - Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
-  - Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
-- Microsoft SQL Server - a relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb
-  - Microsoft SQL Server 2017
-  - Microsoft SQL Server 2019
+## PostgreSQL 9.3+
+
+Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq.
+
+The following versions and flavours are supported:
+
+- PostgreSQL
+- Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+- Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+- Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
+
+## MySQL 5.6+
+
+Database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql.
+
+The following versions and flavours are supported:
+
+- MySQL
+- MariaDB - enhanced near linearly scalable multi-master MySQL
+- Percona - an enhanced drop-in replacement for MySQL
+- Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
+- Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
+- Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
+
+## Microsoft SQL Server 2017+
+
+A relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb.
+
+The following versions are supported:
+
+- Microsoft SQL Server 2017
+- Microsoft SQL Server 2019
 
 # Customisation and legacy frameworks support
 
@@ -617,6 +634,24 @@ When using migrator please remember that:
 - if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically
 - when adding a new tenant migrator creates a new DB schema and applies all tenant migrations and scripts
 - single schemas are not created automatically, you must add initial migration with `create schema {schema}` SQL statement (see sample migrations in `test` folder)
+
+# Metrics
+
+migrator exposes Prometheus metrics at `/metrics` endpoint. Apart from migrator-specific metrics, it exposes a lot of OS process and Go metrics.
+
+The following metrics are available:
+
+- `go_gc_*` - Go garbage collection
+- `go_memstats_*` - Go memory
+- `process_*` - OS process
+- `migrator_gin_request_*` - Gin request metrics
+- `migrator_gin_response_*` - Gin response metrics
+- `migrator_gin_tenants_created` - migrator tenants created
+- `migrator_gin_versions_created` - migrator versions created
+- `migrator_gin_migrations_applied{type="single_migrations"}` - migrator single migrations applied
+- `migrator_gin_migrations_applied{type="single_scripts"}` - migrator single scripts applied
+- `migrator_gin_migrations_applied{type="tenant_migrations_total"}` - migrator total tenant migrations applied (for all tenants)
+- `migrator_gin_migrations_applied{type="tenant_scripts_total"}` - migrator total tenant scripts applied (for all tenants)
 
 # Tutorials
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Depado/ginprom"
 	"github.com/gin-gonic/gin"
 	"github.com/graph-gophers/graphql-go"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/coordinator"
 	"github.com/lukaszbudnik/migrator/data"
+	"github.com/lukaszbudnik/migrator/metrics"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -70,22 +72,22 @@ func requestLoggerHandler() gin.HandlerFunc {
 	}
 }
 
-func makeHandler(config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator, handler func(*gin.Context, *config.Config, func(context.Context, *config.Config) coordinator.Coordinator)) gin.HandlerFunc {
+func makeHandler(config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory, handler func(*gin.Context, *config.Config, metrics.Metrics, coordinator.Factory)) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		handler(c, config, newCoordinator)
+		handler(c, config, metrics, newCoordinator)
 	}
 }
 
-func configHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+func configHandler(c *gin.Context, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) {
 	c.YAML(200, config)
 }
 
-func schemaHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+func schemaHandler(c *gin.Context, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) {
 	c.String(http.StatusOK, strings.TrimSpace(data.SchemaDefinition))
 }
 
 // GraphQL endpoint
-func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(context.Context, *config.Config) coordinator.Coordinator) {
+func serviceHandler(c *gin.Context, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) {
 	var params struct {
 		Query         string                 `json:"query"`
 		OperationName string                 `json:"operationName"`
@@ -97,7 +99,7 @@ func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(c
 		return
 	}
 
-	coordinator := newCoordinator(c.Request.Context(), config)
+	coordinator := newCoordinator(c.Request.Context(), config, metrics)
 	defer coordinator.Dispose()
 	opts := []graphql.SchemaOpt{graphql.UseFieldResolvers()}
 	schema := graphql.MustParseSchema(data.SchemaDefinition, &data.RootResolver{Coordinator: coordinator}, opts...)
@@ -106,9 +108,31 @@ func serviceHandler(c *gin.Context, config *config.Config, newCoordinator func(c
 	c.JSON(http.StatusOK, response)
 }
 
-// SetupRouter setups router
-func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
+func CreateRouterAndPrometheus(versionInfo *types.VersionInfo, config *config.Config, newCoordinator coordinator.Factory) *gin.Engine {
 	r := gin.New()
+
+	p := ginprom.New(
+		ginprom.Engine(r),
+		ginprom.Namespace("migrator"),
+		ginprom.Subsystem("gin"),
+		ginprom.Path("/metrics"),
+	)
+	p.AddCustomGauge("info", "Information about migrator app", []string{"version"})
+	p.AddCustomGauge("versions_created", "Number of versions created by migrator", []string{})
+	p.AddCustomGauge("tenants_created", "Number of migrations applied by migrator", []string{})
+	p.AddCustomGauge("migrations_applied", "Number of migrations applied by migrator", []string{"type"})
+
+	p.SetGaugeValue("info", []string{versionInfo.Release + " @ " + versionInfo.Sha}, 1)
+
+	r.Use(p.Instrument())
+
+	metrics := metrics.New(p)
+
+	return SetupRouter(r, versionInfo, config, metrics, newCoordinator)
+}
+
+// SetupRouter setups router
+func SetupRouter(r *gin.Engine, versionInfo *types.VersionInfo, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) *gin.Engine {
 	r.HandleMethodNotAllowed = true
 	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
 
@@ -121,9 +145,9 @@ func SetupRouter(versionInfo *types.VersionInfo, config *config.Config, newCoord
 	})
 
 	v2 := r.Group(config.PathPrefix + "/v2")
-	v2.GET("/config", makeHandler(config, newCoordinator, configHandler))
-	v2.GET("/schema", makeHandler(config, newCoordinator, schemaHandler))
-	v2.POST("/service", makeHandler(config, newCoordinator, serviceHandler))
+	v2.GET("/config", makeHandler(config, metrics, newCoordinator, configHandler))
+	v2.GET("/schema", makeHandler(config, metrics, newCoordinator, schemaHandler))
+	v2.POST("/service", makeHandler(config, metrics, newCoordinator, serviceHandler))
 
 	return r
 }
