@@ -18,7 +18,7 @@ type Loader interface {
 // Factory is a factory method for creating Loader instance
 type Factory func(context.Context, *config.Config) Loader
 
-// New returns new instance of Loader, currently DiskLoader is available
+// New returns new instance of Loader
 func New(ctx context.Context, config *config.Config) Loader {
 	if strings.HasPrefix(config.BaseLocation, "s3://") {
 		return &s3Loader{baseLoader{ctx, config}}

@@ -8,6 +8,7 @@ function cleanup {
     rm create_version.txt || true
     rm tenants.txt || true
     rm create_tenant.txt || true
+    rm metrics.txt || true
 }
 
 # use migrator service built from local branch
@@ -171,6 +172,19 @@ if [ "$tenants_count" -le "$tenants_count_before" ]; then
 fi
 
 echo "Number of tenants: $tenants_count"
+
+echo "------------------------------------------------------------------------------"
+
+echo "7. Checking if Prometheus metrics are exposed"
+
+curl -s http://localhost:$MIGRATOR_PORT/metrics > metrics.txt
+
+grep '^migrator_gin_tenants_created' metrics.txt
+grep '^migrator_gin_versions_created' metrics.txt
+grep '^migrator_gin_migrations_applied{type="single_migrations"}' metrics.txt
+grep '^migrator_gin_migrations_applied{type="single_scripts"}' metrics.txt
+grep '^migrator_gin_migrations_applied{type="tenant_migrations_total"}' metrics.txt
+grep '^migrator_gin_migrations_applied{type="tenant_scripts_total"}' metrics.txt
 
 echo "------------------------------------------------------------------------------"
 

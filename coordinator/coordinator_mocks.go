@@ -10,6 +10,7 @@ import (
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
+	"github.com/lukaszbudnik/migrator/metrics"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/types"
 )
@@ -151,4 +152,23 @@ func (m *mockedDifferentScriptCheckSumMockedConnector) GetAppliedMigrations() []
 
 func newDifferentScriptCheckSumMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedDifferentScriptCheckSumMockedConnector{mockedConnector{}}
+}
+
+func newNoopMetrics() metrics.Metrics {
+	return &noopMetrics{}
+}
+
+type noopMetrics struct {
+}
+
+func (m *noopMetrics) SetGaugeValue(name string, labelValues []string, value float64) error {
+	return nil
+}
+
+func (m *noopMetrics) AddGaugeValue(name string, labelValues []string, value float64) error {
+	return nil
+}
+
+func (m *noopMetrics) IncrementGaugeValue(name string, labelValues []string) error {
+	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/lukaszbudnik/migrator/coordinator"
 	"github.com/lukaszbudnik/migrator/db"
 	"github.com/lukaszbudnik/migrator/loader"
+	"github.com/lukaszbudnik/migrator/metrics"
 	"github.com/lukaszbudnik/migrator/notifications"
 	"github.com/lukaszbudnik/migrator/server"
 	"github.com/lukaszbudnik/migrator/types"
@@ -50,14 +51,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	var createCoordinator = func(ctx context.Context, config *config.Config) coordinator.Coordinator {
-		coordinator := coordinator.New(ctx, config, db.New, loader.New, notifications.New)
+	var createCoordinator = func(ctx context.Context, config *config.Config, metrics metrics.Metrics) coordinator.Coordinator {
+		coordinator := coordinator.New(ctx, config, metrics, db.New, loader.New, notifications.New)
 		return coordinator
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 	versionInfo := &types.VersionInfo{Release: GitRef, Sha: GitSha, APIVersions: []types.APIVersion{types.APIV2}}
-	g := server.SetupRouter(versionInfo, cfg, createCoordinator)
+	g := server.CreateRouterAndPrometheus(versionInfo, cfg, createCoordinator)
 	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)
 	}

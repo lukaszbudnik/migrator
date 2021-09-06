@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,10 +30,11 @@ func newTestRequestV2(method, url string, body io.Reader) (*http.Request, error)
 	return http.NewRequest(method, versionURL, body)
 }
 
-func testSetupRouter(config *config.Config, newCoordinator func(ctx context.Context, config *config.Config) coordinator.Coordinator) *gin.Engine {
+func testSetupRouter(config *config.Config, newCoordinator coordinator.Factory) *gin.Engine {
 	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
 	gin.SetMode(gin.ReleaseMode)
-	return SetupRouter(versionInfo, config, newCoordinator)
+	r := gin.New()
+	return SetupRouter(r, versionInfo, config, newNoopMetrics(), newCoordinator)
 }
 
 func TestGetDefaultPort(t *testing.T) {
@@ -47,6 +47,15 @@ func TestGetDefaultPortOverrides(t *testing.T) {
 	config, err := config.FromFile(configFileOverrides)
 	assert.Nil(t, err)
 	assert.Equal(t, "8811", GetPort(config))
+}
+
+func TestCreateRouterAndPrometheus(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
+	gin.SetMode(gin.ReleaseMode)
+	r := CreateRouterAndPrometheus(versionInfo, config, newMockedCoordinator)
+	assert.NotNil(t, r)
 }
 
 // section /

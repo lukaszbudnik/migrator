@@ -10,6 +10,7 @@ import (
 
 	"github.com/lukaszbudnik/migrator/config"
 	"github.com/lukaszbudnik/migrator/coordinator"
+	"github.com/lukaszbudnik/migrator/metrics"
 	"github.com/lukaszbudnik/migrator/types"
 )
 
@@ -18,12 +19,12 @@ type mockedCoordinator struct {
 	counter        int
 }
 
-func newMockedCoordinator(ctx context.Context, config *config.Config) coordinator.Coordinator {
-	return newMockedErrorCoordinator(-1)(ctx, config)
+func newMockedCoordinator(ctx context.Context, config *config.Config, metrics metrics.Metrics) coordinator.Coordinator {
+	return newMockedErrorCoordinator(-1)(ctx, config, metrics)
 }
 
-func newMockedErrorCoordinator(errorThreshold int) func(context.Context, *config.Config) coordinator.Coordinator {
-	return func(ctx context.Context, config *config.Config) coordinator.Coordinator {
+func newMockedErrorCoordinator(errorThreshold int) func(context.Context, *config.Config, metrics.Metrics) coordinator.Coordinator {
+	return func(ctx context.Context, config *config.Config, metrics metrics.Metrics) coordinator.Coordinator {
 		return &mockedCoordinator{errorThreshold: errorThreshold}
 	}
 }
@@ -98,4 +99,23 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 	}
 	m.counter++
 	return true, nil
+}
+
+func newNoopMetrics() metrics.Metrics {
+	return &noopMetrics{}
+}
+
+type noopMetrics struct {
+}
+
+func (m *noopMetrics) SetGaugeValue(name string, labelValues []string, value float64) error {
+	return nil
+}
+
+func (m *noopMetrics) AddGaugeValue(name string, labelValues []string, value float64) error {
+	return nil
+}
+
+func (m *noopMetrics) IncrementGaugeValue(name string, labelValues []string) error {
+	return nil
 }
