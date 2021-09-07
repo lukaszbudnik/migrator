@@ -133,6 +133,14 @@ func (m *mockedConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, erro
 	return &db, nil
 }
 
+func (m *mockedConnector) HealthCheck() error {
+	return nil
+}
+
+func (m *mockedConnector) GetDialect() string {
+	return "mock"
+}
+
 func newMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedConnector{}
 }

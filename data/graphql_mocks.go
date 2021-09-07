@@ -110,3 +110,7 @@ func (m *mockedCoordinator) GetDBMigrationByID(ID int32) (*types.DBMigration, er
 func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Migration) {
 	return true, nil
 }
+
+func (m *mockedCoordinator) HealthCheck() types.HealthResponse {
+	return types.HealthResponse{Status: types.HealthStatusUp, Checks: []types.HealthChecks{}}
+}

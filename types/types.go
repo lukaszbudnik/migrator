@@ -190,3 +190,28 @@ type VersionInfo struct {
 	Sha         string       `json:"sha"`
 	APIVersions []APIVersion `json:"apiVersions"`
 }
+
+// Eclipse MicroProfile Health spec
+// https://download.eclipse.org/microprofile/microprofile-health-3.0-RC4/microprofile-health-spec.html
+
+type HealthStatus string
+
+const (
+	HealthStatusUp   HealthStatus = "UP"
+	HealthStatusDown HealthStatus = "DOWN"
+)
+
+type HealthResponse struct {
+	Status HealthStatus   `json:"status"`
+	Checks []HealthChecks `json:"checks"`
+}
+
+type HealthChecks struct {
+	Name   string       `json:"name"`
+	Status HealthStatus `json:"status"`
+	Data   *HealthData  `json:"data,omitempty"` // optional thus pointer
+}
+
+type HealthData struct {
+	Details string `json:"details"`
+}

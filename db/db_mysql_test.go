@@ -44,7 +44,7 @@ func TestMySQLGetTenantInsertSQLDefault(t *testing.T) {
 
 	config.Driver = "mysql"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
