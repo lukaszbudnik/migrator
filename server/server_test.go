@@ -49,15 +49,6 @@ func TestGetDefaultPortOverrides(t *testing.T) {
 	assert.Equal(t, "8811", GetPort(config))
 }
 
-func TestCreateRouterAndPrometheus(t *testing.T) {
-	config, err := config.FromFile(configFile)
-	assert.Nil(t, err)
-	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
-	gin.SetMode(gin.ReleaseMode)
-	r := CreateRouterAndPrometheus(versionInfo, config, newMockedCoordinator)
-	assert.NotNil(t, r)
-}
-
 // section /
 
 func TestRoot(t *testing.T) {
@@ -90,6 +81,40 @@ func TestRootWithPathPrefix(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Equal(t, `{"release":"GitRef","sha":"GitSha","apiVersions":["v2"]}`, strings.TrimSpace(w.Body.String()))
+}
+
+// /metrics
+func TestCreateRouterAndPrometheus(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
+	gin.SetMode(gin.ReleaseMode)
+	router := CreateRouterAndPrometheus(versionInfo, config, newMockedCoordinator)
+	assert.NotNil(t, router)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/metrics", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/plain; version=0.0.4; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), "migrator_gin_info")
+}
+
+// /health
+func TestHealthCheck(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/health", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), `"status":"UP"`)
 }
 
 // /v1 API
