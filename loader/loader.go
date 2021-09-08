@@ -13,6 +13,7 @@ import (
 // Loader interface abstracts all loading operations performed by migrator
 type Loader interface {
 	GetSourceMigrations() []types.Migration
+	HealthCheck() error
 }
 
 // Factory is a factory method for creating Loader instance

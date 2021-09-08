@@ -37,8 +37,12 @@ curl http://localhost:8080/
 
 Sample HTTP response:
 
-```
-{"release":"v2020.1.3","commitSha":"b56a2694fcdb523e0c3f3e79b2d7a1b61f28a91f","commitDate":"2020-10-12T13:22:57+02:00","apiVersions":["v1","v2"]}
+```json
+{
+  "release": "refs/tags/v2021.1.0",
+  "sha": "3ede93745e459e1214513b21ef76d94d09d10ae7",
+  "apiVersions": ["v2"]
+}
 ```
 
 ## /v2 - GraphQL API
@@ -652,6 +656,52 @@ The following metrics are available:
 - `migrator_gin_migrations_applied{type="single_scripts"}` - migrator single scripts applied
 - `migrator_gin_migrations_applied{type="tenant_migrations_total"}` - migrator total tenant migrations applied (for all tenants)
 - `migrator_gin_migrations_applied{type="tenant_scripts_total"}` - migrator total tenant scripts applied (for all tenants)
+
+# Health Checks
+
+Health checks are available at `/health`. migrator implements [Eclipse MicroProfile Health 3.0 RC4](https://download.eclipse.org/microprofile/microprofile-health-3.0-RC4/microprofile-health-spec.html) spec.
+
+A successful response returns HTTP 200 OK code:
+
+```json
+{
+  "status": "UP",
+  "checks": [
+    {
+      "name": "DB",
+      "status": "UP"
+    },
+    {
+      "name": "Loader",
+      "status": "UP"
+    }
+  ]
+}
+```
+
+In case one (or both) checks are DOWN then the overall status is DOWN. Failed check have `data` field which provides more information on why its status is DOWN. Health check will also return HTTP 503 Service Unavailable code:
+
+```json
+{
+  "status": "DOWN",
+  "checks": [
+    {
+      "name": "DB",
+      "status": "DOWN",
+      "data": {
+        "details": "failed to connect to database: dial tcp 127.0.0.1:5432: connect: connection refused"
+      }
+    },
+    {
+      "name": "Loader",
+      "status": "DOWN",
+      "data": {
+        "details": "open /nosuchdir/migrations: no such file or directory"
+      }
+    }
+  ]
+}
+```
 
 # Tutorials
 

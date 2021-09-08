@@ -367,13 +367,15 @@ func TestCreateTenant(t *testing.T) {
 	assert.NotNil(t, results.Version)
 }
 
-func TestHealthCheckDBOK(t *testing.T) {
+func TestHealthCheckDBAndLoaderOK(t *testing.T) {
 	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
 	defer coordinator.Dispose()
 	healthResponse := coordinator.HealthCheck()
 	assert.Equal(t, types.HealthStatusUp, healthResponse.Status)
 	assert.Equal(t, "DB", healthResponse.Checks[0].Name)
 	assert.Equal(t, types.HealthStatusUp, healthResponse.Checks[0].Status)
+	assert.Equal(t, "Loader", healthResponse.Checks[1].Name)
+	assert.Equal(t, types.HealthStatusUp, healthResponse.Checks[1].Status)
 }
 
 func TestHealthCheckDBKO(t *testing.T) {
@@ -383,4 +385,17 @@ func TestHealthCheckDBKO(t *testing.T) {
 	assert.Equal(t, types.HealthStatusDown, healthResponse.Status)
 	assert.Equal(t, "DB", healthResponse.Checks[0].Name)
 	assert.Equal(t, types.HealthStatusDown, healthResponse.Checks[0].Status)
+	assert.Equal(t, "Loader", healthResponse.Checks[1].Name)
+	assert.Equal(t, types.HealthStatusUp, healthResponse.Checks[1].Status)
+}
+
+func TestHealthCheckLoaderKO(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoaderHealthCheckError, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	healthResponse := coordinator.HealthCheck()
+	assert.Equal(t, types.HealthStatusDown, healthResponse.Status)
+	assert.Equal(t, "DB", healthResponse.Checks[0].Name)
+	assert.Equal(t, types.HealthStatusUp, healthResponse.Checks[0].Status)
+	assert.Equal(t, "Loader", healthResponse.Checks[1].Name)
+	assert.Equal(t, types.HealthStatusDown, healthResponse.Checks[1].Status)
 }

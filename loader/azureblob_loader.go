@@ -163,12 +163,38 @@ func (abl *azureBlobLoader) getAzureStorageCredentials() (azblob.Credential, err
 		return nil, err
 	}
 
-	err = azureServicePrincipalToken.Refresh()
-	if err != nil {
-		return nil, err
-	}
 	token := azureServicePrincipalToken.Token()
 
 	credential := azblob.NewTokenCredential(token.AccessToken, nil)
 	return credential, nil
+}
+
+func (abl *azureBlobLoader) HealthCheck() error {
+	credential, err := abl.getAzureStorageCredentials()
+	if err != nil {
+		return err
+	}
+
+	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+
+	// check if optional prefixes are provided
+	baseLocation := strings.TrimRight(abl.config.BaseLocation, "/")
+	indx := common.FindNthIndex(baseLocation, '/', 4)
+
+	prefix := ""
+	if indx > -1 {
+		prefix = baseLocation[indx+1:]
+		baseLocation = baseLocation[:indx]
+	}
+
+	u, err := url.Parse(baseLocation)
+	if err != nil {
+		return err
+	}
+
+	containerURL := azblob.NewContainerURL(*u, p)
+
+	_, err = containerURL.ListBlobsFlatSegment(abl.ctx, azblob.Marker{}, azblob.ListBlobsSegmentOptions{Prefix: prefix, MaxResults: 1})
+
+	return err
 }
