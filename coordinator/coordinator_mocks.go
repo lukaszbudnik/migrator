@@ -137,10 +137,6 @@ func (m *mockedConnector) HealthCheck() error {
 	return nil
 }
 
-func (m *mockedConnector) GetDialect() string {
-	return "mock"
-}
-
 func newMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedConnector{}
 }
