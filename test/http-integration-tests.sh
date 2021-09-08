@@ -17,6 +17,11 @@ MIGRATOR_PORT=8282
 # used in create* methods
 COMMIT_SHA=$(git rev-list -1 HEAD)
 
+echo "------------------------------------------------------------------------------"
+echo "0. migrator info"
+
+curl -s http://localhost:$MIGRATOR_PORT | jq '.'
+
 # 1. Fetch migrator versions
 
 echo "------------------------------------------------------------------------------"
@@ -185,6 +190,12 @@ grep '^migrator_gin_migrations_applied{type="single_migrations"}' metrics.txt
 grep '^migrator_gin_migrations_applied{type="single_scripts"}' metrics.txt
 grep '^migrator_gin_migrations_applied{type="tenant_migrations_total"}' metrics.txt
 grep '^migrator_gin_migrations_applied{type="tenant_scripts_total"}' metrics.txt
+
+echo "------------------------------------------------------------------------------"
+
+echo "8. Calling health checks"
+
+curl -s http://localhost:$MIGRATOR_PORT/health | jq '.'
 
 echo "------------------------------------------------------------------------------"
 

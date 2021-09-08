@@ -46,7 +46,7 @@ func TestMSSQLGetTenantInsertSQLDefault(t *testing.T) {
 
 	config.Driver = "sqlserver"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()

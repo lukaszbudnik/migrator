@@ -366,3 +366,21 @@ func TestCreateTenant(t *testing.T) {
 	assert.NotNil(t, results.Summary)
 	assert.NotNil(t, results.Version)
 }
+
+func TestHealthCheckDBOK(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnector, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	healthResponse := coordinator.HealthCheck()
+	assert.Equal(t, types.HealthStatusUp, healthResponse.Status)
+	assert.Equal(t, "DB", healthResponse.Checks[0].Name)
+	assert.Equal(t, types.HealthStatusUp, healthResponse.Checks[0].Status)
+}
+
+func TestHealthCheckDBKO(t *testing.T) {
+	coordinator := New(context.TODO(), nil, newNoopMetrics(), newMockedConnectorHealthCheckError, newMockedDiskLoader, newErrorMockedNotifier)
+	defer coordinator.Dispose()
+	healthResponse := coordinator.HealthCheck()
+	assert.Equal(t, types.HealthStatusDown, healthResponse.Status)
+	assert.Equal(t, "DB", healthResponse.Checks[0].Name)
+	assert.Equal(t, types.HealthStatusDown, healthResponse.Checks[0].Status)
+}

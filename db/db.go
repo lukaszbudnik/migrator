@@ -26,15 +26,17 @@ type Connector interface {
 	GetAppliedMigrations() []types.DBMigration
 	CreateVersion(string, types.Action, []types.Migration, bool) (*types.Summary, *types.Version)
 	CreateTenant(string, string, types.Action, []types.Migration, bool) (*types.Summary, *types.Version)
+	HealthCheck() error
 	Dispose()
 }
 
 // baseConnector struct is a base struct for implementing DB specific dialects
 type baseConnector struct {
-	ctx     context.Context
-	config  *config.Config
-	dialect dialect
-	db      *sql.DB
+	ctx         context.Context
+	config      *config.Config
+	dialect     dialect
+	db          *sql.DB
+	initialised bool
 }
 
 // Factory is a factory method for creating Loader instance
@@ -43,9 +45,7 @@ type Factory func(context.Context, *config.Config) Connector
 // New constructs Connector instance based on the passed Config
 func New(ctx context.Context, config *config.Config) Connector {
 	dialect := newDialect(config)
-	connector := &baseConnector{ctx, config, dialect, nil}
-	connector.connect()
-	connector.init()
+	connector := &baseConnector{ctx, config, dialect, nil, false}
 	return connector
 }
 
@@ -57,43 +57,45 @@ const (
 	defaultSchemaPlaceHolder = "{schema}"
 )
 
-// connect connects to a database
-func (bc *baseConnector) connect() {
-	db, err := sql.Open(bc.config.Driver, bc.config.DataSource)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open connction to DB: %v", err.Error()))
-	}
-	bc.db = db
-}
-
 // init initialises migrator by making sure proper schema/table are created
-func (bc *baseConnector) init() {
-	if err := bc.db.Ping(); err != nil {
-		panic(fmt.Sprintf("Failed to connect to database: %v", err))
+func (bc *baseConnector) init() error {
+	if bc.initialised {
+		return nil
+	}
+	if bc.db == nil {
+		db, err := sql.Open(bc.config.Driver, bc.config.DataSource)
+		if err != nil {
+			return fmt.Errorf("failed to open connection to DB: %v", err.Error())
+		}
+		bc.db = db
+
+		if err := bc.db.Ping(); err != nil {
+			return fmt.Errorf("failed to connect to database: %v", err)
+		}
 	}
 
 	tx, err := bc.db.Begin()
 	if err != nil {
-		panic(fmt.Sprintf("Could not start DB transaction: %v", err))
+		return fmt.Errorf("could not start DB transaction: %v", err)
 	}
 
 	// make sure migrator schema exists
 	createSchema := bc.dialect.GetCreateSchemaSQL(migratorSchema)
 	if _, err := bc.db.Exec(createSchema); err != nil {
-		panic(fmt.Sprintf("Could not create migrator schema: %v", err))
+		return fmt.Errorf("could not create migrator schema: %v", err)
 	}
 
 	// make sure migrations table exists
 	createMigrationsTable := bc.dialect.GetCreateMigrationsTableSQL()
 	if _, err := bc.db.Exec(createMigrationsTable); err != nil {
-		panic(fmt.Sprintf("Could not create migrations table: %v", err))
+		return fmt.Errorf("could not create migrations table: %v", err)
 	}
 
 	// make sure versions table exists
 	createVersionsTableSQLs := bc.dialect.GetCreateVersionsTableSQL()
 	for _, createVersionsTableSQL := range createVersionsTableSQLs {
 		if _, err := bc.db.Exec(createVersionsTableSQL); err != nil {
-			panic(fmt.Sprintf("Could not create versions table: %v", err))
+			return fmt.Errorf("could not create versions table: %v", err)
 		}
 	}
 
@@ -101,12 +103,22 @@ func (bc *baseConnector) init() {
 	if bc.config.TenantSelectSQL == "" {
 		createTenantsTable := bc.dialect.GetCreateTenantsTableSQL()
 		if _, err := bc.db.Exec(createTenantsTable); err != nil {
-			panic(fmt.Sprintf("Could not create default tenants table: %v", err))
+			return fmt.Errorf("could not create default tenants table: %v", err)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		panic(fmt.Sprintf("Could not commit transaction: %v", err))
+		return fmt.Errorf("could not commit transaction: %v", err)
+	}
+
+	bc.initialised = true
+
+	return nil
+}
+
+func (bc *baseConnector) initOrPanic() {
+	if err := bc.init(); err != nil {
+		panic(fmt.Sprintf("Error initialising migrator: %v", err))
 	}
 }
 
@@ -130,6 +142,8 @@ func (bc *baseConnector) getTenantSelectSQL() string {
 
 // GetTenants returns a list of all DB tenants
 func (bc *baseConnector) GetTenants() []types.Tenant {
+	bc.initOrPanic()
+
 	tenantSelectSQL := bc.getTenantSelectSQL()
 
 	tenants := []types.Tenant{}
@@ -152,6 +166,8 @@ func (bc *baseConnector) GetTenants() []types.Tenant {
 }
 
 func (bc *baseConnector) GetVersions() []types.Version {
+	bc.initOrPanic()
+
 	versionsSelectSQL := bc.dialect.GetVersionsSelectSQL()
 
 	rows, err := bc.db.Query(versionsSelectSQL)
@@ -164,6 +180,8 @@ func (bc *baseConnector) GetVersions() []types.Version {
 }
 
 func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
+	bc.initOrPanic()
+
 	versionsSelectSQL := bc.dialect.GetVersionsByFileSQL()
 
 	rows, err := bc.db.Query(versionsSelectSQL, file)
@@ -176,6 +194,8 @@ func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
 }
 
 func (bc *baseConnector) GetVersionByID(ID int32) (*types.Version, error) {
+	bc.initOrPanic()
+
 	versionsSelectSQL := bc.dialect.GetVersionByIDSQL()
 
 	rows, err := bc.db.Query(versionsSelectSQL, ID)
@@ -261,6 +281,8 @@ func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
 }
 
 func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
+	bc.initOrPanic()
+
 	query := bc.dialect.GetMigrationByIDSQL()
 
 	rows, err := bc.db.Query(query, ID)
@@ -295,6 +317,8 @@ func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error
 
 // GetAppliedMigrations returns a list of all applied DB migrations
 func (bc *baseConnector) GetAppliedMigrations() []types.DBMigration {
+	bc.initOrPanic()
+
 	query := bc.dialect.GetMigrationSelectSQL()
 
 	dbMigrations := []types.DBMigration{}
@@ -368,6 +392,8 @@ func (bc *baseConnector) CreateVersion(versionName string, action types.Action, 
 
 // CreateTenant creates new tenant and applies passed tenant migrations
 func (bc *baseConnector) CreateTenant(tenant string, versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.Summary, *types.Version) {
+	bc.initOrPanic()
+
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
 	tx, err := bc.db.Begin()
@@ -523,4 +549,11 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, act
 	results.VersionID = int32(versionID)
 
 	return results
+}
+
+func (bc *baseConnector) HealthCheck() error {
+	if err := bc.init(); err != nil {
+		return err
+	}
+	return bc.db.Ping()
 }

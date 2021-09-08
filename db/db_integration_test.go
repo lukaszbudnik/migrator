@@ -143,7 +143,7 @@ func TestGetTenantsSQLDefault(t *testing.T) {
 			assert.Nil(t, err)
 
 			dialect := newDialect(config)
-			connector := baseConnector{newTestContext(), config, dialect, nil}
+			connector := baseConnector{newTestContext(), config, dialect, nil, false}
 			defer connector.Dispose()
 
 			tenantSelectSQL := connector.getTenantSelectSQL()

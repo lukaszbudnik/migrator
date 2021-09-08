@@ -86,6 +86,18 @@ func schemaHandler(c *gin.Context, config *config.Config, metrics metrics.Metric
 	c.String(http.StatusOK, strings.TrimSpace(data.SchemaDefinition))
 }
 
+func healthHandler(c *gin.Context, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) {
+	coordinator := newCoordinator(c.Request.Context(), config, metrics)
+	healthStatus := coordinator.HealthCheck()
+
+	status := http.StatusOK
+	if healthStatus.Status == types.HealthStatusDown {
+		status = http.StatusServiceUnavailable
+	}
+
+	c.JSON(status, healthStatus)
+}
+
 // GraphQL endpoint
 func serviceHandler(c *gin.Context, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) {
 	var params struct {
@@ -143,6 +155,8 @@ func SetupRouter(r *gin.Engine, versionInfo *types.VersionInfo, config *config.C
 	r.GET(config.PathPrefix+"/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, versionInfo)
 	})
+
+	r.GET(config.PathPrefix+"/health", makeHandler(config, metrics, newCoordinator, healthHandler))
 
 	v2 := r.Group(config.PathPrefix + "/v2")
 	v2.GET("/config", makeHandler(config, metrics, newCoordinator, configHandler))

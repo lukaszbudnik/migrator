@@ -18,13 +18,14 @@ func TestInitCannotBeginTransactionError(t *testing.T) {
 
 	config := &config.Config{}
 	config.Driver = "sqlmock"
-	connector := baseConnector{newTestContext(), config, nil, db}
+	connector := baseConnector{newTestContext(), config, nil, db, false}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not start DB transaction: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not start DB transaction: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -38,15 +39,16 @@ func TestInitCannotCreateMigratorSchema(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, false}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectExec("create schema").WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not create migrator schema: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not create migrator schema: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -60,16 +62,17 @@ func TestInitCannotCreateMigratorMigrationsTable(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, false}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("create table").WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not create migrations table: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not create migrations table: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -83,7 +86,7 @@ func TestInitCannotCreateMigratorVersionsTable(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, false}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -92,9 +95,10 @@ func TestInitCannotCreateMigratorVersionsTable(t *testing.T) {
 	// create versions table is a script
 	mock.ExpectExec("begin").WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not create versions table: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not create versions table: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -108,7 +112,7 @@ func TestInitCannotCreateMigratorTenantsTable(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, false}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -118,9 +122,10 @@ func TestInitCannotCreateMigratorTenantsTable(t *testing.T) {
 	mock.ExpectExec("begin").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("create table").WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not create default tenants table: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not create default tenants table: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -134,7 +139,7 @@ func TestInitCannotCommitTransaction(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, false}
 
 	mock.ExpectBegin()
 	// don't have to provide full SQL here - patterns at work
@@ -144,9 +149,10 @@ func TestInitCannotCommitTransaction(t *testing.T) {
 	mock.ExpectExec("create table").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit().WillReturnError(errors.New("trouble maker"))
 
-	assert.PanicsWithValue(t, "Could not commit transaction: trouble maker", func() {
-		connector.init()
-	})
+	initErr := connector.init()
+
+	assert.NotNil(t, initErr)
+	assert.Contains(t, initErr.Error(), "could not commit transaction: trouble maker")
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -160,7 +166,7 @@ func TestGetTenantsError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
@@ -181,7 +187,7 @@ func TestGetAppliedMigrationsError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
@@ -202,7 +208,7 @@ func TestCreateVersionTransactionBeginError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	rows := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(rows)
@@ -228,7 +234,7 @@ func TestCreateVersionInsertVersionPreparedStatementError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -256,7 +262,7 @@ func TestCreateVersionInsertMigrationPreparedStatementError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -288,7 +294,7 @@ func TestCreateVersionMigrationSQLError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tenants := sqlmock.NewRows([]string{"name"}).AddRow("tenantname")
 	mock.ExpectQuery("select").WillReturnRows(tenants)
@@ -321,7 +327,7 @@ func TestCreateVersionInsertMigrationError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	time := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", time), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", time), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -356,7 +362,7 @@ func TestCreateVersionGetVersionError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -392,7 +398,7 @@ func TestCreateVersionVersionNotFound(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -429,7 +435,7 @@ func TestCreateVersionMigrationsCommitError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -467,7 +473,7 @@ func TestCreateTenantTransactionBeginError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	mock.ExpectBegin().WillReturnError(errors.New("trouble maker tx.Begin()"))
 
@@ -491,7 +497,7 @@ func TestCreateTenantCreateSchemaError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnError(errors.New("trouble maker"))
@@ -517,7 +523,7 @@ func TestCreateTenantInsertTenantPreparedStatementError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	mock.ExpectBegin()
 	mock.ExpectExec("create schema").WillReturnResult(sqlmock.NewResult(0, 0))
@@ -544,7 +550,7 @@ func TestCreateTenantInsertTenantError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tenant := "tenant"
 
@@ -574,7 +580,7 @@ func TestCreateTenantCommitError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -614,7 +620,7 @@ func TestGetVersionsError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
@@ -635,7 +641,7 @@ func TestGetVersionsByFileError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
@@ -656,7 +662,7 @@ func TestGetVersionsByIDError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))
@@ -677,7 +683,7 @@ func TestGetDBMigrationByIDError(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	// don't have to provide full SQL here - patterns at work
 	mock.ExpectQuery("select").WillReturnError(errors.New("trouble maker"))

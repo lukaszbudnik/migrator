@@ -101,6 +101,10 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 	return true, nil
 }
 
+func (m *mockedCoordinator) HealthCheck() types.HealthResponse {
+	return types.HealthResponse{Status: types.HealthStatusUp, Checks: []types.HealthChecks{}}
+}
+
 func newNoopMetrics() metrics.Metrics {
 	return &noopMetrics{}
 }

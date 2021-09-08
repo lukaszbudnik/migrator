@@ -34,6 +34,7 @@ type Coordinator interface {
 	VerifySourceMigrationsCheckSums() (bool, []types.Migration)
 	CreateVersion(string, types.Action, bool) *types.CreateResults
 	CreateTenant(string, types.Action, bool, string) *types.CreateResults
+	HealthCheck() types.HealthResponse
 	Dispose()
 }
 
@@ -165,6 +166,24 @@ func (c *coordinator) CreateTenant(versionName string, action types.Action, dryR
 	c.sendNotification(summary)
 
 	return &types.CreateResults{Summary: summary, Version: version}
+}
+
+func (c *coordinator) HealthCheck() types.HealthResponse {
+	checks := []types.HealthChecks{}
+	response := types.HealthResponse{Status: types.HealthStatusUp}
+
+	// DB check
+	err := c.connector.HealthCheck()
+	if err == nil {
+		checks = append(checks, types.HealthChecks{Name: "DB", Status: types.HealthStatusUp})
+	} else {
+		checks = append(checks, types.HealthChecks{Name: "DB", Status: types.HealthStatusDown, Data: &types.HealthData{Details: err.Error()}})
+		response.Status = types.HealthStatusDown
+	}
+
+	response.Checks = checks
+
+	return response
 }
 
 func (c *coordinator) Dispose() {

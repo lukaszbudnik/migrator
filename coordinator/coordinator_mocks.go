@@ -133,8 +133,24 @@ func (m *mockedConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, erro
 	return &db, nil
 }
 
+func (m *mockedConnector) HealthCheck() error {
+	return nil
+}
+
 func newMockedConnector(context.Context, *config.Config) db.Connector {
 	return &mockedConnector{}
+}
+
+type mockedConnectorHealthCheckError struct {
+	mockedConnector
+}
+
+func (m *mockedConnectorHealthCheckError) HealthCheck() error {
+	return errors.New("trouble maker")
+}
+
+func newMockedConnectorHealthCheckError(context.Context, *config.Config) db.Connector {
+	return &mockedConnectorHealthCheckError{}
 }
 
 type mockedDifferentScriptCheckSumMockedConnector struct {

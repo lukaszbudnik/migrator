@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -45,11 +46,12 @@ func TestConnectorInitPanicConnectionError(t *testing.T) {
 			}
 		}()
 
-		New(newTestContext(), config)
+		db := New(newTestContext(), config)
+		db.GetTenants()
 
 	}()
 	assert.True(t, didPanic)
-	assert.Contains(t, message, "Failed to connect to database")
+	assert.Contains(t, message, "Error initialising migrator: failed to connect to database")
 }
 
 func TestCreateVersionDryRunMode(t *testing.T) {
@@ -59,7 +61,7 @@ func TestCreateVersionDryRunMode(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -101,7 +103,7 @@ func TestCreateVersionSyncMode(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -139,7 +141,7 @@ func TestGetTenantsSQLOverride(t *testing.T) {
 	assert.Nil(t, err)
 
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	tenantSelectSQL := connector.getTenantSelectSQL()
@@ -152,7 +154,7 @@ func TestGetSchemaPlaceHolderDefault(t *testing.T) {
 	assert.Nil(t, err)
 
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -165,7 +167,7 @@ func TestGetSchemaPlaceHolderOverride(t *testing.T) {
 	assert.Nil(t, err)
 
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	placeholder := connector.getSchemaPlaceHolder()
@@ -180,7 +182,7 @@ func TestCreateTenantDryRunMode(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -225,7 +227,7 @@ func TestCreateTenantSyncMode(t *testing.T) {
 	config := &config.Config{}
 	config.Driver = "postgres"
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, db}
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
 
 	tn := time.Now().UnixNano()
 	m := types.Migration{Name: fmt.Sprintf("%v.sql", tn), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.sql", tn), MigrationType: types.MigrationTypeTenantMigration, Contents: "insert into {schema}.settings values (456, '456') "}
@@ -265,10 +267,31 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	assert.Nil(t, err)
 
 	dialect := newDialect(config)
-	connector := baseConnector{newTestContext(), config, dialect, nil}
+	connector := baseConnector{newTestContext(), config, dialect, nil, false}
 	defer connector.Dispose()
 
 	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
+}
+
+func TestHealthCheck(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
+
+	mock.ExpectPing().WillReturnError(errors.New("trouble maker"))
+
+	// sync the results contain correct data like number of applied migrations/scripts
+	healthCheckErr := connector.HealthCheck()
+	assert.NotNil(t, healthCheckErr)
+	assert.Equal(t, "trouble maker", healthCheckErr.Error())
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
