@@ -13,6 +13,8 @@ import (
 func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
 	assert.Nil(t, err)
+	// default migrator name
+	assert.Equal(t, defaultMigratorName, config.Name)
 	assert.Equal(t, "test/migrations", config.BaseLocation)
 	assert.Equal(t, "select name from migrator.migrator_tenants", config.TenantSelectSQL)
 	assert.Equal(t, "postgres", config.Driver)
@@ -43,9 +45,27 @@ func TestWithEnvFromFile(t *testing.T) {
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}, `{"text": "Results are: ${summary}"}`}
+	config := &Config{
+		Name:              "invoicesdb1",
+		BaseLocation:      "/opt/app/migrations",
+		Driver:            "postgres",
+		DataSource:        "user=p dbname=db host=localhost",
+		TenantSelectSQL:   "select abc",
+		TenantInsertSQL:   "insert into table",
+		SchemaPlaceHolder: ":tenant",
+		SingleMigrations:  []string{"ref"},
+		TenantMigrations:  []string{"tenants"},
+		SingleScripts:     []string{"procedures"},
+		TenantScripts:     []string{},
+		Port:              "8181",
+		PathPrefix:        "",
+		WebHookURL:        "https://hooks.slack.com/services/TTT/BBB/XXX",
+		WebHookHeaders:    []string{},
+		WebHookTemplate:   `{"text": "Results are: ${summary}"}`,
+	}
 	// check if go naming convention applies
-	expected := `baseLocation: /opt/app/migrations
+	expected := `name: invoicesdb1
+baseLocation: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
 tenantSelectSQL: select abc

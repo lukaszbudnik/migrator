@@ -10,8 +10,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	defaultMigratorName = "main"
+)
+
 // Config represents Migrator's yaml configuration file
 type Config struct {
+	Name              string   `yaml:"name,omitempty" validate:"omitempty,alphanum"`
 	BaseLocation      string   `yaml:"baseLocation" validate:"required"`
 	Driver            string   `yaml:"driver" validate:"required"`
 	DataSource        string   `yaml:"dataSource" validate:"required"`
@@ -56,6 +61,10 @@ func FromBytes(contents []byte) (*Config, error) {
 	validate := validator.New()
 	if err := validate.Struct(config); err != nil {
 		return nil, err
+	}
+
+	if len(config.Name) == 0 {
+		config.Name = defaultMigratorName
 	}
 
 	substituteEnvVariables(&config)
