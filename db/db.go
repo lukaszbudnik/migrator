@@ -116,6 +116,12 @@ func (bc *baseConnector) init() error {
 	return nil
 }
 
+func (bc *baseConnector) initOrPanic() {
+	if err := bc.init(); err != nil {
+		panic(fmt.Sprintf("Error initialising migrator: %v", err))
+	}
+}
+
 // Dispose closes all resources allocated by connector
 func (bc *baseConnector) Dispose() {
 	if bc.db != nil {
@@ -136,11 +142,7 @@ func (bc *baseConnector) getTenantSelectSQL() string {
 
 // GetTenants returns a list of all DB tenants
 func (bc *baseConnector) GetTenants() []types.Tenant {
-	// in future all operations will return errors just like init()
-	// now converting error to panic
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	tenantSelectSQL := bc.getTenantSelectSQL()
 
@@ -164,9 +166,7 @@ func (bc *baseConnector) GetTenants() []types.Tenant {
 }
 
 func (bc *baseConnector) GetVersions() []types.Version {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	versionsSelectSQL := bc.dialect.GetVersionsSelectSQL()
 
@@ -180,9 +180,7 @@ func (bc *baseConnector) GetVersions() []types.Version {
 }
 
 func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	versionsSelectSQL := bc.dialect.GetVersionsByFileSQL()
 
@@ -196,9 +194,7 @@ func (bc *baseConnector) GetVersionsByFile(file string) []types.Version {
 }
 
 func (bc *baseConnector) GetVersionByID(ID int32) (*types.Version, error) {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	versionsSelectSQL := bc.dialect.GetVersionByIDSQL()
 
@@ -285,9 +281,7 @@ func (bc *baseConnector) readVersions(rows *sql.Rows) []types.Version {
 }
 
 func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error) {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	query := bc.dialect.GetMigrationByIDSQL()
 
@@ -323,9 +317,7 @@ func (bc *baseConnector) GetDBMigrationByID(ID int32) (*types.DBMigration, error
 
 // GetAppliedMigrations returns a list of all applied DB migrations
 func (bc *baseConnector) GetAppliedMigrations() []types.DBMigration {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	query := bc.dialect.GetMigrationSelectSQL()
 
@@ -400,9 +392,7 @@ func (bc *baseConnector) CreateVersion(versionName string, action types.Action, 
 
 // CreateTenant creates new tenant and applies passed tenant migrations
 func (bc *baseConnector) CreateTenant(tenant string, versionName string, action types.Action, migrations []types.Migration, dryRun bool) (*types.Summary, *types.Version) {
-	if err := bc.init(); err != nil {
-		panic(fmt.Sprintf("Error initialising migrator: %v", err))
-	}
+	bc.initOrPanic()
 
 	tenantInsertSQL := bc.getTenantInsertSQL()
 
