@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -272,4 +273,25 @@ func TestGetTenantInsertSQLOverride(t *testing.T) {
 	tenantInsertSQL := connector.getTenantInsertSQL()
 
 	assert.Equal(t, "insert into someschema.sometable (somename) values ($1)", tenantInsertSQL)
+}
+
+func TestHealthCheck(t *testing.T) {
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	assert.Nil(t, err)
+
+	config := &config.Config{}
+	config.Driver = "postgres"
+	dialect := newDialect(config)
+	connector := baseConnector{newTestContext(), config, dialect, db, true}
+
+	mock.ExpectPing().WillReturnError(errors.New("trouble maker"))
+
+	// sync the results contain correct data like number of applied migrations/scripts
+	healthCheckErr := connector.HealthCheck()
+	assert.NotNil(t, healthCheckErr)
+	assert.Equal(t, "trouble maker", healthCheckErr.Error())
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
