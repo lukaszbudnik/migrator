@@ -659,7 +659,7 @@ The following metrics are available:
 
 # Health Checks
 
-Health checks are available at `/health`. migrator implements [Eclipse MicroProfile Health 3.0 RC4](https://download.eclipse.org/microprofile/microprofile-health-3.0-RC4/microprofile-health-spec.html) spec.
+Health checks are available at `/health` endpoint. migrator implements [Eclipse MicroProfile Health 3.0 RC4](https://download.eclipse.org/microprofile/microprofile-health-3.0-RC4/microprofile-health-spec.html) spec.
 
 A successful response returns HTTP 200 OK code:
 
@@ -679,7 +679,7 @@ A successful response returns HTTP 200 OK code:
 }
 ```
 
-In case one (or both) checks are DOWN then the overall status is DOWN. Failed check have `data` field which provides more information on why its status is DOWN. Health check will also return HTTP 503 Service Unavailable code:
+In case one of the checks has DOWN status then the overall status is DOWN. Failed check has `data` field which provides more information on why its status is DOWN. Health check will also return HTTP 503 Service Unavailable code:
 
 ```json
 {
