@@ -29,6 +29,35 @@ func (s3l *s3Loader) GetSourceMigrations() []types.Migration {
 	return s3l.doGetSourceMigrations(client)
 }
 
+func (s3l *s3Loader) HealthCheck() error {
+	sess, err := session.NewSession()
+	if err != nil {
+		return err
+	}
+	client := s3.New(sess)
+	return s3l.doHealthCheck(client)
+}
+
+func (s3l *s3Loader) doHealthCheck(client s3iface.S3API) error {
+	bucketWithPrefixes := strings.Split(strings.Replace(strings.TrimRight(s3l.config.BaseLocation, "/"), "s3://", "", 1), "/")
+
+	bucket := bucketWithPrefixes[0]
+	prefix := "/"
+	if len(bucketWithPrefixes) > 1 {
+		prefix = strings.Join(bucketWithPrefixes[1:], "/")
+	}
+
+	input := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(1),
+	}
+
+	_, err := client.ListObjectsV2(input)
+
+	return err
+}
+
 func (s3l *s3Loader) doGetSourceMigrations(client s3iface.S3API) []types.Migration {
 	migrations := []types.Migration{}
 

@@ -33,8 +33,24 @@ func (m *mockedDiskLoader) GetSourceMigrations() []types.Migration {
 	return []types.Migration{m1, m2, m3, m4, m5}
 }
 
+func (m *mockedDiskLoader) HealthCheck() error {
+	return nil
+}
+
 func newMockedDiskLoader(_ context.Context, _ *config.Config) loader.Loader {
 	return &mockedDiskLoader{}
+}
+
+type mockedDiskLoaderHealthCheckError struct {
+	mockedDiskLoader
+}
+
+func (m *mockedDiskLoaderHealthCheckError) HealthCheck() error {
+	return errors.New("trouble maker")
+}
+
+func newMockedDiskLoaderHealthCheckError(_ context.Context, _ *config.Config) loader.Loader {
+	return &mockedDiskLoaderHealthCheckError{}
 }
 
 type mockedNotifier struct {
@@ -64,6 +80,10 @@ func (m *mockedBrokenCheckSumDiskLoader) GetSourceMigrations() []types.Migration
 	return []types.Migration{m1}
 }
 
+func (m *mockedBrokenCheckSumDiskLoader) HealthCheck() error {
+	return nil
+}
+
 func newBrokenCheckSumMockedDiskLoader(_ context.Context, _ *config.Config) loader.Loader {
 	return new(mockedBrokenCheckSumDiskLoader)
 }
@@ -75,6 +95,10 @@ func (m *mockedDifferentScriptCheckSumMockedDiskLoader) GetSourceMigrations() []
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	m2 := types.Migration{Name: "recreate-indexes.sql", SourceDir: "tenants-scripts", File: "tenants-scripts/recreate-indexes.sql", MigrationType: types.MigrationTypeTenantScript, Contents: "select abc", CheckSum: "sha256-1"}
 	return []types.Migration{m1, m2}
+}
+
+func (m *mockedDifferentScriptCheckSumMockedDiskLoader) HealthCheck() error {
+	return nil
 }
 
 func newDifferentScriptCheckSumMockedDiskLoader(_ context.Context, _ *config.Config) loader.Loader {

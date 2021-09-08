@@ -181,6 +181,15 @@ func (c *coordinator) HealthCheck() types.HealthResponse {
 		response.Status = types.HealthStatusDown
 	}
 
+	// Loader check
+	err = c.loader.HealthCheck()
+	if err == nil {
+		checks = append(checks, types.HealthChecks{Name: "Loader", Status: types.HealthStatusUp})
+	} else {
+		checks = append(checks, types.HealthChecks{Name: "Loader", Status: types.HealthStatusDown, Data: &types.HealthData{Details: err.Error()}})
+		response.Status = types.HealthStatusDown
+	}
+
 	response.Checks = checks
 
 	return response

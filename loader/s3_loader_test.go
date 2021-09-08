@@ -18,6 +18,10 @@ type mockS3Client struct {
 	s3iface.S3API
 }
 
+func (m *mockS3Client) ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return &s3.ListObjectsV2Output{}, nil
+}
+
 func (m *mockS3Client) ListObjectsV2Pages(input *s3.ListObjectsV2Input, callback func(*s3.ListObjectsV2Output, bool) bool) error {
 
 	var contents []*s3.Object
@@ -139,4 +143,21 @@ func TestS3GetSourceMigrationsBucketWithPrefix(t *testing.T) {
 	assert.Contains(t, migrations[9].File, "application-x/prod/migrations/tenants-scripts/cleanup.sql")
 	assert.Contains(t, migrations[10].File, "application-x/prod/migrations/tenants-scripts/recreate-triggers.sql")
 	assert.Contains(t, migrations[11].File, "application-x/prod/migrations/tenants-scripts/run-reports.sql")
+}
+
+func TestS3HealthCheck(t *testing.T) {
+	mock := &mockS3Client{}
+
+	config := &config.Config{
+		BaseLocation:     "s3://your-bucket-migrator",
+		SingleMigrations: []string{"migrations/config", "migrations/ref"},
+		TenantMigrations: []string{"migrations/tenants"},
+		SingleScripts:    []string{"migrations/config-scripts"},
+		TenantScripts:    []string{"migrations/tenants-scripts"},
+	}
+
+	loader := &s3Loader{baseLoader{context.TODO(), config}}
+	err := loader.doHealthCheck(mock)
+
+	assert.Nil(t, err)
 }

@@ -84,3 +84,12 @@ func TestDiskGetDiskMigrations(t *testing.T) {
 	assert.Contains(t, migrations[10].File, "test/migrations/tenants-scripts/a.sql")
 	assert.Contains(t, migrations[11].File, "test/migrations/tenants-scripts/b.sql")
 }
+
+func TestDiskHealthCheck(t *testing.T) {
+	config := &config.Config{
+		BaseLocation: "/path/to/baseDir",
+	}
+	loader := New(context.TODO(), config)
+	err := loader.HealthCheck()
+	assert.NotNil(t, err)
+}

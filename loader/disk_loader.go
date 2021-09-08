@@ -46,6 +46,15 @@ func (dl *diskLoader) GetSourceMigrations() []types.Migration {
 	return migrations
 }
 
+func (dl *diskLoader) HealthCheck() error {
+	absBaseDir, err := filepath.Abs(dl.config.BaseLocation)
+	if err != nil {
+		return err
+	}
+	_, err = ioutil.ReadDir(absBaseDir)
+	return err
+}
+
 func (dl *diskLoader) getDirs(baseDir string, migrationsDirs []string) []string {
 	var filteredDirs []string
 	for _, migrationsDir := range migrationsDirs {

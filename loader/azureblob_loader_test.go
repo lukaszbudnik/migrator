@@ -89,3 +89,43 @@ func TestAzureGetSourceMigrationsWithOptionalPrefix(t *testing.T) {
 	assert.Contains(t, migrations[11].File, "prod/artefacts/migrations/tenants-scripts/b.sql")
 
 }
+
+func TestAzureHealthCheck(t *testing.T) {
+	accountName, accountKey := os.Getenv("AZURE_STORAGE_ACCOUNT"), os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+
+	if len(accountName) == 0 || len(accountKey) == 0 {
+		t.Skip("skipping test AZURE_STORAGE_ACCOUNT or AZURE_STORAGE_ACCESS_KEY not set")
+	}
+
+	baseLocation := fmt.Sprintf("https://%v.blob.core.windows.net/myothercontainer/prod/artefacts/", accountName)
+
+	config := &config.Config{
+		BaseLocation:     baseLocation,
+		SingleMigrations: []string{"migrations/config", "migrations/ref"},
+		TenantMigrations: []string{"migrations/tenants"},
+		SingleScripts:    []string{"migrations/config-scripts"},
+		TenantScripts:    []string{"migrations/tenants-scripts"},
+	}
+
+	loader := &azureBlobLoader{baseLoader{context.TODO(), config}}
+	err := loader.HealthCheck()
+	assert.Nil(t, err)
+}
+
+func TestAzureMsiCredentials(t *testing.T) {
+	// in CI/CD env the MSI credentials are not available
+	// this code just assures that if no shared key envs are present it will fallback to MSI
+	// unsetting one of the shared key envs will cause fallback to MSI
+	os.Unsetenv("AZURE_STORAGE_ACCESS_KEY")
+
+	config := &config.Config{
+		BaseLocation:     "https://justtesting.blob.core.windows.net/myothercontainer/prod/artefacts/",
+		SingleMigrations: []string{"migrations/config", "migrations/ref"},
+		TenantMigrations: []string{"migrations/tenants"},
+		SingleScripts:    []string{"migrations/config-scripts"},
+		TenantScripts:    []string{"migrations/tenants-scripts"},
+	}
+
+	loader := &azureBlobLoader{baseLoader{context.TODO(), config}}
+	loader.getAzureStorageCredentials()
+}
