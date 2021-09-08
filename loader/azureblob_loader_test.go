@@ -111,3 +111,21 @@ func TestAzureHealthCheck(t *testing.T) {
 	err := loader.HealthCheck()
 	assert.Nil(t, err)
 }
+
+func TestAzureMsiCredentials(t *testing.T) {
+	// in CI/CD env the MSI credentials are not available
+	// this code just assures that if no shared key envs are present it will fallback to MSI
+	// unsetting one of the shared key envs will cause fallback to MSI
+	os.Unsetenv("AZURE_STORAGE_ACCESS_KEY")
+
+	config := &config.Config{
+		BaseLocation:     "https://justtesting.blob.core.windows.net/myothercontainer/prod/artefacts/",
+		SingleMigrations: []string{"migrations/config", "migrations/ref"},
+		TenantMigrations: []string{"migrations/tenants"},
+		SingleScripts:    []string{"migrations/config-scripts"},
+		TenantScripts:    []string{"migrations/tenants-scripts"},
+	}
+
+	loader := &azureBlobLoader{baseLoader{context.TODO(), config}}
+	loader.getAzureStorageCredentials()
+}
