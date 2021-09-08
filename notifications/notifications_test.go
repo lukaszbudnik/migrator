@@ -106,10 +106,21 @@ func TestWebHookNotifierCustomHeaders(t *testing.T) {
 
 func TestWebHookURLError(t *testing.T) {
 	config := config.Config{}
-	config.WebHookURL = "xczxcvv"
+	config.WebHookURL = "://xczxcvv/path"
 	notifier := New(context.TODO(), &config)
-	result, err := notifier.Notify(&types.Summary{})
+	_, err := notifier.Notify(&types.Summary{})
 
 	assert.NotNil(t, err)
-	assert.Equal(t, "", result)
+	assert.Contains(t, err.Error(), "missing protocol scheme")
+}
+
+func TestWebHookClientError(t *testing.T) {
+	config := config.Config{}
+	// passes URL parsing but HTTP client returns error
+	config.WebHookURL = "non-existing-server"
+	notifier := New(context.TODO(), &config)
+	_, err := notifier.Notify(&types.Summary{})
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "unsupported protocol scheme")
 }
