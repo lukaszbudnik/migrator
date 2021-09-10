@@ -27,6 +27,7 @@ type Config struct {
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
 	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`
+	LogLevel          string   `yaml:"logLevel,omitempty" validate:"logLevel"`
 }
 
 func (config Config) String() string {
@@ -54,6 +55,7 @@ func FromBytes(contents []byte) (*Config, error) {
 	}
 
 	validate := validator.New()
+	validate.RegisterValidation("logLevel", validateLogLevel)
 	if err := validate.Struct(config); err != nil {
 		return nil, err
 	}
@@ -93,4 +95,9 @@ func substituteEnvVariable(s string) string {
 		return substituteEnvVariable(after)
 	}
 	return s
+}
+
+func validateLogLevel(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	return value == "" || value == "DEBUG" || value == "INFO" || value == "ERROR" || value == "PANIC"
 }

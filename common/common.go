@@ -4,25 +4,41 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 	"runtime"
+)
+
+const (
+	panicLevel = "PANIC"
+	errorLevel = "ERROR"
+	infoLevel  = "INFO"
+	debugLevel = "DEBUG"
 )
 
 // RequestIDKey is used together with context for setting/getting X-Request-ID
 type RequestIDKey struct{}
 
+// LogLevel
+type LogLevelKey struct{}
+
 // LogError logs error message
 func LogError(ctx context.Context, format string, a ...interface{}) string {
-	return logLevel(ctx, "ERROR", format, a...)
+	return logLevel(ctx, errorLevel, format, a...)
 }
 
 // LogInfo logs info message
 func LogInfo(ctx context.Context, format string, a ...interface{}) string {
-	return logLevel(ctx, "INFO", format, a...)
+	return logLevel(ctx, infoLevel, format, a...)
+}
+
+// LogDebug logs debug message
+func LogDebug(ctx context.Context, format string, a ...interface{}) string {
+	return logLevel(ctx, debugLevel, format, a...)
 }
 
 // LogPanic logs error message
 func LogPanic(ctx context.Context, format string, a ...interface{}) string {
-	return logLevel(ctx, "PANIC", format, a...)
+	return logLevel(ctx, panicLevel, format, a...)
 }
 
 // Log logs message with a given level with no request context
@@ -37,14 +53,22 @@ func Log(level string, format string, a ...interface{}) string {
 }
 
 func logLevel(ctx context.Context, level string, format string, a ...interface{}) string {
-	_, file, line, _ := runtime.Caller(2)
 
-	requestID := ctx.Value(RequestIDKey{})
-	message := fmt.Sprintf(format, a...)
+	logLevel := fmt.Sprintf("%v", ctx.Value(LogLevelKey{}))
 
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
-	log.Printf("[%v:%v] %v requestId=%v %v", file, line, level, requestID, message)
-	return message
+	if shouldLogMessage(logLevel, level) {
+		requestID := ctx.Value(RequestIDKey{})
+		message := fmt.Sprintf(format, a...)
+		_, file, line, _ := runtime.Caller(2)
+		filename := filepath.Base(file)
+
+		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
+		log.Printf("[%v:%v] %v requestId=%v %v", filename, line, level, requestID, message)
+
+		return message
+	}
+
+	return ""
 }
 
 // FindNthIndex finds index of nth occurance of a character c in string str
@@ -59,4 +83,28 @@ func FindNthIndex(str string, c byte, n int) int {
 		}
 	}
 	return -1
+}
+
+func shouldLogMessage(configLogLevel, targetLevel string) bool {
+	// if configLogLevel and targetLevel match then log
+	if configLogLevel == targetLevel {
+		return true
+	}
+	// if configLogLevel is debug then all messages are logged no need to check targetLevel
+	if configLogLevel == debugLevel {
+		return true
+	}
+	// if configLogLevel not set then INFO is assumed
+	// if INFO then all levels should log except of debug
+	if (len(configLogLevel) == 0 || configLogLevel == infoLevel) && targetLevel != debugLevel {
+		return true
+	}
+
+	// if logLevel is ERROR then only ERROR and PANIC are logged
+	// ERROR is covered in the beginning of method so need to check only Panic level
+	if configLogLevel == errorLevel && targetLevel == panicLevel {
+		return true
+	}
+
+	return false
 }

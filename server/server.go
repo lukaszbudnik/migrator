@@ -26,8 +26,11 @@ const (
 )
 
 type errorResponse struct {
-	ErrorMessage string      `json:"error"`
-	Details      interface{} `json:"details,omitempty"`
+	Errors []errorMessage `json:"errors"`
+}
+
+type errorMessage struct {
+	Message string `json:"message"`
 }
 
 // GetPort gets the port from config or defaultPort
@@ -50,6 +53,14 @@ func requestIDHandler() gin.HandlerFunc {
 	}
 }
 
+func logLevelHandler(config *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), common.LogLevelKey{}, config.LogLevel)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	}
+}
+
 func recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -58,7 +69,8 @@ func recovery() gin.HandlerFunc {
 				if gin.IsDebugging() {
 					debug.PrintStack()
 				}
-				c.AbortWithStatusJSON(http.StatusInternalServerError, &errorResponse{err.(string), nil})
+				errorMsg := errorMessage{err.(string)}
+				c.AbortWithStatusJSON(http.StatusInternalServerError, errorResponse{Errors: []errorMessage{errorMsg}})
 			}
 		}()
 		c.Next()
@@ -107,7 +119,8 @@ func serviceHandler(c *gin.Context, config *config.Config, metrics metrics.Metri
 	}
 	if err := c.ShouldBindJSON(&params); err != nil {
 		common.LogError(c.Request.Context(), "Bad request: %v", err.Error())
-		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{"Invalid request, please see documentation for valid JSON payload", nil})
+		errorMsg := errorMessage{"Invalid request, please see documentation for valid JSON payload"}
+		c.AbortWithStatusJSON(http.StatusBadRequest, errorResponse{Errors: []errorMessage{errorMsg}})
 		return
 	}
 
@@ -117,7 +130,12 @@ func serviceHandler(c *gin.Context, config *config.Config, metrics metrics.Metri
 	schema := graphql.MustParseSchema(data.SchemaDefinition, &data.RootResolver{Coordinator: coordinator}, opts...)
 
 	response := schema.Exec(c.Request.Context(), params.Query, params.OperationName, params.Variables)
-	c.JSON(http.StatusOK, response)
+	if response.Errors == nil {
+		c.JSON(http.StatusOK, response)
+	} else {
+		c.JSON(http.StatusInternalServerError, response)
+	}
+
 }
 
 func CreateRouterAndPrometheus(versionInfo *types.VersionInfo, config *config.Config, newCoordinator coordinator.Factory) *gin.Engine {
@@ -146,7 +164,7 @@ func CreateRouterAndPrometheus(versionInfo *types.VersionInfo, config *config.Co
 // SetupRouter setups router
 func SetupRouter(r *gin.Engine, versionInfo *types.VersionInfo, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) *gin.Engine {
 	r.HandleMethodNotAllowed = true
-	r.Use(recovery(), requestIDHandler(), requestLoggerHandler())
+	r.Use(logLevelHandler(config), recovery(), requestIDHandler(), requestLoggerHandler())
 
 	if strings.TrimSpace(config.PathPrefix) == "" {
 		config.PathPrefix = "/"

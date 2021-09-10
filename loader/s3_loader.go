@@ -19,22 +19,22 @@ type s3Loader struct {
 	baseLoader
 }
 
-// GetSourceMigrations returns all migrations from AWS S3 location
-func (s3l *s3Loader) GetSourceMigrations() []types.Migration {
+func (s3l *s3Loader) newClient() *s3.S3 {
 	sess, err := session.NewSession()
 	if err != nil {
 		panic(err.Error())
 	}
-	client := s3.New(sess)
+	return s3.New(sess)
+}
+
+// GetSourceMigrations returns all migrations from AWS S3 location
+func (s3l *s3Loader) GetSourceMigrations() []types.Migration {
+	client := s3l.newClient()
 	return s3l.doGetSourceMigrations(client)
 }
 
 func (s3l *s3Loader) HealthCheck() error {
-	sess, err := session.NewSession()
-	if err != nil {
-		return err
-	}
-	client := s3.New(sess)
+	client := s3l.newClient()
 	return s3l.doHealthCheck(client)
 }
 

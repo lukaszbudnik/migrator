@@ -43,7 +43,23 @@ func TestWithEnvFromFile(t *testing.T) {
 }
 
 func TestConfigString(t *testing.T) {
-	config := &Config{"/opt/app/migrations", "postgres", "user=p dbname=db host=localhost", "select abc", "insert into table", ":tenant", []string{"ref"}, []string{"tenants"}, []string{"procedures"}, []string{}, "8181", "", "https://hooks.slack.com/services/TTT/BBB/XXX", []string{}, `{"text": "Results are: ${summary}"}`}
+	config := &Config{
+		BaseLocation:      "/opt/app/migrations",
+		Driver:            "postgres",
+		DataSource:        "user=p dbname=db host=localhost",
+		TenantSelectSQL:   "select abc",
+		TenantInsertSQL:   "insert into table",
+		SchemaPlaceHolder: ":tenant",
+		SingleMigrations:  []string{"ref"},
+		TenantMigrations:  []string{"tenants"},
+		SingleScripts:     []string{"procedures"},
+		TenantScripts:     []string{},
+		Port:              "8181",
+		PathPrefix:        "",
+		WebHookURL:        "https://hooks.slack.com/services/TTT/BBB/XXX",
+		WebHookHeaders:    []string{},
+		WebHookTemplate:   `{"text": "Results are: ${summary}"}`,
+	}
 	// check if go naming convention applies
 	expected := `baseLocation: /opt/app/migrations
 driver: postgres
@@ -80,4 +96,28 @@ func TestConfigFromWrongSyntaxFile(t *testing.T) {
 	config, err := FromFile("../Dockerfile")
 	assert.Nil(t, config)
 	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should error because of wrong yaml syntax")
+}
+
+func TestCustomValidatorLogLevelError(t *testing.T) {
+	config := `name: invoicesdb1
+baseLocation: /opt/app/migrations
+driver: postgres
+dataSource: user=p dbname=db host=localhost
+tenantSelectSQL: select abc
+tenantInsertSQL: insert into table
+schemaPlaceHolder: :tenant
+singleMigrations:
+- ref
+tenantMigrations:
+- tenants
+singleScripts:
+- procedures
+port: "8181"
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+webHookTemplate: '{"text": "Results are: ${summary}"}'
+logLevel: ABC`
+
+	_, err := FromBytes([]byte(config))
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), `Error:Field validation for 'LogLevel' failed on the 'logLevel' tag`)
 }

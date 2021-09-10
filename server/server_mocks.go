@@ -42,15 +42,23 @@ func (m *mockedCoordinator) CreateVersion(string, types.Action, bool) *types.Cre
 
 func (m *mockedCoordinator) GetSourceMigrations(_ *coordinator.SourceMigrationFilters) []types.Migration {
 	if m.errorThreshold == m.counter {
-		panic(fmt.Sprintf("Mocked Error Disk Loader: threshold %v reached", m.errorThreshold))
+		panic(fmt.Sprintf("Mocked Coordinator: threshold %v reached", m.errorThreshold))
 	}
-	m.counter++
+	if m.errorThreshold != -1 {
+		m.counter++
+	}
 	m1 := types.Migration{Name: "201602220000.sql", SourceDir: "source", File: "source/201602220000.sql", MigrationType: types.MigrationTypeSingleMigration, Contents: "select abc"}
 	m2 := types.Migration{Name: "201602220001.sql", SourceDir: "source", File: "source/201602220001.sql", MigrationType: types.MigrationTypeTenantMigration, Contents: "select def"}
 	return []types.Migration{m1, m2}
 }
 
 func (m *mockedCoordinator) GetSourceMigrationByFile(file string) (*types.Migration, error) {
+	if m.errorThreshold == m.counter {
+		panic(fmt.Sprintf("Mocked Coordinator: threshold %v reached", m.errorThreshold))
+	}
+	if m.errorThreshold != -1 {
+		m.counter++
+	}
 	i := strings.Index(file, "/")
 	sourceDir := file[:i]
 	name := file[i+1:]
@@ -102,7 +110,25 @@ func (m *mockedCoordinator) VerifySourceMigrationsCheckSums() (bool, []types.Mig
 }
 
 func (m *mockedCoordinator) HealthCheck() types.HealthResponse {
+	if m.errorThreshold == m.counter {
+		panic(fmt.Sprintf("Mocked Coordinator: threshold %v reached", m.errorThreshold))
+	}
+	if m.errorThreshold != -1 {
+		m.counter++
+	}
 	return types.HealthResponse{Status: types.HealthStatusUp, Checks: []types.HealthChecks{}}
+}
+
+type mockedCoordinatorHealthCheckError struct {
+	mockedCoordinator
+}
+
+func (m *mockedCoordinatorHealthCheckError) HealthCheck() types.HealthResponse {
+	return types.HealthResponse{Status: types.HealthStatusDown, Checks: []types.HealthChecks{}}
+}
+
+func newMockedCoordinatorHealthCheckError(ctx context.Context, config *config.Config, metrics metrics.Metrics) coordinator.Coordinator {
+	return &mockedCoordinatorHealthCheckError{}
 }
 
 func newNoopMetrics() metrics.Metrics {
