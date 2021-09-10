@@ -13,8 +13,6 @@ import (
 func TestFromFile(t *testing.T) {
 	config, err := FromFile("../test/migrator-test.yaml")
 	assert.Nil(t, err)
-	// default migrator name
-	assert.Equal(t, defaultMigratorName, config.Name)
 	assert.Equal(t, "test/migrations", config.BaseLocation)
 	assert.Equal(t, "select name from migrator.migrator_tenants", config.TenantSelectSQL)
 	assert.Equal(t, "postgres", config.Driver)
@@ -46,7 +44,6 @@ func TestWithEnvFromFile(t *testing.T) {
 
 func TestConfigString(t *testing.T) {
 	config := &Config{
-		Name:              "invoicesdb1",
 		BaseLocation:      "/opt/app/migrations",
 		Driver:            "postgres",
 		DataSource:        "user=p dbname=db host=localhost",
@@ -64,8 +61,7 @@ func TestConfigString(t *testing.T) {
 		WebHookTemplate:   `{"text": "Results are: ${summary}"}`,
 	}
 	// check if go naming convention applies
-	expected := `name: invoicesdb1
-baseLocation: /opt/app/migrations
+	expected := `baseLocation: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
 tenantSelectSQL: select abc
@@ -100,4 +96,28 @@ func TestConfigFromWrongSyntaxFile(t *testing.T) {
 	config, err := FromFile("../Dockerfile")
 	assert.Nil(t, config)
 	assert.IsType(t, (*yaml.TypeError)(nil), err, "Should error because of wrong yaml syntax")
+}
+
+func TestCustomValidatorLogLevelError(t *testing.T) {
+	config := `name: invoicesdb1
+baseLocation: /opt/app/migrations
+driver: postgres
+dataSource: user=p dbname=db host=localhost
+tenantSelectSQL: select abc
+tenantInsertSQL: insert into table
+schemaPlaceHolder: :tenant
+singleMigrations:
+- ref
+tenantMigrations:
+- tenants
+singleScripts:
+- procedures
+port: "8181"
+webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
+webHookTemplate: '{"text": "Results are: ${summary}"}'
+logLevel: ABC`
+
+	_, err := FromBytes([]byte(config))
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), `Error:Field validation for 'LogLevel' failed on the 'logLevel' tag`)
 }

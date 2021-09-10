@@ -37,6 +37,13 @@ func testSetupRouter(config *config.Config, newCoordinator coordinator.Factory) 
 	return SetupRouter(r, versionInfo, config, newNoopMetrics(), newCoordinator)
 }
 
+func testSetupRouterInDebug(config *config.Config, newCoordinator coordinator.Factory) *gin.Engine {
+	versionInfo := &types.VersionInfo{Release: "GitRef", Sha: "GitSha", APIVersions: []types.APIVersion{types.APIV2}}
+	gin.SetMode(gin.DebugMode)
+	r := gin.New()
+	return SetupRouter(r, versionInfo, config, newNoopMetrics(), newCoordinator)
+}
+
 func TestGetDefaultPort(t *testing.T) {
 	config, err := config.FromFile(configFile)
 	assert.Nil(t, err)
@@ -117,6 +124,21 @@ func TestHealthCheck(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"status":"UP"`)
 }
 
+func TestHealthCheckServiceUnavailable(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedCoordinatorHealthCheckError)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/health", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), `"status":"DOWN"`)
+}
+
 // /v1 API
 
 func TestConfigRoute(t *testing.T) {
@@ -134,6 +156,22 @@ func TestConfigRoute(t *testing.T) {
 }
 
 // /v2 API
+
+func TestConfigRouteV2(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, nil)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("GET", "/config", nil)
+	router.ServeHTTP(w, req)
+
+	// returns config
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/x-yaml; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Equal(t, strings.TrimSpace(config.String()), strings.TrimSpace(w.Body.String()))
+}
 
 func TestGraphQLSchema(t *testing.T) {
 	config, err := config.FromFile(configFile)
@@ -188,5 +226,41 @@ func TestGraphQLQueryError(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
-	assert.Equal(t, `{"error":"Invalid request, please see documentation for valid JSON payload"}`, strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, `{"errors":[{"message":"Invalid request, please see documentation for valid JSON payload"}]}`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestPanicHandlerGlobal(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouterInDebug(config, newMockedErrorCoordinator(0))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/health", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Equal(t, `{"errors":[{"message":"Mocked Coordinator: threshold 0 reached"}]}`, strings.TrimSpace(w.Body.String()))
+}
+
+func TestPanicHandlerGraphql(t *testing.T) {
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	router := testSetupRouter(config, newMockedErrorCoordinator(0))
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("POST", "/service", strings.NewReader(`
+    {
+      "query": "query SourceMigration($file: String!) { sourceMigration(file: $file) { name, migrationType, sourceDir, file } }",
+      "operationName": "SourceMigration",
+      "variables": { "file": "source/201602220001.sql" }
+    }
+  `))
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), "graphql: panic occurred: Mocked Coordinator: threshold 0 reached")
 }

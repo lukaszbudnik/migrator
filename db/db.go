@@ -515,7 +515,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, act
 		}
 
 		for _, s := range schemas {
-			common.LogInfo(bc.ctx, "Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
+			common.LogDebug(bc.ctx, "Applying migration type: %d, schema: %s, file: %s ", m.MigrationType, s, m.File)
 
 			if action == types.ActionApply {
 				contents := strings.Replace(m.Contents, schemaPlaceHolder, s, -1)

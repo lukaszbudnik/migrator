@@ -461,7 +461,7 @@ singleScripts:
 # optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseLocation
 tenantScripts:
   - tenants-scripts
-# optional, default is:
+# optional, default is 8080
 port: 8080
 # path prefix is optional and defaults to '/'
 # path prefix is used for application HTTP request routing by Application Load Balancers/Application Gateways
@@ -479,6 +479,9 @@ webHookHeaders:
   - "Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l"
   - "Content-Type: application/json"
   - "X-Custom-Header: value1,value2"
+# optional, allows to filter logs produced by migrator, valid values are: DEBUG, INFO, ERROR, PANIC
+# defaults to INFO
+logLevel: INFO
 ```
 
 ## Env variables substitution

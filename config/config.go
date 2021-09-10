@@ -10,13 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	defaultMigratorName = "main"
-)
-
 // Config represents Migrator's yaml configuration file
 type Config struct {
-	Name              string   `yaml:"name,omitempty" validate:"omitempty,alphanum"`
 	BaseLocation      string   `yaml:"baseLocation" validate:"required"`
 	Driver            string   `yaml:"driver" validate:"required"`
 	DataSource        string   `yaml:"dataSource" validate:"required"`
@@ -32,6 +27,7 @@ type Config struct {
 	WebHookURL        string   `yaml:"webHookURL,omitempty"`
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
 	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`
+	LogLevel          string   `yaml:"logLevel,omitempty" validate:"logLevel"`
 }
 
 func (config Config) String() string {
@@ -59,12 +55,9 @@ func FromBytes(contents []byte) (*Config, error) {
 	}
 
 	validate := validator.New()
+	validate.RegisterValidation("logLevel", validateLogLevel)
 	if err := validate.Struct(config); err != nil {
 		return nil, err
-	}
-
-	if len(config.Name) == 0 {
-		config.Name = defaultMigratorName
 	}
 
 	substituteEnvVariables(&config)
@@ -102,4 +95,9 @@ func substituteEnvVariable(s string) string {
 		return substituteEnvVariable(after)
 	}
 	return s
+}
+
+func validateLogLevel(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	return value == "" || value == "DEBUG" || value == "INFO" || value == "ERROR" || value == "PANIC"
 }

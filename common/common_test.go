@@ -10,7 +10,27 @@ import (
 func newTestContext() context.Context {
 	ctx := context.TODO()
 	ctx = context.WithValue(ctx, RequestIDKey{}, "123")
+	// log level empty = default log level = INFO
+	ctx = context.WithValue(ctx, LogLevelKey{}, "")
 	return ctx
+}
+
+func newTestContextWithDebugLogLevel() context.Context {
+	ctx := newTestContext()
+	ctx = context.WithValue(ctx, LogLevelKey{}, debugLevel)
+	return ctx
+}
+
+func TestLogDebugSkip(t *testing.T) {
+	// DEBUG message will be skipped, as the default log level is INFO
+	message := LogDebug(newTestContext(), "success")
+	assert.Empty(t, message)
+}
+
+func TestLogDebug(t *testing.T) {
+	// DEBUG message will be returned, as the log level is set to DEBUG
+	message := LogDebug(newTestContextWithDebugLogLevel(), "success")
+	assert.Equal(t, "success", message)
 }
 
 func TestLogInfo(t *testing.T) {
@@ -41,4 +61,36 @@ func TestFindNthIndex(t *testing.T) {
 func TestFindNthIndexNotFound(t *testing.T) {
 	indx := FindNthIndex("https://lukaszbudniktest.blob.core.windows.net/mycontainer", '/', 4)
 	assert.Equal(t, -1, indx)
+}
+
+func TestShouldLogMessage(t *testing.T) {
+	// default logLevel is info, should log all except of debug
+	assert.False(t, shouldLogMessage("", debugLevel))
+	assert.True(t, shouldLogMessage("", infoLevel))
+	assert.True(t, shouldLogMessage("", errorLevel))
+	assert.True(t, shouldLogMessage("", panicLevel))
+
+	// debug logLevel logs all
+	assert.True(t, shouldLogMessage(debugLevel, debugLevel))
+	assert.True(t, shouldLogMessage(debugLevel, infoLevel))
+	assert.True(t, shouldLogMessage(debugLevel, errorLevel))
+	assert.True(t, shouldLogMessage(debugLevel, panicLevel))
+
+	// info logLevel logs all except of debug
+	assert.False(t, shouldLogMessage(infoLevel, debugLevel))
+	assert.True(t, shouldLogMessage(infoLevel, infoLevel))
+	assert.True(t, shouldLogMessage(infoLevel, errorLevel))
+	assert.True(t, shouldLogMessage(infoLevel, panicLevel))
+
+	// error logLevel logs only error or panic
+	assert.False(t, shouldLogMessage(errorLevel, debugLevel))
+	assert.False(t, shouldLogMessage(errorLevel, infoLevel))
+	assert.True(t, shouldLogMessage(errorLevel, errorLevel))
+	assert.True(t, shouldLogMessage(errorLevel, panicLevel))
+
+	// panic logLevel logs only panic
+	assert.False(t, shouldLogMessage(panicLevel, debugLevel))
+	assert.False(t, shouldLogMessage(panicLevel, infoLevel))
+	assert.False(t, shouldLogMessage(panicLevel, errorLevel))
+	assert.True(t, shouldLogMessage(panicLevel, panicLevel))
 }
