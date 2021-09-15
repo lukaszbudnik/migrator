@@ -165,8 +165,8 @@ input TenantInput {
 type Summary {
   // date time operation started
   startedAt: Time!
-  // how long the operation took in nanoseconds
-  duration: Int!
+  // how long the operation took in seconds
+  duration: Float!
   // number of tenants in the system
   tenants: Int!
   // number of loaded and applied single schema migrations

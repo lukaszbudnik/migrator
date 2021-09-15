@@ -97,7 +97,7 @@ type DBMigration struct {
 type Summary struct {
 	VersionID             int32        `json:"versionId"`
 	StartedAt             graphql.Time `json:"startedAt"`
-	Duration              int32        `json:"duration"`
+	Duration              float64      `json:"duration"`
 	Tenants               int32        `json:"tenants"`
 	SingleMigrations      int32        `json:"singleMigrations"`
 	TenantMigrations      int32        `json:"tenantMigrations"`
