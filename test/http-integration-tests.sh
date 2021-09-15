@@ -80,6 +80,7 @@ cat <<EOF | tr -d "\n" > create_version.txt
       }
       summary {
         startedAt
+        duration
         tenants
         migrationsGrandTotal
         scriptsGrandTotal
@@ -137,6 +138,7 @@ cat <<EOF | tr -d "\n" > create_tenant.txt
       }
       summary {
         startedAt
+        duration
         tenants
         migrationsGrandTotal
         scriptsGrandTotal

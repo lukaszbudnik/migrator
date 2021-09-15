@@ -98,6 +98,7 @@ func TestCreateVersion(t *testing.T) {
 			assert.Equal(t, int32(noOfTenants*1), results.TenantScriptsTotal)
 			assert.Equal(t, int32(noOfTenants*3+3), results.MigrationsGrandTotal)
 			assert.Equal(t, int32(noOfTenants*1+2), results.ScriptsGrandTotal)
+			assert.Greater(t, results.Duration, float64(0))
 
 			dbMigrationsAfter := connector.GetAppliedMigrations()
 			lenAfter := len(dbMigrationsAfter)
@@ -189,6 +190,7 @@ func TestCreateTenant(t *testing.T) {
 			// just one tenant so total number of tenant migrations is equal to tenant migrations
 			assert.Equal(t, int32(3), results.TenantMigrations)
 			assert.Equal(t, int32(3), results.TenantMigrationsTotal)
+			assert.Greater(t, results.Duration, float64(0))
 		})
 	}
 }

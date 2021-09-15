@@ -477,7 +477,7 @@ func (bc *baseConnector) applyMigrationsInTx(tx *sql.Tx, versionName string, act
 	}
 
 	defer func() {
-		results.Duration = int32(time.Since(results.StartedAt.Time))
+		results.Duration = time.Since(results.StartedAt.Time).Seconds()
 		results.MigrationsGrandTotal = results.TenantMigrationsTotal + results.SingleMigrations
 		results.ScriptsGrandTotal = results.TenantScriptsTotal + results.SingleScripts
 	}()
