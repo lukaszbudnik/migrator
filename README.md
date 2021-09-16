@@ -1,8 +1,8 @@
 # migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration tool written in go. migrator outperforms other DB migration/evolution frameworks by a few orders of magnitude when comparing both execution time and memory consumption.
+Super fast and lightweight DB migration tool written in go. migrator outperforms other market leading DB migration frameworks by a few orders of magnitude when comparing both execution time and memory consumption (see [PERFORMANCE.md](PERFORMANCE.md)).
 
-migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support (ideal for multi-schema multi-tenant SaaS products).
+migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support out of the box. Making it an ideal DB migrations solution for multi-tenant SaaS products.
 
 migrator runs as a HTTP GrapQL service and can be easily integrated into existing continuous integration and continuous delivery pipelines. migrator can also sync existing migrations from legacy frameworks making the technology switch even more straightforward.
 
@@ -12,7 +12,7 @@ migrator supports reading DB migrations from:
 - AWS S3
 - Azure Blob Containers
 
-migrator support the following multi-tenant databases:
+migrator supports the following multi-tenant databases:
 
 - PostgreSQL 9.3+ (and all its flavours)
 - MySQL 5.6+ (and all its flavours)
@@ -23,11 +23,9 @@ The official docker image is available on:
 - docker hub at: [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator)
 - alternative mirror at: [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator)
 
-It is ultra lightweight and has a size of 30MB. Ideal for micro-services deployments!
+The image is ultra lightweight and has a size of 30MB. Ideal for micro-services deployments!
 
 # API
-
-migrator exposes a REST and GraphQL APIs described below.
 
 To return build information together with a list of supported API versions execute:
 
@@ -238,8 +236,6 @@ In [Quick Start Guide](#quick-start-guide) there are a few curl examples to get 
 
 API v1 was sunset in v2021.0.0.
 
-API v1 is available in migrator v4.x and v2020.x.
-
 The documentation is available in a separate document [API v1](APIv1.md).
 
 ## Request tracing
@@ -252,14 +248,20 @@ You can apply your first migrations with migrator in literally a few seconds. Th
 
 ## 1. Get the migrator project
 
-Get the source code the usual go way:
+Get the source code:
 
 ```bash
-go get -d -v github.com/lukaszbudnik/migrator
-cd $GOPATH/src/github.com/lukaszbudnik/migrator
+git clone https://github.com/lukaszbudnik/migrator.git
+cd migrator
 ```
 
-migrator aims to support 3 latest Go versions (built automatically on GitHub Actions).
+Points to note:
+
+- migrator aims to support 3 latest go versions (these versions are automatically built and tested by GitHub Actions)
+- docker images are built using latest stable go version
+- dependabot automatically updates go and docker dependencies on a weekly basis
+- every merge to `main` branch triggers CI/CD pipeline which publishes `edge` tag to both docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) and [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator)
+- major/minor releases are coordinated via [GitHub Projects](https://github.com/lukaszbudnik/migrator/projects)
 
 ## 2. Start migrator and test DB containers
 
@@ -446,7 +448,7 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 # optional, override only if you have a specific way of creating tenants, default is:
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: { schema }
+schemaPlaceHolder: {schema}
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
 singleMigrations:
   - public
