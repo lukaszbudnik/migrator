@@ -30,8 +30,9 @@ var GitRef string
 var GitSha string
 
 func main() {
+	versionInfo := &types.VersionInfo{Release: GitRef, Sha: GitSha, APIVersions: []types.APIVersion{types.APIV2}}
 
-	common.Log("INFO", "migrator version: %v (%v)", GitRef, GitSha)
+	common.Log("INFO", "migrator %+v", versionInfo)
 
 	flag := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	buf := new(bytes.Buffer)
@@ -57,7 +58,6 @@ func main() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	versionInfo := &types.VersionInfo{Release: GitRef, Sha: GitSha, APIVersions: []types.APIVersion{types.APIV2}}
 	g := server.CreateRouterAndPrometheus(versionInfo, cfg, createCoordinator)
 	if err := g.Run(":" + server.GetPort(cfg)); err != nil {
 		common.Log("ERROR", "Error starting migrator: %v", err)

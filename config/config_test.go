@@ -99,8 +99,7 @@ func TestConfigFromWrongSyntaxFile(t *testing.T) {
 }
 
 func TestCustomValidatorLogLevelError(t *testing.T) {
-	config := `name: invoicesdb1
-baseLocation: /opt/app/migrations
+	config := `baseLocation: /opt/app/migrations
 driver: postgres
 dataSource: user=p dbname=db host=localhost
 tenantSelectSQL: select abc

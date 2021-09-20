@@ -1,29 +1,27 @@
 #!/bin/bash
 
-# when called with no arguments calls tests for all packages
-if [[ -z "$1" ]]; then
-  packages=$(go list -f "{{.Name}}" ./...)
-else
-  packages="$1"
+which gotestsum &> /dev/null
+if [[ $? -ne 0 ]]; then
+  go get gotest.tools/gotestsum
 fi
 
-echo "mode: atomic" > coverage.txt
-
-go clean -testcache
+# when called with no arguments calls tests for all packages
+if [[ -z "$1" ]]; then
+  packages='./...'
+else
+  packages="./$1"
+fi
 
 fail=0
 
-for package in $packages
-do
-  if [[ "main" == "$package" ]]; then
-    continue
-  fi
-  go test -race -covermode=atomic -coverprofile=coverage-$package.txt ./$package
-  if [[ $? -ne 0 ]]; then
-    fail=1
-  fi
-  cat coverage-$package.txt | sed '/^mode/d' | sed '/_mocks.go/d' >> coverage.txt
-  rm coverage-$package.txt
-done
+gotestsum --junitfile unit-tests.xml -- -covermode=atomic -coverprofile=coverage-all.txt $packages
+
+if [[ $? -ne 0 ]]; then
+  fail=1
+fi
+
+cat coverage-all.txt | sed '/_mocks.go/d' > coverage.txt
+
+rm coverage-all.txt
 
 exit $fail
