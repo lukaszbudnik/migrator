@@ -448,7 +448,7 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 # optional, override only if you have a specific way of creating tenants, default is:
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: {schema}
+schemaPlaceHolder: { schema }
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
 singleMigrations:
   - public
@@ -556,18 +556,19 @@ migrator uses official Azure SDK for Go and supports authentication using Storag
 
 Currently migrator supports the following databases including their flavours (like Percona, MariaDB for MySQL, etc.). Please review the Go driver implementation for information about all supported features and how `dataSource` configuration property should look like.
 
-## PostgreSQL 9.3+
+## PostgreSQL
 
-Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq.
+Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/jackc/pgx.
 
 The following versions and flavours are supported:
 
 - PostgreSQL
+- CockroachDB
 - Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 - Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 - Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 
-## MySQL 5.6+
+## MySQL
 
 Database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql.
 
@@ -580,14 +581,11 @@ The following versions and flavours are supported:
 - Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
 - Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
 
-## Microsoft SQL Server 2017+
+## Microsoft SQL Server
 
 A relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb.
 
-The following versions are supported:
-
-- Microsoft SQL Server 2017
-- Microsoft SQL Server 2019
+Supports Microsoft SQL Server 2008 and newer.
 
 # Customisation and legacy frameworks support
 

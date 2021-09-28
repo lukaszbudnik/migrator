@@ -107,7 +107,11 @@ func newDialect(config *config.Config) dialect {
 		dialect = &mySQLDialect{}
 	case "sqlserver":
 		dialect = &msSQLDialect{}
+	// backward compatibility - change postgres driver to pgx
 	case "postgres":
+		dialect = &postgreSQLDialect{}
+		config.Driver = "pgx"
+	case "pgx":
 		dialect = &postgreSQLDialect{}
 	default:
 		panic(fmt.Sprintf("Failed to create Connector unknown driver: %v", config.Driver))
