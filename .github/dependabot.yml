@@ -19,5 +19,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      time: "05:00"
+      day: "sunday"
+  # Maintain dependencies for dev docker
+  - package-ecosystem: "docker"
+    directory: "/test/migrator-dev"
+    schedule:
+      interval: "weekly"
       time: "06:00"
       day: "sunday"

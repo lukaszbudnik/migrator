@@ -1,8 +1,0 @@
-baseLocation: test/migrations
-driver: mysql
-dataSource: "root:@tcp(127.0.0.1:3306)/migrator_test?parseTime=true&timeout=1s"
-singleMigrations:
-  - ref
-  - config
-tenantMigrations:
-  - tenants

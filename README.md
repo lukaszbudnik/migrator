@@ -1,4 +1,4 @@
-# migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/master/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
+# migrator ![Build and Test](https://github.com/lukaszbudnik/migrator/workflows/Build%20and%20Test/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) ![AWS CodeBuild](https://codebuild.us-east-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiclhsT003RVhGMXF3Nmc1NmE5NVZDTjQydzNTc1Q2NGZ3d2JKeWNqZ0pMbVBkcnRMUExpUGtULzNkSElyQXNsZHRuSXplTVcwMVBrMzJjSE9Yd3ZURUw4PSIsIml2UGFyYW1ldGVyU3BlYyI6Ik83OTNpNEpGVDVWcnJMTVEiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/main/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
 Super fast and lightweight DB migration tool written in go. migrator outperforms other market leading DB migration frameworks by a few orders of magnitude when comparing both execution time and memory consumption (see [PERFORMANCE.md](PERFORMANCE.md)).
 
@@ -448,7 +448,7 @@ tenantSelectSQL: "select name from migrator.migrator_tenants"
 # optional, override only if you have a specific way of creating tenants, default is:
 tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
-schemaPlaceHolder: {schema}
+schemaPlaceHolder: { schema }
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
 singleMigrations:
   - public

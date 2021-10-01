@@ -10,5 +10,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build the Docker image
+
+    - name: Build the dev Docker image
       run: docker build . --file test/migrator-dev/Dockerfile --tag migrator-dev:$(date +%s)
+
+    - name: Build the production Docker image
+      run: docker build . --build-arg GIT_REF=${{ github.ref }} --build-arg GIT_SHA=${{ github.sha }} --tag migrator-prod:$(date +%s)
