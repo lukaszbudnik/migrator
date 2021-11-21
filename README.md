@@ -4,7 +4,7 @@ Super fast and lightweight DB migration tool written in go. migrator outperforms
 
 migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support out of the box. Making it an ideal DB migrations solution for multi-tenant SaaS products.
 
-migrator runs as a HTTP GrapQL service and can be easily integrated into existing continuous integration and continuous delivery pipelines. migrator can also sync existing migrations from legacy frameworks making the technology switch even more straightforward.
+migrator runs as a HTTP GraphQL service and can be easily integrated into existing continuous integration and continuous delivery pipelines. migrator can also sync existing migrations from legacy frameworks making the technology switch even more straightforward.
 
 migrator supports reading DB migrations from:
 
@@ -14,9 +14,9 @@ migrator supports reading DB migrations from:
 
 migrator supports the following multi-tenant databases:
 
-- PostgreSQL 9.3+ (and all its flavours)
-- MySQL 5.6+ (and all its flavours)
-- Microsoft SQL Server 2017+
+- PostgreSQL 9.6+ and all its flavours
+- MySQL 5.6+ and all its flavours
+- Microsoft SQL Server 2008 R2+
 
 The official docker image is available on:
 
@@ -556,7 +556,7 @@ migrator uses official Azure SDK for Go and supports authentication using Storag
 
 Currently migrator supports the following databases including their flavours (like Percona, MariaDB for MySQL, etc.). Please review the Go driver implementation for information about all supported features and how `dataSource` configuration property should look like.
 
-## PostgreSQL 9.3+
+## PostgreSQL 9.6+
 
 Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq.
 
@@ -580,14 +580,11 @@ The following versions and flavours are supported:
 - Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
 - Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
 
-## Microsoft SQL Server 2017+
+## Microsoft SQL Server 2008 R2+
 
 A relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb.
 
-The following versions are supported:
-
-- Microsoft SQL Server 2017
-- Microsoft SQL Server 2019
+The Go driver supports all Microsoft SQL Server versions starting with 2008 R2+.
 
 # Customisation and legacy frameworks support
 
