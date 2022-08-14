@@ -12,7 +12,7 @@ COPY . /go/migrator
 RUN cd /go/migrator && \
   go build -ldflags "-X main.GitSha=$GIT_SHA -X main.GitRef=$GIT_REF"
 
-FROM alpine:3.16.1
+FROM alpine:3.16.2
 
 LABEL org.opencontainers.image.authors="Łukasz Budnik <lukasz.budnik@gmail.com>"
 
