@@ -11,7 +11,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-sql-driver/mysql v1.7.0
-	github.com/graph-gophers/graphql-go v0.0.0-20200207002730-8334863f2c8b
+	github.com/graph-gophers/graphql-go v1.5.0
 	github.com/lib/pq v1.10.7
 	github.com/stretchr/testify v1.8.2
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
