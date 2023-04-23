@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/Depado/ginprom v1.7.9
+	github.com/Depado/ginprom v1.7.10
 	github.com/aws/aws-sdk-go v1.44.244
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/gin-gonic/gin v1.9.0
