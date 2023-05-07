@@ -62,8 +62,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
-github.com/Depado/ginprom v1.7.10 h1:fG595rbR/ukqBfkrgPLR2NAov2ixVTGClDoZlfIPaTs=
-github.com/Depado/ginprom v1.7.10/go.mod h1:49mxL3NTQwDrhpDbY4V1mAIB3us9B+b2hP1+ph+Sla8=
+github.com/Depado/ginprom v1.7.11 h1:qOhxW/NJZkNkkG4TQrzAZklX8SUTjTfLA73zIUNIpww=
+github.com/Depado/ginprom v1.7.11/go.mod h1:49mxL3NTQwDrhpDbY4V1mAIB3us9B+b2hP1+ph+Sla8=
 github.com/alecthomas/kingpin/v2 v2.3.1/go.mod h1:oYL5vtsvEHZGHxU7DMp32Dvx+qL+ptGn6lWaot2vCNE=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
