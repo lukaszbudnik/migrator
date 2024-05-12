@@ -9,7 +9,7 @@ require (
 	github.com/Depado/ginprom v1.8.1
 	github.com/aws/aws-sdk-go v1.53.0
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/gin-gonic/gin v1.9.1
+	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/graph-gophers/graphql-go v1.5.0
 	github.com/lib/pq v1.10.9
