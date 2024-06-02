@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/Depado/ginprom v1.8.1
 	github.com/aws/aws-sdk-go v1.53.14
