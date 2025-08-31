@@ -13,7 +13,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/graph-gophers/graphql-go v1.7.0
 	github.com/lib/pq v1.10.9
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
