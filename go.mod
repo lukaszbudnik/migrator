@@ -2,6 +2,10 @@ module github.com/lukaszbudnik/migrator
 
 go 1.24.0
 
+godebug (
+	x509negativeserial=1
+)
+
 require (
 	github.com/Azure/azure-storage-blob-go v0.15.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
