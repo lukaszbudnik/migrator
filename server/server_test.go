@@ -104,7 +104,7 @@ func TestCreateRouterAndPrometheus(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain; version=0.0.4; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Equal(t, "text/plain; version=0.0.4; charset=utf-8; escaping=values", w.Result().Header.Get("Content-Type"))
 	assert.Contains(t, w.Body.String(), "migrator_gin_info")
 }
 
@@ -158,19 +158,22 @@ func TestConfigRoute(t *testing.T) {
 // /v2 API
 
 func TestConfigRouteV2(t *testing.T) {
-	config, err := config.FromFile(configFile)
+	configObj, err := config.FromFile(configFile)
 	assert.Nil(t, err)
 
-	router := testSetupRouter(config, nil)
+	router := testSetupRouter(configObj, nil)
 
 	w := httptest.NewRecorder()
 	req, _ := newTestRequestV2("GET", "/config", nil)
 	router.ServeHTTP(w, req)
 
+	// gin uses custom YAML serialization
+	actual, _ := config.FromBytes(w.Body.Bytes())
+
 	// returns config
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/x-yaml; charset=utf-8", w.Result().Header.Get("Content-Type"))
-	assert.Equal(t, strings.TrimSpace(config.String()), strings.TrimSpace(w.Body.String()))
+	assert.Equal(t, "application/yaml; charset=utf-8", w.Result().Header.Get("Content-Type"))
+	assert.Equal(t, configObj.String(), actual.String())
 }
 
 func TestGraphQLSchema(t *testing.T) {
@@ -260,7 +263,9 @@ func TestPanicHandlerGraphql(t *testing.T) {
   `))
 	router.ServeHTTP(w, req)
 
+	body := w.Body.String()
+
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
-	assert.Contains(t, w.Body.String(), "graphql: panic occurred: Mocked Coordinator: threshold 0 reached")
+	assert.Contains(t, body, "panic occurred: Mocked Coordinator: threshold 0 reached")
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/go-playground/validator.v9"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestFromFile(t *testing.T) {
@@ -68,11 +68,11 @@ tenantSelectSQL: select abc
 tenantInsertSQL: insert into table
 schemaPlaceHolder: :tenant
 singleMigrations:
-- ref
+    - ref
 tenantMigrations:
-- tenants
+    - tenants
 singleScripts:
-- procedures
+    - procedures
 port: "8181"
 webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
 webHookTemplate: '{"text": "Results are: ${summary}"}'`
@@ -106,11 +106,11 @@ tenantSelectSQL: select abc
 tenantInsertSQL: insert into table
 schemaPlaceHolder: :tenant
 singleMigrations:
-- ref
+    - ref
 tenantMigrations:
-- tenants
+    - tenants
 singleScripts:
-- procedures
+    - procedures
 port: "8181"
 webHookURL: https://hooks.slack.com/services/TTT/BBB/XXX
 webHookTemplate: '{"text": "Results are: ${summary}"}'

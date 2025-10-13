@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"gopkg.in/go-playground/validator.v9"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents Migrator's yaml configuration file

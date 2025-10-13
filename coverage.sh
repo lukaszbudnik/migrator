@@ -2,7 +2,7 @@
 
 which gotestsum &> /dev/null
 if [[ $? -ne 0 ]]; then
-  go get gotest.tools/gotestsum
+  go install gotest.tools/gotestsum@latest
 fi
 
 # when called with no arguments calls tests for all packages
