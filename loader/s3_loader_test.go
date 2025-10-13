@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -81,7 +81,7 @@ func (m *mockS3Client) ListObjectsV2Pages(input *s3.ListObjectsV2Input, callback
 }
 
 func (m *mockS3Client) GetObject(input *s3.GetObjectInput) (output *s3.GetObjectOutput, err error) {
-	return &s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader([]byte(*input.Key)))}, nil
+	return &s3.GetObjectOutput{Body: io.NopCloser(bytes.NewReader([]byte(*input.Key)))}, nil
 }
 
 func TestS3GetSourceMigrations(t *testing.T) {
