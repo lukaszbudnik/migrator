@@ -104,7 +104,7 @@ func TestCreateRouterAndPrometheus(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain; version=0.0.4; charset=utf-8; escaping=values", w.Result().Header.Get("Content-Type"))
+	assert.Equal(t, "text/plain; version=0.0.4; charset=utf-8; escaping=underscores", w.Result().Header.Get("Content-Type"))
 	assert.Contains(t, w.Body.String(), "migrator_gin_info")
 }
 

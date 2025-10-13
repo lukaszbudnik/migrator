@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -51,7 +51,7 @@ func (dl *diskLoader) HealthCheck() error {
 	if err != nil {
 		return err
 	}
-	_, err = ioutil.ReadDir(absBaseDir)
+	_, err = os.ReadDir(absBaseDir)
 	return err
 }
 
@@ -65,14 +65,14 @@ func (dl *diskLoader) getDirs(baseDir string, migrationsDirs []string) []string 
 
 func (dl *diskLoader) readFromDirs(migrations map[string][]types.Migration, sourceDirs []string, migrationType types.MigrationType) {
 	for _, sourceDir := range sourceDirs {
-		files, err := ioutil.ReadDir(sourceDir)
+		files, err := os.ReadDir(sourceDir)
 		if err != nil {
 			panic(fmt.Sprintf("Could not read source dir %v: %v", sourceDir, err.Error()))
 		}
 		for _, file := range files {
 			if !file.IsDir() {
 				fullPath := filepath.Join(sourceDir, file.Name())
-				contents, err := ioutil.ReadFile(fullPath)
+				contents, err := os.ReadFile(fullPath)
 				if err != nil {
 					panic(fmt.Sprintf("Could not read file %v: %v", fullPath, err.Error()))
 				}

@@ -3,7 +3,7 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,7 +33,7 @@ func TestWebHookNotifier(t *testing.T) {
 	server := httptest.NewServer(func() http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			request, _ := ioutil.ReadAll(r.Body)
+			request, _ := io.ReadAll(r.Body)
 			requestBody = string(request)
 			contentType = r.Header.Get("Content-Type")
 			w.Write([]byte("ok"))

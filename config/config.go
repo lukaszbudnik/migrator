@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -37,7 +36,7 @@ func (config Config) String() string {
 
 // FromFile reads config from file which name is passed as an argument
 func FromFile(configFileName string) (*Config, error) {
-	contents, err := ioutil.ReadFile(configFileName)
+	contents, err := os.ReadFile(configFileName)
 
 	if err != nil {
 		return nil, err
