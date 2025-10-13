@@ -42,7 +42,7 @@ func main() {
 	flag.StringVar(&configFile, "configFile", DefaultConfigFile, "path to migrator configuration yaml file")
 
 	if err := flag.Parse(os.Args[1:]); err != nil {
-		common.Log("ERROR", buf.String())
+		common.Log("ERROR", "%v", buf.String())
 		os.Exit(1)
 	}
 

@@ -8,7 +8,7 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       matrix:
-        go: [ '1.17', '1.16', '1.15' ]
+        go: [ '1.25', '1.24' ]
     name: Go ${{ matrix.go }}
 
     steps:
@@ -20,7 +20,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Run staticcheck (only latest go version)
-      if: matrix.go == '1.17'
+      if: matrix.go == '1.25'
       run: ./staticcheck.sh
 
     - name: Login to Docker Hub
@@ -30,7 +30,7 @@ jobs:
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Start docker-compose services
-      run: docker-compose -f test/docker-compose-it.yaml up -d
+      run: docker compose -f test/docker-compose-it.yaml up -d
 
     - name: Build and test migrator
       env:

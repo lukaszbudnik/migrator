@@ -1,4 +1,4 @@
-FROM golang:1.19.3-alpine3.15 as builder
+FROM golang:1.24-alpine3.22 as builder
 
 LABEL org.opencontainers.image.authors="Łukasz Budnik <lukasz.budnik@gmail.com>"
 
@@ -12,7 +12,7 @@ COPY . /go/migrator
 RUN cd /go/migrator && \
   go build -ldflags "-X main.GitSha=$GIT_SHA -X main.GitRef=$GIT_REF"
 
-FROM alpine:3.22.2
+FROM alpine:3.22
 
 LABEL org.opencontainers.image.authors="Łukasz Budnik <lukasz.budnik@gmail.com>"
 
