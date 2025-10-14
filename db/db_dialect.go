@@ -109,6 +109,9 @@ func newDialect(config *config.Config) dialect {
 		dialect = &msSQLDialect{}
 	case "postgres":
 		dialect = &postgreSQLDialect{}
+		// migrator switched to jackc/pgx PostgreSQL driver
+		// for backward compatibility the external Driver name is still "postgres" but internally it's now "pgx"
+		config.Driver = "pgx"
 	default:
 		panic(fmt.Sprintf("Failed to create Connector unknown driver: %v", config.Driver))
 	}
