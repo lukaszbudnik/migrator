@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 	// blank import for MSSQL driver
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 type msSQLDialect struct {
