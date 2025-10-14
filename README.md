@@ -560,31 +560,32 @@ Currently migrator supports the following databases including their flavours (li
 
 Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq.
 
-The following versions and flavours are supported:
+The following versions and flavours are supported by the driver:
 
 - PostgreSQL
 - Amazon RDS PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 - Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 - Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 
-## MySQL 5.6+
+## MySQL 5.7+
 
 Database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql.
 
-The following versions and flavours are supported:
+The following versions and flavours are supported by the driver:
 
 - MySQL
 - MariaDB - enhanced near linearly scalable multi-master MySQL
+- TiDB - an open-source, cloud-native, distributed SQL database designed for high availability, horizontal and vertical scalability, strong consistency, and high performance.
 - Percona - an enhanced drop-in replacement for MySQL
 - Amazon RDS MySQL - MySQL-compatible relational database built for the cloud
 - Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
 - Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
 
-## Microsoft SQL Server 2008 R2+
+## Microsoft SQL Server 2008+
 
-A relational database management system developed by Microsoft, driver used: https://github.com/denisenkom/go-mssqldb.
+A relational database management system developed by Microsoft, driver used: https://github.com/microsoft/go-mssqldb.
 
-The Go driver supports all Microsoft SQL Server versions starting with 2008 R2+.
+The Go driver supports all Microsoft SQL Server versions starting with 2008.
 
 # Customisation and legacy frameworks support
 
@@ -755,10 +756,4 @@ For contributing, code style, running unit & integration tests please see [CONTR
 
 # License
 
-Copyright 2016-2021 Łukasz Budnik
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+Apache 2.0 License - see [LICENSE](LICENSE).
