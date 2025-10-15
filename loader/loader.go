@@ -22,7 +22,11 @@ type Factory func(context.Context, *config.Config) Loader
 // New returns new instance of Loader
 func New(ctx context.Context, config *config.Config) Loader {
 	if strings.HasPrefix(config.BaseLocation, "s3://") {
-		return &s3Loader{baseLoader{ctx, config}}
+		return &s3Loader{
+			baseLoader:       baseLoader{ctx, config},
+			clientFactory:    &defaultS3ClientFactory{},
+			paginatorFactory: &defaultS3PaginatorFactory{},
+		}
 	}
 	if matched, _ := regexp.Match(`^https://.*\.blob\.core\.windows\.net/.*`, []byte(config.BaseLocation)); matched {
 		return &azureBlobLoader{baseLoader{ctx, config}}

@@ -1,44 +1,92 @@
 package loader
 
 import (
-	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/lukaszbudnik/migrator/types"
 )
+
+// S3APIClient interface for S3 operations
+type S3APIClient interface {
+	GetObject(context.Context, *s3.GetObjectInput, ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	ListObjectsV2(context.Context, *s3.ListObjectsV2Input, ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+}
+
+// S3ListObjectsV2Paginator interface for pagination
+type S3ListObjectsV2Paginator interface {
+	HasMorePages() bool
+	NextPage(context.Context, ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+}
+
+// S3ClientFactory creates S3 clients
+type S3ClientFactory interface {
+	NewClient(ctx context.Context) S3APIClient
+}
+
+// S3PaginatorFactory creates paginators
+type S3PaginatorFactory interface {
+	NewListObjectsV2Paginator(client S3APIClient, input *s3.ListObjectsV2Input) S3ListObjectsV2Paginator
+}
 
 // s3Loader is struct used for implementing Loader interface for loading migrations from AWS S3
 type s3Loader struct {
 	baseLoader
+	clientFactory    S3ClientFactory
+	paginatorFactory S3PaginatorFactory
 }
 
-func (s3l *s3Loader) newClient() *s3.S3 {
-	sess, err := session.NewSession()
+// defaultS3ClientFactory implements S3ClientFactory
+type defaultS3ClientFactory struct{}
+
+func (f *defaultS3ClientFactory) NewClient(ctx context.Context) S3APIClient {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		panic(err.Error())
 	}
-	return s3.New(sess)
+	return s3.NewFromConfig(cfg)
+}
+
+// defaultS3PaginatorFactory implements S3PaginatorFactory
+type defaultS3PaginatorFactory struct{}
+
+func (f *defaultS3PaginatorFactory) NewListObjectsV2Paginator(client S3APIClient, input *s3.ListObjectsV2Input) S3ListObjectsV2Paginator {
+	return s3.NewListObjectsV2Paginator(client, input)
+}
+
+func (s3l *s3Loader) getPaginatorFactory() S3PaginatorFactory {
+	if s3l.paginatorFactory != nil {
+		return s3l.paginatorFactory
+	}
+	return &defaultS3PaginatorFactory{}
+}
+
+func (s3l *s3Loader) getClientFactory() S3ClientFactory {
+	if s3l.clientFactory != nil {
+		return s3l.clientFactory
+	}
+	return &defaultS3ClientFactory{}
 }
 
 // GetSourceMigrations returns all migrations from AWS S3 location
 func (s3l *s3Loader) GetSourceMigrations() []types.Migration {
-	client := s3l.newClient()
+	client := s3l.getClientFactory().NewClient(s3l.ctx)
 	return s3l.doGetSourceMigrations(client)
 }
 
 func (s3l *s3Loader) HealthCheck() error {
-	client := s3l.newClient()
+	client := s3l.getClientFactory().NewClient(s3l.ctx)
 	return s3l.doHealthCheck(client)
 }
 
-func (s3l *s3Loader) doHealthCheck(client s3iface.S3API) error {
+func (s3l *s3Loader) doHealthCheck(client S3APIClient) error {
 	bucketWithPrefixes := strings.Split(strings.Replace(strings.TrimRight(s3l.config.BaseLocation, "/"), "s3://", "", 1), "/")
 
 	bucket := bucketWithPrefixes[0]
@@ -50,15 +98,15 @@ func (s3l *s3Loader) doHealthCheck(client s3iface.S3API) error {
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
 		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(1),
+		MaxKeys: aws.Int32(1),
 	}
 
-	_, err := client.ListObjectsV2(input)
+	_, err := client.ListObjectsV2(s3l.ctx, input)
 
 	return err
 }
 
-func (s3l *s3Loader) doGetSourceMigrations(client s3iface.S3API) []types.Migration {
+func (s3l *s3Loader) doGetSourceMigrations(client S3APIClient) []types.Migration {
 	migrations := []types.Migration{}
 
 	bucketWithPrefixes := strings.Split(strings.Replace(strings.TrimRight(s3l.config.BaseLocation, "/"), "s3://", "", 1), "/")
@@ -90,7 +138,7 @@ func (s3l *s3Loader) doGetSourceMigrations(client s3iface.S3API) []types.Migrati
 	return migrations
 }
 
-func (s3l *s3Loader) getObjectList(client s3iface.S3API, bucket, optionalPrefixes string, prefixes []string) []*string {
+func (s3l *s3Loader) getObjectList(client S3APIClient, bucket, optionalPrefixes string, prefixes []string) []*string {
 	objects := []*string{}
 
 	for _, prefix := range prefixes {
@@ -105,41 +153,43 @@ func (s3l *s3Loader) getObjectList(client s3iface.S3API, bucket, optionalPrefixe
 		input := &s3.ListObjectsV2Input{
 			Bucket:  aws.String(bucket),
 			Prefix:  aws.String(fullPrefix),
-			MaxKeys: aws.Int64(1000),
+			MaxKeys: aws.Int32(100),
 		}
 
-		err := client.ListObjectsV2Pages(input,
-			func(page *s3.ListObjectsV2Output, lastPage bool) bool {
-
-				for _, o := range page.Contents {
-					objects = append(objects, o.Key)
-				}
-
-				return !lastPage
-			})
-
-		if err != nil {
-			panic(err.Error())
+		paginator := s3l.getPaginatorFactory().NewListObjectsV2Paginator(client, input)
+		for paginator.HasMorePages() {
+			page, err := paginator.NextPage(s3l.ctx)
+			if err != nil {
+				panic(err.Error())
+			}
+			for _, obj := range page.Contents {
+				objects = append(objects, obj.Key)
+			}
 		}
 	}
 
 	return objects
 }
 
-func (s3l *s3Loader) getObjects(client s3iface.S3API, bucket string, migrationsMap map[string][]types.Migration, objects []*string, migrationType types.MigrationType) {
-	objectInput := &s3.GetObjectInput{Bucket: aws.String(bucket)}
+func (s3l *s3Loader) getObjects(client S3APIClient, bucket string, migrationsMap map[string][]types.Migration, objects []*string, migrationType types.MigrationType) {
+
 	for _, o := range objects {
-		objectInput.Key = o
-		objectOutput, err := client.GetObject(objectInput)
+		input := &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(*o),
+		}
+		object, err := client.GetObject(s3l.ctx, input)
 		if err != nil {
 			panic(err.Error())
 		}
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(objectOutput.Body)
-		contents := buf.String()
+
+		contents, err := io.ReadAll(object.Body)
+		if err != nil {
+			panic(err.Error())
+		}
 
 		hasher := sha256.New()
-		hasher.Write([]byte(contents))
+		hasher.Write(contents)
 		file := fmt.Sprintf("%s/%s", s3l.config.BaseLocation, *o)
 		from := strings.LastIndex(file, "/")
 		sourceDir := file[0:from]
@@ -153,6 +203,5 @@ func (s3l *s3Loader) getObjects(client s3iface.S3API, bucket string, migrationsM
 			e = []types.Migration{m}
 		}
 		migrationsMap[m.Name] = e
-
 	}
 }
