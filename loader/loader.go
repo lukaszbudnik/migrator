@@ -29,7 +29,10 @@ func New(ctx context.Context, config *config.Config) Loader {
 		}
 	}
 	if matched, _ := regexp.Match(`^https://.*\.blob\.core\.windows\.net/.*`, []byte(config.BaseLocation)); matched {
-		return &azureBlobLoader{baseLoader{ctx, config}}
+		return &azureBlobLoader{
+			baseLoader:    baseLoader{ctx, config},
+			clientFactory: &defaultAzureBlobClientFactory{},
+		}
 	}
 	return &diskLoader{baseLoader{ctx, config}}
 }
