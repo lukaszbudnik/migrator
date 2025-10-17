@@ -1,134 +1,167 @@
 package loader
 
 import (
-	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 
-	"github.com/lukaszbudnik/migrator/common"
 	"github.com/lukaszbudnik/migrator/types"
 )
+
+// AzureBlobClient interface for Azure Blob operations
+type AzureBlobClient interface {
+	NewListBlobsFlatPager(containerName string, options *azblob.ListBlobsFlatOptions) *runtime.Pager[azblob.ListBlobsFlatResponse]
+	DownloadStream(ctx context.Context, containerName, blobName string, options *azblob.DownloadStreamOptions) (azblob.DownloadStreamResponse, error)
+}
+
+// AzureBlobClientFactory creates Azure Blob clients
+type AzureBlobClientFactory interface {
+	NewClient(ctx context.Context, serviceURL, containerName string) (AzureBlobClient, error)
+}
 
 // azureBlobLoader is struct used for implementing Loader interface for loading migrations from Azure Blob
 type azureBlobLoader struct {
 	baseLoader
+	clientFactory AzureBlobClientFactory
+}
+
+// defaultAzureBlobClientFactory implements AzureBlobClientFactory
+type defaultAzureBlobClientFactory struct{}
+
+func (f *defaultAzureBlobClientFactory) NewClient(ctx context.Context, serviceURL, containerName string) (AzureBlobClient, error) {
+	// then try managed identity
+	credential, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	}
+	client, err := azblob.NewClient(serviceURL, credential, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &azureBlobClientWrapper{client: client, containerName: containerName}, nil
+}
+
+// azureBlobClientWrapper wraps the Azure Blob client to implement our interface
+type azureBlobClientWrapper struct {
+	client        *azblob.Client
+	containerName string
+}
+
+func (w *azureBlobClientWrapper) NewListBlobsFlatPager(containerName string, options *azblob.ListBlobsFlatOptions) *runtime.Pager[azblob.ListBlobsFlatResponse] {
+	return w.client.NewListBlobsFlatPager(containerName, options)
+}
+
+func (w *azureBlobClientWrapper) DownloadStream(ctx context.Context, containerName, blobName string, options *azblob.DownloadStreamOptions) (azblob.DownloadStreamResponse, error) {
+	return w.client.DownloadStream(ctx, containerName, blobName, options)
+}
+
+func (abl *azureBlobLoader) getClientFactory() AzureBlobClientFactory {
+	if abl.clientFactory != nil {
+		return abl.clientFactory
+	}
+	return &defaultAzureBlobClientFactory{}
 }
 
 // GetSourceMigrations returns all migrations from Azure Blob location
 func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
-
-	credential, err := abl.getAzureStorageCredentials()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
 	// migrator expects that container as a part of the service url
 	// the URL can contain optional prefixes like prod/artefacts
 	// for example:
 	// https://lukaszbudniktest.blob.core.windows.net/mycontainer/
 	// https://lukaszbudniktest.blob.core.windows.net/mycontainer/prod/artefacts/
 
-	// check if optional prefixes are provided
-	baseLocation := strings.TrimRight(abl.config.BaseLocation, "/")
-	indx := common.FindNthIndex(baseLocation, '/', 4)
+	// Parse URL to extract service URL and container name
 
-	optionalPrefixes := ""
-	if indx > -1 {
-		optionalPrefixes = baseLocation[indx+1:]
-		baseLocation = baseLocation[:indx]
-	}
+	serviceURL, containerName, optionalPrefixes := abl.parseBaseLocation()
 
-	u, err := url.Parse(baseLocation)
+	client, err := abl.getClientFactory().NewClient(abl.ctx, serviceURL, containerName)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	containerURL := azblob.NewContainerURL(*u, p)
-
-	return abl.doGetSourceMigrations(containerURL, optionalPrefixes)
+	return abl.doGetSourceMigrations(client, containerName, optionalPrefixes)
 }
 
-func (abl *azureBlobLoader) doGetSourceMigrations(containerURL azblob.ContainerURL, optionalPrefixes string) []types.Migration {
+func (abl *azureBlobLoader) doGetSourceMigrations(client AzureBlobClient, containerName, optionalPrefixes string) []types.Migration {
 	migrations := []types.Migration{}
 
-	singleMigrationsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.SingleMigrations)
-	tenantMigrationsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.TenantMigrations)
-	singleScriptsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.SingleScripts)
-	tenantScriptsObjects := abl.getObjectList(containerURL, optionalPrefixes, abl.config.TenantScripts)
+	singleMigrationsObjects := abl.getObjectList(client, containerName, optionalPrefixes, abl.config.SingleMigrations)
+	tenantMigrationsObjects := abl.getObjectList(client, containerName, optionalPrefixes, abl.config.TenantMigrations)
+	singleScriptsObjects := abl.getObjectList(client, containerName, optionalPrefixes, abl.config.SingleScripts)
+	tenantScriptsObjects := abl.getObjectList(client, containerName, optionalPrefixes, abl.config.TenantScripts)
 
 	migrationsMap := make(map[string][]types.Migration)
-	abl.getObjects(containerURL, migrationsMap, singleMigrationsObjects, types.MigrationTypeSingleMigration)
-	abl.getObjects(containerURL, migrationsMap, tenantMigrationsObjects, types.MigrationTypeTenantMigration)
+	abl.getObjects(client, containerName, migrationsMap, singleMigrationsObjects, types.MigrationTypeSingleMigration)
+	abl.getObjects(client, containerName, migrationsMap, tenantMigrationsObjects, types.MigrationTypeTenantMigration)
 	abl.sortMigrations(migrationsMap, &migrations)
 
 	migrationsMap = make(map[string][]types.Migration)
-	abl.getObjects(containerURL, migrationsMap, singleScriptsObjects, types.MigrationTypeSingleScript)
+	abl.getObjects(client, containerName, migrationsMap, singleScriptsObjects, types.MigrationTypeSingleScript)
 	abl.sortMigrations(migrationsMap, &migrations)
 
 	migrationsMap = make(map[string][]types.Migration)
-	abl.getObjects(containerURL, migrationsMap, tenantScriptsObjects, types.MigrationTypeTenantScript)
+	abl.getObjects(client, containerName, migrationsMap, tenantScriptsObjects, types.MigrationTypeTenantScript)
 	abl.sortMigrations(migrationsMap, &migrations)
 
 	return migrations
 }
 
-func (abl *azureBlobLoader) getObjectList(containerURL azblob.ContainerURL, optionalPrefixes string, prefixes []string) []string {
+func (abl *azureBlobLoader) getObjectList(client AzureBlobClient, containerName, optionalPrefixes string, prefixes []string) []string {
 	objects := []string{}
 
 	for _, prefix := range prefixes {
+		var fullPrefix string
+		if optionalPrefixes != "" {
+			fullPrefix = optionalPrefixes + "/" + prefix + "/"
+		} else {
+			fullPrefix = prefix + "/"
+		}
 
-		for marker := (azblob.Marker{}); marker.NotDone(); {
+		pager := client.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
+			Prefix: &fullPrefix,
+		})
 
-			var fullPrefix string
-			if optionalPrefixes != "" {
-				fullPrefix = optionalPrefixes + "/" + prefix + "/"
-			} else {
-				fullPrefix = prefix + "/"
-			}
-
-			listBlob, err := containerURL.ListBlobsFlatSegment(abl.ctx, marker, azblob.ListBlobsSegmentOptions{Prefix: fullPrefix})
+		for pager.More() {
+			page, err := pager.NextPage(abl.ctx)
 			if err != nil {
 				panic(err.Error())
 			}
-			marker = listBlob.NextMarker
 
-			for _, blobInfo := range listBlob.Segment.BlobItems {
-				objects = append(objects, blobInfo.Name)
+			for _, blob := range page.Segment.BlobItems {
+				if blob.Name != nil {
+					objects = append(objects, *blob.Name)
+				}
 			}
 		}
-
 	}
 
 	return objects
 }
 
-func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrationsMap map[string][]types.Migration, objects []string, migrationType types.MigrationType) {
+func (abl *azureBlobLoader) getObjects(client AzureBlobClient, containerName string, migrationsMap map[string][]types.Migration, objects []string, migrationType types.MigrationType) {
 	for _, o := range objects {
-		blobURL := containerURL.NewBlobURL(o)
-
-		get, err := blobURL.Download(abl.ctx, 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
+		response, err := client.DownloadStream(abl.ctx, containerName, o, nil)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		downloadedData := &bytes.Buffer{}
-		reader := get.Body(azblob.RetryReaderOptions{})
-		downloadedData.ReadFrom(reader)
-		reader.Close()
-
-		contents := downloadedData.String()
+		contents, err := io.ReadAll(response.Body)
+		if err != nil {
+			panic(err.Error())
+		}
+		response.Body.Close()
 
 		hasher := sha256.New()
-		hasher.Write([]byte(contents))
+		hasher.Write(contents)
 		file := fmt.Sprintf("%s/%s", abl.config.BaseLocation, o)
 		from := strings.LastIndex(file, "/")
 		sourceDir := file[0:from]
@@ -142,59 +175,49 @@ func (abl *azureBlobLoader) getObjects(containerURL azblob.ContainerURL, migrati
 			e = []types.Migration{m}
 		}
 		migrationsMap[m.Name] = e
-
 	}
-}
-
-func (abl *azureBlobLoader) getAzureStorageCredentials() (azblob.Credential, error) {
-	// try shared key credentials first
-	accountName, accountKey := os.Getenv("AZURE_STORAGE_ACCOUNT"), os.Getenv("AZURE_STORAGE_ACCESS_KEY")
-
-	if len(accountName) > 0 && len(accountKey) > 0 {
-		return azblob.NewSharedKeyCredential(accountName, accountKey)
-	}
-
-	// then try MSI and token credentials
-	msiConfig := auth.NewMSIConfig()
-	msiConfig.Resource = "https://storage.azure.com"
-
-	azureServicePrincipalToken, err := msiConfig.ServicePrincipalToken()
-	if err != nil {
-		return nil, err
-	}
-
-	token := azureServicePrincipalToken.Token()
-
-	credential := azblob.NewTokenCredential(token.AccessToken, nil)
-	return credential, nil
 }
 
 func (abl *azureBlobLoader) HealthCheck() error {
-	credential, err := abl.getAzureStorageCredentials()
+	serviceURL, containerName, prefix := abl.parseBaseLocation()
+
+	client, err := abl.getClientFactory().NewClient(abl.ctx, serviceURL, containerName)
 	if err != nil {
 		return err
 	}
 
-	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+	pager := client.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
+		Prefix: &prefix,
+	})
 
-	// check if optional prefixes are provided
-	baseLocation := strings.TrimRight(abl.config.BaseLocation, "/")
-	indx := common.FindNthIndex(baseLocation, '/', 4)
-
-	prefix := ""
-	if indx > -1 {
-		prefix = baseLocation[indx+1:]
-		baseLocation = baseLocation[:indx]
+	if pager.More() {
+		_, err = pager.NextPage(abl.ctx)
+		return err
 	}
 
+	return nil
+}
+
+func (abl *azureBlobLoader) parseBaseLocation() (string, string, string) {
+	baseLocation := strings.TrimSpace(abl.config.BaseLocation)
 	u, err := url.Parse(baseLocation)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	containerURL := azblob.NewContainerURL(*u, p)
+	serviceURL := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 
-	_, err = containerURL.ListBlobsFlatSegment(abl.ctx, azblob.Marker{}, azblob.ListBlobsSegmentOptions{Prefix: prefix, MaxResults: 1})
+	var containerName string
+	var optionalPrefixes string
 
-	return err
+	pathComponents := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(pathComponents) > 0 {
+		containerName = pathComponents[0]
+	}
+
+	if len(pathComponents) > 1 {
+		optionalPrefixes = strings.Join(pathComponents[1:], "/")
+	}
+
+	return serviceURL, containerName, optionalPrefixes
 }
