@@ -57,7 +57,7 @@ The image is ultra lightweight and has a size of 30MB. Ideal for micro-services 
 ## 📋 Table of Contents
 
 - [🚀 Quick Start Guide](#-quick-start-guide)
-- [📡 API](#api)
+- [📡 API](#-api)
 - [⚙️ Configuration](#-configuration)
 - [📁 Source migrations](#-source-migrations)
 - [🗄️ Supported databases](#-supported-databases)
@@ -180,9 +180,9 @@ curl -s -d @- http://localhost:$MIGRATOR_PORT/v2/service <<EOF | jq -r '.data.cr
 EOF
 ```
 
-> **💡 Tip**: For a complete GraphQL schema and production deployment guides, see the [API](#api) and [Tutorials](#tutorials) sections below.
+> **💡 Tip**: For a complete GraphQL schema and production deployment guides, see the [📡 API](#-api) and [📚 Tutorials](#-tutorials) sections below.
 
-## API
+## 📡 API
 
 To return build information together with a list of supported API versions execute:
 
