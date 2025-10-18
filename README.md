@@ -1,22 +1,51 @@
 # migrator ![Build](https://github.com/lukaszbudnik/migrator/workflows/Build/badge.svg) ![Docker](https://github.com/lukaszbudnik/migrator/workflows/Docker%20Image%20CI/badge.svg) [![Go Report Card](https://goreportcard.com/badge/github.com/lukaszbudnik/migrator)](https://goreportcard.com/report/github.com/lukaszbudnik/migrator) [![codecov](https://codecov.io/gh/lukaszbudnik/migrator/branch/main/graph/badge.svg)](https://codecov.io/gh/lukaszbudnik/migrator)
 
-Super fast and lightweight DB migration tool written in go. migrator outperforms other market leading DB migration frameworks by a few orders of magnitude when comparing both execution time and memory consumption (see [PERFORMANCE.md](PERFORMANCE.md)).
+Super fast and lightweight DB migration tool written in Go. migrator outperforms other market-leading DB migration frameworks by a few orders of magnitude when comparing both execution time and memory consumption (see [PERFORMANCE.md](PERFORMANCE.md)).
 
-migrator manages and versions all the DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with a multi-schema support out of the box. Making it an ideal DB migrations solution for multi-tenant SaaS products.
+## ✨ Key Features
+
+- **🚀 Ultra Performance**: Orders of magnitude faster than other migration tools
+- **☁️ Multi-Cloud Storage**: Read migrations from local disk, AWS S3, or Azure Blob Storage
+- **🏢 Multi-Tenant Ready**: Built-in support for multi-schema, multi-tenant SaaS applications
+- **📡 GraphQL API**: Modern HTTP GraphQL service with comprehensive query capabilities
+- **📊 Observability**: Built-in Prometheus metrics and health checks
+- **🐳 Container Native**: Ultra-lightweight 30MB Docker image, perfect for microservices
+- **🔧 Legacy Migration**: Sync existing migrations from other frameworks seamlessly
+- **🎯 CI/CD Ready**: Easy integration into continuous deployment pipelines
+
+## 🗄️ Supported Databases
+
+- **PostgreSQL** 9.6+ (and flavours: Amazon RDS/Aurora, Google CloudSQL)
+- **MySQL** 5.7+ (and flavours: MariaDB, TiDB, Percona, Amazon RDS/Aurora, Google CloudSQL)
+- **Microsoft SQL Server** 2008+
+
+## 📦 Installation
+
+The official docker image is available on:
+- Docker Hub: [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator)
+- GitHub Container Registry: [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator)
+
+```bash
+docker pull lukasz/migrator:latest
+```
+
+## 🎯 Overview
+
+migrator manages and versions all DB changes for you and completely eliminates manual and error-prone administrative tasks. migrator versions can be used for auditing and compliance purposes. migrator not only supports single schemas, but also comes with multi-schema support out of the box, making it an ideal DB migrations solution for multi-tenant SaaS products.
 
 migrator runs as a HTTP GraphQL service and can be easily integrated into existing continuous integration and continuous delivery pipelines. migrator can also sync existing migrations from legacy frameworks making the technology switch even more straightforward.
+
+migrator supports the following multi-tenant databases:
+
+- PostgreSQL and all its flavours
+- MySQL and all its flavours
+- Microsoft SQL Server
 
 migrator supports reading DB migrations from:
 
 - local folder (any Docker/Kubernetes deployments)
 - AWS S3
 - Azure Blob Containers
-
-migrator supports the following multi-tenant databases:
-
-- PostgreSQL 9.6+ and all its flavours
-- MySQL 5.6+ and all its flavours
-- Microsoft SQL Server 2008 R2+
 
 The official docker image is available on:
 
@@ -25,38 +54,167 @@ The official docker image is available on:
 
 The image is ultra lightweight and has a size of 30MB. Ideal for micro-services deployments!
 
-# API
+## 📋 Table of Contents
+
+- [🚀 Quick Start Guide](#-quick-start-guide)
+- [📡 API](#api)
+- [⚙️ Configuration](#-configuration)
+- [📁 Source migrations](#-source-migrations)
+- [🗄️ Supported databases](#-supported-databases)
+- [🔧 Customisation and legacy frameworks support](#-customisation-and-legacy-frameworks-support)
+- [📊 Metrics](#-metrics)
+- [🏥 Health Checks](#-health-checks)
+- [📚 Tutorials](#-tutorials)
+- [⚡ Performance](#-performance)
+
+## 🚀 Quick Start Guide
+
+You can apply your first migrations with migrator in literally a few seconds. There is a ready-to-use docker-compose file which sets up migrator and test databases.
+
+### 1. Get the migrator project
+
+Get the source code:
+
+```bash
+git clone https://github.com/lukaszbudnik/migrator.git
+cd migrator
+```
+
+### 2. Start migrator and test DB containers
+
+Start migrator and setup test DB containers using docker-compose:
+
+```bash
+docker-compose -f ./test/docker-compose.yaml up
+```
+
+docker-compose will start and configure the following services:
+
+1. `migrator` - service using latest official migrator image, listening on port `8181`
+2. `migrator-dev` - service built from local branch, listening on port `8282`
+3. `postgres` - PostgreSQL service, listening on port `54325`
+4. `mysql` - MySQL service, listening on port `3306`
+5. `mssql` - MS SQL Server, listening on port `1433`
+
+### 3. Play around with migrator
+
+Set the port and create your first migration:
+
+```bash
+MIGRATOR_PORT=8181
+COMMIT_SHA="your-version-here"
+
+# Create new version
+curl -s -d @- http://localhost:$MIGRATOR_PORT/v2/service <<EOF | jq
+{
+  "query": "mutation CreateVersion(\$input: VersionInput!) {
+    createVersion(input: \$input) {
+      version { id, name }
+    }
+  }",
+  "variables": {
+    "input": {
+      "versionName": "$COMMIT_SHA"
+    }
+  }
+}
+EOF
+
+# Fetch migrator versions
+curl -s -d @- http://localhost:$MIGRATOR_PORT/v2/service <<EOF | jq -r ".data.versions"
+{
+  "query": "
+  query Versions {
+    versions {
+        id,
+        name,
+        created,
+      }
+  }",
+  "operationName": "Versions"
+}
+EOF
+
+# Fetch tenants
+curl -s -d @- http://localhost:$MIGRATOR_PORT/v2/service <<EOF | jq -r ".data.tenants"
+{
+  "query": "
+  query Tenants {
+    tenants {
+        name
+      }
+  }",
+  "operationName": "Tenants"
+}
+EOF
+
+# Create new tenant
+TENANT_NAME="newcustomer$RANDOM"
+VERSION_NAME="create-tenant-$TENANT_NAME"
+curl -s -d @- http://localhost:$MIGRATOR_PORT/v2/service <<EOF | jq -r '.data.createTenant'
+{
+  "query": "
+  mutation CreateTenant(\$input: TenantInput!) {
+    createTenant(input: \$input) {
+      version {
+        id,
+        name,
+      }
+      summary {
+        startedAt
+        duration
+        tenants
+        migrationsGrandTotal
+        scriptsGrandTotal
+      }
+    }
+  }",
+  "operationName": "CreateTenant",
+  "variables": {
+    "input": {
+      "versionName": "$VERSION_NAME",
+      "tenantName": "$TENANT_NAME"
+    }
+  }
+}
+EOF
+```
+
+> **💡 Tip**: For a complete GraphQL schema and production deployment guides, see the [API](#api) and [Tutorials](#tutorials) sections below.
+
+## API
 
 To return build information together with a list of supported API versions execute:
 
 ```bash
-curl http://localhost:8080/
+MIGRATOR_PORT=8181
+curl http://localhost:${MIGRATOR_PORT}/
 ```
 
 Sample HTTP response:
 
 ```json
 {
-  "release": "refs/tags/v2021.1.0",
-  "sha": "3ede93745e459e1214513b21ef76d94d09d10ae7",
+  "release": "refs/tags/v2023.0.1",
+  "sha": "43a6858b74832c185783969b3afbf7c2547a533a",
   "apiVersions": ["v2"]
 }
 ```
 
-## /v2 - GraphQL API
+### /v2 - GraphQL API
 
 API v2 is a GraphQL API. API v2 was introduced in migrator v2020.1.0.
 
 API v2 introduced a formal concept of a DB version. Every migrator action creates a new DB version. Version logically groups all applied DB migrations for auditing and compliance purposes. You can browse versions together with executed DB migrations using the GraphQL API.
 
-## GET /v2/config
+### GET /v2/config
 
-Returns migrator's config as `application/x-yaml`.
+Returns migrator's config as `application/yaml`.
 
 Sample request:
 
 ```bash
-curl http://localhost:8080/v2/config
+curl http://localhost:${MIGRATOR_PORT}/v2/config
 ```
 
 Sample HTTP response:
@@ -73,16 +231,16 @@ tenantMigrations:
 pathPrefix: /
 ```
 
-## GET /v2/schema
+### GET /v2/schema
 
 Returns migrator's GraphQL schema as `plain/text`.
 
-Although migrator supports GraphQL introspection it is much more convenient to get the schema in the plain text.
+Although migrator supports GraphQL introspection, it is much more convenient to get the schema in plain text.
 
 Sample request:
 
 ```bash
-curl http://localhost:8080/v2/schema
+curl http://localhost:${MIGRATOR_PORT}/v2/schema
 ```
 
 The API v2 GraphQL schema and its description is as follows:
@@ -224,215 +382,29 @@ type Mutation {
 }
 ```
 
-## POST /v2/service
+### POST /v2/service
 
 This is a GraphQL endpoint which handles both query and mutation requests.
 
-There are code generators available which can generate client code based on GraphQL schema. This would be the preferred way of consuming migrator's GraphQL endpoint.
+See [Quick Start Guide](#-quick-start-guide) for a few curl examples to get you started.
 
-In [Quick Start Guide](#quick-start-guide) there are a few curl examples to get you started.
+The preferred way of consuming migrator's GraphQL endpoint is to use GraphQL clients. These clients can be generated from the GraphQL schema in any programming language you use (Java, Python, C#, JavaScript, Go, etc.).
 
-## /v1 - REST API
+### /v1 - REST API
 
 API v1 was sunset in v2021.0.0.
 
 The documentation is available in a separate document [API v1](APIv1.md).
 
-## Request tracing
+### Request tracing
 
 migrator uses request tracing via `X-Request-ID` header. This header can be used with all requests for tracing and/or auditing purposes. If this header is absent migrator will generate one for you.
 
-# Quick Start Guide
-
-You can apply your first migrations with migrator in literally a few seconds. There is a ready-to-use docker-compose file which sets up migrator and test databases.
-
-## 1. Get the migrator project
-
-Get the source code:
-
-```bash
-git clone https://github.com/lukaszbudnik/migrator.git
-cd migrator
-```
-
-Points to note:
-
-- migrator aims to support 3 latest go versions (these versions are automatically built and tested by GitHub Actions)
-- docker images are built using latest stable go version
-- dependabot automatically updates go and docker dependencies on a weekly basis
-- every merge to `main` branch triggers CI/CD pipeline which publishes `edge` tag to both docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator) and [ghcr.io/lukaszbudnik/migrator](https://github.com/lukaszbudnik/migrator/pkgs/container/migrator)
-- major/minor releases are coordinated via [GitHub Projects](https://github.com/lukaszbudnik/migrator/projects)
-
-## 2. Start migrator and test DB containers
-
-Start migrator and setup test DB containers using docker-compose:
-
-```bash
-docker-compose -f ./test/docker-compose.yaml up
-```
-
-docker-compose will start and configure the following services:
-
-1. `migrator` - service using latest official migrator image, listening on port `8181`
-2. `migrator-dev` - service built from local branch, listening on port `8282`
-3. `postgres` - PostgreSQL service, listening on port `54325`
-4. `mysql` - MySQL service, listening on port `3306`
-5. `mssql` - MS SQL Server, listening on port `1433`
-
-> Note: Every database container has a ready-to-use migrator config in `test` directory. You can edit `test/docker-compose.yaml` file and switch to a different database. By default `migrator` and `migrator-dev` services use `test/migrator-docker.yaml` which connects to `mysql` service.
-
-## 3. migrator and migrator-dev services
-
-docker-compose will start 2 migrator services. The first one `migrator` will use the latest official migrator docker image from docker hub [lukasz/migrator](https://hub.docker.com/r/lukasz/migrator). The second one `migrator-dev` will be built automatically by docker-compose from your local branch.
-
-In order to run the docker container remember to:
-
-1. mount a volume with migrations, for example: `/data`
-2. specify location of migrator configuration file, for convenience it is usually located under `/data` directory; it defaults to `/data/migrator.yaml` and can be overridden by setting environment variable `MIGRATOR_YAML`
-
-The docker-compose will mount volumes with sample configuration and test migrations for you. See `test/docker-compose.yaml` for details.
-
-> Note: For production deployments please see [Tutorials](#tutorials) section. It contains walkthoughs of deployments to AWS ECS, AWS EKS, and Azure AKS.
-
-## 4. Play around with migrator
-
-The docker-compose will start 2 migrator services as listed above. The latest stable migrator version listens on port `8181`. migrator built from the local branch listens on port `8282`.
-
-Set the port accordingly:
-
-```bash
-MIGRATOR_PORT=8181
-```
-
-Create new version, return version id and name together with operation summary:
-
-```bash
-# versionName parameter is required and can be:
-# 1. your version number
-# 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
-# 3. or if you do CI/CD the commit sha (recommended)
-COMMIT_SHA="acfd70fd1f4c7413e558c03ed850012627c9caa9"
-# new lines are used for readability but have to be removed from the actual request
-cat <<EOF | tr -d "\n" > create_version.txt
-{
-  "query": "
-  mutation CreateVersion(\$input: VersionInput!) {
-    createVersion(input: \$input) {
-      version {
-        id,
-        name,
-      }
-      summary {
-        startedAt
-        tenants
-        migrationsGrandTotal
-        scriptsGrandTotal
-      }
-    }
-  }",
-  "operationName": "CreateVersion",
-  "variables": {
-    "input": {
-      "versionName": "$COMMIT_SHA"
-    }
-  }
-}
-EOF
-# and now execute the above query
-curl -d @create_version.txt http://localhost:$MIGRATOR_PORT/v2/service
-```
-
-Create new tenant, run in dry-run mode, run `Sync` action (instead of default `Apply`), return version id and name, DB migrations, and operation summary:
-
-```bash
-# versionName parameter is required and can be:
-# 1. your version number
-# 2. if you do multiple deploys to dev envs perhaps it could be a version number concatenated with current date time
-# 3. or if you do CI/CD the commit sha (recommended)
-COMMIT_SHA="acfd70fd1f4c7413e558c03ed850012627c9caa9"
-# tenantName parameter is also required (should not come as a surprise since we want to create new tenant)
-TENANT_NAME="new_customer_of_yours"
-# new lines are used for readability but have to be removed from the actual request
-cat <<EOF | tr -d "\n" > create_tenant.txt
-{
-  "query": "
-  mutation CreateTenant(\$input: TenantInput!) {
-    createTenant(input: \$input) {
-      version {
-        id,
-        name,
-        dbMigrations {
-          id,
-          file,
-          schema
-        }
-      }
-      summary {
-        startedAt
-        tenants
-        migrationsGrandTotal
-        scriptsGrandTotal
-      }
-    }
-  }",
-  "operationName": "CreateTenant",
-  "variables": {
-    "input": {
-      "dryRun": true,
-      "action": "Sync",
-      "versionName": "$COMMIT_SHA - $TENANT_NAME",
-      "tenantName": "$TENANT_NAME"
-    }
-  }
-}
-EOF
-# and now execute the above query
-curl -d @create_tenant.txt http://localhost:$MIGRATOR_PORT/v2/service
-```
-
-Migrator supports multiple operations in a single GraphQL query. Let's fetch source single migrations, source tenant migrations, and tenants in a single GraphQL query:
-
-```bash
-# new lines are used for readability but have to be removed from the actual request
-cat <<EOF | tr -d "\n" > query.txt
-{
-  "query": "
-  query Data(\$singleMigrationsFilters: SourceMigrationFilters, \$tenantMigrationsFilters: SourceMigrationFilters) {
-    singleTenantSourceMigrations: sourceMigrations(filters: \$singleMigrationsFilters) {
-      file
-      migrationType
-    }
-    multiTenantSourceMigrations: sourceMigrations(filters: \$tenantMigrationsFilters) {
-      file
-      migrationType
-      checkSum
-    }
-    tenants {
-      name
-    }
-  }",
-  "operationName": "Data",
-  "variables": {
-    "singleMigrationsFilters": {
-      "migrationType": "SingleMigration"
-    },
-    "tenantMigrationsFilters": {
-      "migrationType": "TenantMigration"
-    }
-  }
-}
-EOF
-# and now execute the above query
-curl -d @query.txt http://localhost:$MIGRATOR_PORT/v2/service
-```
-
-For more GraphQL query and mutation examples see `data/graphql_test.go`.
-
-# Configuration
+## ⚙️ Configuration
 
 Let's see how to configure migrator.
 
-## migrator.yaml
+### migrator.yaml
 
 migrator configuration file is a simple YAML file. Take a look at a sample `migrator.yaml` configuration file which contains the description, correct syntax, and sample values for all available properties.
 
@@ -460,14 +432,14 @@ tenantMigrations:
 # optional, directories of single SQL scripts which are applied always, these are subdirectories of baseLocation
 singleScripts:
   - config-scripts
-# optional, directories of tenant SQL script which are applied always for all tenants, these are subdirectories of baseLocation
+# optional, directories of tenant SQL scripts which are applied always for all tenants, these are subdirectories of baseLocation
 tenantScripts:
   - tenants-scripts
 # optional, default is 8080
 port: 8080
 # path prefix is optional and defaults to '/'
 # path prefix is used for application HTTP request routing by Application Load Balancers/Application Gateways
-# for example when deploying to AWS ECS and using AWS ALB the path prefix could set as below
+# for example when deploying to AWS ECS and using AWS ALB the path prefix could be set as below
 # then all HTTP requests should be prefixed with that path, for example: /migrator/v1/config, /migrator/v1/migrations/source, etc.
 pathPrefix: /migrator
 # the webhook configuration section is optional
@@ -486,7 +458,7 @@ webHookHeaders:
 logLevel: INFO
 ```
 
-## Env variables substitution
+### Env variables substitution
 
 migrator supports env variables substitution in config file. All patterns matching `${NAME}` will look for env variable `NAME`. Below are some common use cases:
 
@@ -496,7 +468,7 @@ webHookHeaders:
   - "X-Security-Token: ${SECURITY_TOKEN}"
 ```
 
-## WebHook template
+### WebHook template
 
 By default when a webhook is configured migrator will post a JSON representation of `Summary` struct to its endpoint.
 
@@ -511,11 +483,11 @@ Placeholders can be mixed:
 webHookTemplate: '{"text": "New version created: ${summary.versionId} started at: ${summary.startedAt} and took ${summary.duration}. Migrations/scripts total: ${summary.migrationsGrandTotal}/${summary.scriptsGrandTotal}. Full results are: ${summary}"}'
 ```
 
-# Source migrations
+## 📁 Source migrations
 
 Migrations can be read from local disk, AWS S3, Azure Blob Containers. I'm open to contributions to add more cloud storage options.
 
-## Local storage
+### Local storage
 
 If `baseLocation` property is a path (either relative or absolute) local storage implementation is used:
 
@@ -526,7 +498,7 @@ baseLocation: test/migrations
 baseLocation: /project/migrations
 ```
 
-## AWS S3
+### AWS S3
 
 If `baseLocation` starts with `s3://` prefix, AWS S3 implementation is used. In such case the `baseLocation` property is treated as a bucket name followed by optional prefix:
 
@@ -539,7 +511,7 @@ baseLocation: s3://your-bucket-migrator/appcodename/prod/artefacts
 
 migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html).
 
-## Azure Blob Containers
+### Azure Blob Containers
 
 If `baseLocation` matches `^https://.*\.blob\.core\.windows\.net/.*` regex, Azure Blob implementation is used. In such case the `baseLocation` property is treated as a container URL. The URL can have optional prefix too:
 
@@ -552,11 +524,11 @@ baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer/appco
 
 migrator uses official Azure SDK for Go and supports authentication using Storage Account Key (via `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` env variables) as well as much more flexible (and recommended) Azure Active Directory Managed Identity.
 
-# Supported databases
+## 🗄️ Supported databases
 
 Currently migrator supports the following databases including their flavours (like Percona, MariaDB for MySQL, etc.). Please review the Go driver implementation for information about all supported features and how `dataSource` configuration property should look like.
 
-## PostgreSQL 9.6+
+### PostgreSQL 9.6+
 
 Schema-based multi-tenant database, with transactions spanning DDL statements, driver used: https://github.com/lib/pq.
 
@@ -567,7 +539,7 @@ The following versions and flavours are supported by the driver:
 - Amazon Aurora PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 - Google CloudSQL PostgreSQL - PostgreSQL-compatible relational database built for the cloud
 
-## MySQL 5.7+
+### MySQL 5.7+
 
 Database-based multi-tenant database, transactions do not span DDL statements, driver used: https://github.com/go-sql-driver/mysql.
 
@@ -581,17 +553,17 @@ The following versions and flavours are supported by the driver:
 - Amazon Aurora MySQL - MySQL-compatible relational database built for the cloud
 - Google CloudSQL MySQL - MySQL-compatible relational database built for the cloud
 
-## Microsoft SQL Server 2008+
+### Microsoft SQL Server 2008+
 
 A relational database management system developed by Microsoft, driver used: https://github.com/microsoft/go-mssqldb.
 
 The Go driver supports all Microsoft SQL Server versions starting with 2008.
 
-# Customisation and legacy frameworks support
+## 🔧 Customisation and legacy frameworks support
 
 migrator can be used with an already existing legacy DB migration framework.
 
-## Custom tenants support
+### Custom tenants support
 
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
 In the config file you need to provide 2 configuration properties:
@@ -606,7 +578,7 @@ tenantSelectSQL: select name from global.customers
 tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
 ```
 
-## Custom schema placeholder
+### Custom schema placeholder
 
 SQL migrations and scripts can use `{schema}` placeholder which will be automatically replaced by migrator with a current schema. For example:
 
@@ -625,7 +597,7 @@ For example:
 schemaPlaceHolder: :tenant
 ```
 
-## Synchonising legacy migrations to migrator
+### Synchronising legacy migrations to migrator
 
 Before switching from a legacy tool you need to synchronise source migrations to migrator. migrator has no knowledge of migrations applied by other tools and as such will attempt to apply all found source migrations.
 
@@ -633,16 +605,16 @@ Synchronising will load all source migrations and mark them as applied. This can
 
 Once the initial synchronisation is done you can use migrator for all the consecutive DB migrations.
 
-## Final comments
+### Final comments
 
 When using migrator please remember that:
 
 - migrator creates `migrator` schema together with `migrator_versions` and `migrator_migrations` tables automatically
 - if you're not using [Custom tenants support](#custom-tenants-support) migrator creates `migrator_tenants` table automatically
 - when adding a new tenant migrator creates a new DB schema and applies all tenant migrations and scripts
-- single schemas are not created automatically, you must add initial migration with `create schema {schema}` SQL statement (see sample migrations in `test` folder)
+- single schemas are not created automatically, you must add an initial migration with `create schema {schema}` SQL statement (see sample migrations in `test` folder)
 
-# Metrics
+## 📊 Metrics
 
 migrator exposes Prometheus metrics at `/metrics` endpoint. Apart from migrator-specific metrics, it exposes a lot of OS process and Go metrics.
 
@@ -660,7 +632,7 @@ The following metrics are available:
 - `migrator_gin_migrations_applied{type="tenant_migrations_total"}` - migrator total tenant migrations applied (for all tenants)
 - `migrator_gin_migrations_applied{type="tenant_scripts_total"}` - migrator total tenant scripts applied (for all tenants)
 
-# Health Checks
+## 🏥 Health Checks
 
 Health checks are available at `/health` endpoint. migrator implements [Eclipse MicroProfile Health 3.0 RC4](https://download.eclipse.org/microprofile/microprofile-health-3.0-RC4/microprofile-health-spec.html) spec.
 
@@ -706,54 +678,54 @@ In case one of the checks has DOWN status then the overall status is DOWN. Faile
 }
 ```
 
-# Tutorials
+## 📚 Tutorials
 
 In this section I provide links to more in-depth migrator tutorials.
 
-## Deploying migrator to AWS ECS
+### Deploying migrator to AWS ECS
 
 The goal of this tutorial is to deploy migrator to AWS ECS, load migrations from AWS S3 and apply them to AWS RDS DB while storing env variables securely in AWS Secrets Manager. The list of all AWS services used is: IAM, ECS, ECR, Secrets Manager, RDS, and S3.
 
 You can find it in [tutorials/aws-ecs](tutorials/aws-ecs).
 
-## Deploying migrator to AWS EKS
+### Deploying migrator to AWS EKS
 
 The goal of this tutorial is to deploy migrator to AWS EKS, load migrations from AWS S3 and apply them to AWS RDS DB. The list of AWS services used is: IAM, EKS, ECR, RDS, and S3.
 
 You can find it in [tutorials/aws-eks](tutorials/aws-eks).
 
-## Deploying migrator to Azure AKS
+### Deploying migrator to Azure AKS
 
 The goal of this tutorial is to publish migrator image to Azure ACR private container repository, deploy migrator to Azure AKS, load migrations from Azure Blob Container and apply them to Azure Database for PostgreSQL. The list of Azure services used is: AKS, ACR, Blob Storage, and Azure Database for PostgreSQL.
 
 You can find it in [tutorials/azure-aks](tutorials/azure-aks).
 
-## Securing migrator with OAuth2
+### Securing migrator with OAuth2
 
 The goal of this tutorial is to secure migrator with OAuth2. It shows how to deploy oauth2-proxy in front of migrator which will off-load and transparently handle authorization for migrator end-users.
 
 You can find it in [tutorials/oauth2-proxy](tutorials/oauth2-proxy).
 
-## Securing migrator with OIDC
+### Securing migrator with OIDC
 
 The goal of this tutorial is to secure migrator with OAuth2 and OIDC. It shows how to deploy oauth2-proxy and haproxy in front of migrator which will off-load and transparently handle both authorization (oauth2-proxy) and authentication (haproxy with custom lua script) for migrator end-users.
 
 You can find it in [tutorials/oauth2-proxy-oidc-haproxy](tutorials/oauth2-proxy-oidc-haproxy).
 
-# Performance
+## ⚡ Performance
 
 Performance benchmarks were moved to a dedicated [PERFORMANCE.md](PERFORMANCE.md) document.
 
-# Change log
+## Change log
 
 Please navigate to [migrator/releases](https://github.com/lukaszbudnik/migrator/releases) for a complete list of versions, features, and change log.
 
-# Contributing
+## Contributing
 
 Contributions are most welcomed!
 
 For contributing, code style, running unit & integration tests please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-# License
+## License
 
 Apache 2.0 License - see [LICENSE](LICENSE).

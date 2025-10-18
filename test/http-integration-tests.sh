@@ -125,8 +125,8 @@ echo "Number of versions in migrator: $versions_count"
 
 echo "------------------------------------------------------------------------------"
 echo "5. About to create new tenant..."
-VERSION_NAME="create-tenant-$COMMIT_SHA-$RANDOM"
 TENANT_NAME="newcustomer$RANDOM"
+VERSION_NAME="create-tenant-$TENANT_NAME"
 cat <<EOF | tr -d "\n" > create_tenant.txt
 {
   "query": "
