@@ -37,7 +37,7 @@ type azureBlobLoader struct {
 type defaultAzureBlobClientFactory struct{}
 
 func (f *defaultAzureBlobClientFactory) NewClient(ctx context.Context, serviceURL, containerName string) (AzureBlobClient, error) {
-	// then try managed identity
+	// use the recommended Microsoft Entra ID
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,6 @@ func (abl *azureBlobLoader) GetSourceMigrations() []types.Migration {
 	// https://lukaszbudniktest.blob.core.windows.net/mycontainer/prod/artefacts/
 
 	// Parse URL to extract service URL and container name
-
 	serviceURL, containerName, optionalPrefixes := abl.parseBaseLocation()
 
 	client, err := abl.getClientFactory().NewClient(abl.ctx, serviceURL, containerName)

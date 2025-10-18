@@ -31,11 +31,11 @@ jobs:
 
     - name: Start docker-compose services
       run: docker compose -f test/docker-compose-it.yaml up -d --wait
+    
+    - name: Wait for DB services to be up
+      run: sleep 10
 
     - name: Build and test migrator
-      env:
-        AZURE_STORAGE_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCESS_KEY }}
-        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
       run: ./coverage.sh
 
     - name: Run HTTP integration tests
