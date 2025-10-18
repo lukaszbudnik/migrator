@@ -1,7 +1,7 @@
 version: "3.6"
 services:
   postgres:
-    image: postgres
+    image: postgres:18
     ports:
       - "5432:5432"
     environment:
@@ -18,13 +18,20 @@ services:
   #   links:
   #     - postgres
   mysql:
-    image: mysql
+    image: mysql:9
     ports:
       - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=supersecret
     volumes:
       - ./create-test-tenants.sql:/docker-entrypoint-initdb.d/create-test-tenants.sql
+    command:
+      - /bin/bash
+      - -c
+      - |
+        while ! mysqladmin ping --password=$$MYSQL_ROOT_PASSWORD --silent; do
+          sleep 1
+        done
   # phpmyadmin:
   #   image: phpmyadmin/phpmyadmin
   #   depends_on:
