@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine3.22 as builder
+FROM golang:1.25-alpine3.22 as builder
 
 LABEL org.opencontainers.image.authors="Łukasz Budnik <lukasz.budnik@gmail.com>"
 
