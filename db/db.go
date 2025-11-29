@@ -135,8 +135,13 @@ func (bc *baseConnector) Dispose() {
 // getTenantSelectSQL returns SQL to be executed to list all DB tenants
 func (bc *baseConnector) getTenantSelectSQL() string {
 	var tenantSelectSQL string
-	if bc.config.TenantSelectSQL != "" {
-		tenantSelectSQL = bc.config.TenantSelectSQL
+	tenantSelect := bc.config.GetTenantSelect()
+	if tenantSelect != "" {
+		// Log warning if using deprecated field
+		if bc.config.IsUsingDeprecatedTenantSelectSQL() {
+			common.LogWarn(bc.ctx, "tenantSelectSQL is deprecated since v2025.1.0 and will be removed in v2027.0.0. Use tenantSelect instead.")
+		}
+		tenantSelectSQL = tenantSelect
 	} else {
 		tenantSelectSQL = bc.dialect.GetTenantSelectSQL()
 	}
@@ -452,8 +457,13 @@ func (bc *baseConnector) getTenantInsertSQL() string {
 	var tenantInsertSQL string
 	// if set explicitly in config use it
 	// otherwise use default value provided by Dialect implementation
-	if bc.config.TenantInsertSQL != "" {
-		tenantInsertSQL = bc.config.TenantInsertSQL
+	tenantInsert := bc.config.GetTenantInsert()
+	if tenantInsert != "" {
+		// Log warning if using deprecated field
+		if bc.config.IsUsingDeprecatedTenantInsertSQL() {
+			common.LogWarn(bc.ctx, "tenantInsertSQL is deprecated since v2025.1.0 and will be removed in v2027.0.0. Use tenantInsert instead.")
+		}
+		tenantInsertSQL = tenantInsert
 	} else {
 		tenantInsertSQL = bc.dialect.GetTenantInsertSQL()
 	}

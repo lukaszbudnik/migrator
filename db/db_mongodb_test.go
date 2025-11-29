@@ -276,3 +276,123 @@ func TestMongoDBInitIdempotent(t *testing.T) {
 	assert.Nil(t, err) // Should return nil immediately when already initialized
 	assert.True(t, mongoConnector.initialised)
 }
+
+func TestMongoDBGetTenantCollectionNameDefault(t *testing.T) {
+	config := &config.Config{
+		Driver:     "mongodb",
+		DataSource: "mongodb://localhost:27017",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	collectionName := mongoConnector.getTenantCollectionName()
+	assert.Equal(t, "migrator_tenants", collectionName)
+}
+
+func TestMongoDBGetTenantCollectionNameCustom(t *testing.T) {
+	config := &config.Config{
+		Driver:       "mongodb",
+		DataSource:   "mongodb://localhost:27017",
+		TenantSelect: "customers",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	collectionName := mongoConnector.getTenantCollectionName()
+	assert.Equal(t, "customers", collectionName)
+}
+
+func TestMongoDBGetTenantCollectionNameWithField(t *testing.T) {
+	config := &config.Config{
+		Driver:       "mongodb",
+		DataSource:   "mongodb://localhost:27017",
+		TenantSelect: "customers.tenant_name",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	collectionName := mongoConnector.getTenantCollectionName()
+	assert.Equal(t, "customers", collectionName)
+}
+
+func TestMongoDBGetTenantFieldNameDefault(t *testing.T) {
+	config := &config.Config{
+		Driver:     "mongodb",
+		DataSource: "mongodb://localhost:27017",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	fieldName := mongoConnector.getTenantFieldName()
+	assert.Equal(t, "name", fieldName)
+}
+
+func TestMongoDBGetTenantFieldNameCustom(t *testing.T) {
+	config := &config.Config{
+		Driver:       "mongodb",
+		DataSource:   "mongodb://localhost:27017",
+		TenantSelect: "customers.tenant_name",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	fieldName := mongoConnector.getTenantFieldName()
+	assert.Equal(t, "tenant_name", fieldName)
+}
+
+func TestMongoDBGetTenantFieldNameCollectionOnly(t *testing.T) {
+	config := &config.Config{
+		Driver:       "mongodb",
+		DataSource:   "mongodb://localhost:27017",
+		TenantSelect: "customers",
+	}
+
+	connector := newMongoDBConnector(context.Background(), config)
+	mongoConnector := connector.(*mongoDBConnector)
+
+	fieldName := mongoConnector.getTenantFieldName()
+	assert.Equal(t, "name", fieldName)
+}
+
+func TestConfigGetTenantSelectBackwardCompatibility(t *testing.T) {
+	// Test new field takes precedence
+	cfg := &config.Config{
+		TenantSelect:    "new_value",
+		TenantSelectSQL: "old_value",
+	}
+	assert.Equal(t, "new_value", cfg.GetTenantSelect())
+
+	// Test old field still works
+	cfg = &config.Config{
+		TenantSelectSQL: "old_value",
+	}
+	assert.Equal(t, "old_value", cfg.GetTenantSelect())
+
+	// Test empty returns empty
+	cfg = &config.Config{}
+	assert.Equal(t, "", cfg.GetTenantSelect())
+}
+
+func TestConfigGetTenantInsertBackwardCompatibility(t *testing.T) {
+	// Test new field takes precedence
+	cfg := &config.Config{
+		TenantInsert:    "new_value",
+		TenantInsertSQL: "old_value",
+	}
+	assert.Equal(t, "new_value", cfg.GetTenantInsert())
+
+	// Test old field still works
+	cfg = &config.Config{
+		TenantInsertSQL: "old_value",
+	}
+	assert.Equal(t, "old_value", cfg.GetTenantInsert())
+
+	// Test empty returns empty
+	cfg = &config.Config{}
+	assert.Equal(t, "", cfg.GetTenantInsert())
+}

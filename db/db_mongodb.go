@@ -97,7 +97,13 @@ func (mc *mongoDBConnector) GetTenants() []types.Tenant {
 		return []types.Tenant{}
 	}
 
-	col := mc.db.Collection(migratorTenantsTable)
+	// Support custom tenant collection via config
+	collectionName := mc.getTenantCollectionName()
+	col := mc.db.Collection(collectionName)
+
+	// Support custom field name via config
+	fieldName := mc.getTenantFieldName()
+
 	cursor, err := col.Find(mc.ctx, bson.M{})
 	if err != nil {
 		common.LogError(mc.ctx, "Failed to get tenants: %v", err)
@@ -111,7 +117,9 @@ func (mc *mongoDBConnector) GetTenants() []types.Tenant {
 		if err := cursor.Decode(&doc); err != nil {
 			continue
 		}
-		tenants = append(tenants, types.Tenant{Name: doc["name"].(string)})
+		if name, ok := doc[fieldName].(string); ok {
+			tenants = append(tenants, types.Tenant{Name: name})
+		}
 	}
 
 	return tenants
@@ -381,8 +389,11 @@ func (mc *mongoDBConnector) CreateTenant(tenantName string, versionName string, 
 	}
 
 	// Create tenant
-	tenantsCol := mc.db.Collection(migratorTenantsTable)
-	_, err := tenantsCol.InsertOne(mc.ctx, bson.M{"name": tenantName, "created": time.Now()})
+	collectionName := mc.getTenantCollectionName()
+	fieldName := mc.getTenantFieldName()
+	tenantsCol := mc.db.Collection(collectionName)
+	tenantDoc := bson.M{fieldName: tenantName, "created": time.Now()}
+	_, err := tenantsCol.InsertOne(mc.ctx, tenantDoc)
 	if err != nil {
 		common.LogError(mc.ctx, "Failed to create tenant: %v", err)
 		return nil, nil
@@ -447,6 +458,35 @@ func (mc *mongoDBConnector) Dispose() {
 }
 
 // Helper methods
+
+func (mc *mongoDBConnector) getTenantCollectionName() string {
+	// Check if custom tenant select is configured
+	// Format: "collection_name" or "collection_name.field_name"
+	tenantSelect := mc.config.GetTenantSelect()
+	if tenantSelect != "" {
+		// Log warning if using deprecated field
+		if mc.config.IsUsingDeprecatedTenantSelectSQL() {
+			common.LogWarn(mc.ctx, "tenantSelectSQL is deprecated since v2025.1.0 and will be removed in v2027.0.0. Use tenantSelect instead.")
+		}
+		// Parse collection name (before dot if present)
+		parts := strings.Split(tenantSelect, ".")
+		return parts[0]
+	}
+	return migratorTenantsTable
+}
+
+func (mc *mongoDBConnector) getTenantFieldName() string {
+	// Check if custom tenant select is configured
+	// Format: "collection_name" or "collection_name.field_name"
+	tenantSelect := mc.config.GetTenantSelect()
+	if tenantSelect != "" {
+		parts := strings.Split(tenantSelect, ".")
+		if len(parts) > 1 {
+			return parts[1]
+		}
+	}
+	return "name"
+}
 
 func (mc *mongoDBConnector) convertToTime(v interface{}) time.Time {
 	switch t := v.(type) {

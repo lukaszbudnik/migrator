@@ -129,3 +129,78 @@ func TestMongoDBHealthCheck(t *testing.T) {
 	err = connector.HealthCheck()
 	assert.Nil(t, err)
 }
+
+func TestMongoDBCustomTenantCollection(t *testing.T) {
+	// Test with custom collection name (default field)
+	cfg := &config.Config{
+		Driver:           "mongodb",
+		DataSource:       "mongodb://localhost:27017",
+		TenantSelect:     "custom_tenants",
+		TenantInsert:     "custom_tenants",
+		SingleMigrations: []string{"admin"},
+	}
+
+	connector := New(newTestContext(), cfg)
+	defer connector.Dispose()
+
+	// Create tenant in custom collection
+	tenantName := fmt.Sprintf("custom_tenant_%d", time.Now().UnixNano())
+	results, version := connector.CreateTenant(tenantName, "test-custom-collection", types.ActionSync, []types.Migration{}, false)
+
+	assert.NotNil(t, version)
+	assert.Equal(t, int32(1), results.Tenants)
+
+	// Verify tenant was created in custom collection
+	tenants := connector.GetTenants()
+	assert.Contains(t, tenants, types.Tenant{Name: tenantName})
+}
+
+func TestMongoDBCustomTenantCollectionAndField(t *testing.T) {
+	// Test with custom collection and custom field name
+	cfg := &config.Config{
+		Driver:           "mongodb",
+		DataSource:       "mongodb://localhost:27017",
+		TenantSelect:     "organizations.org_name",
+		TenantInsert:     "organizations.org_name",
+		SingleMigrations: []string{"admin"},
+	}
+
+	connector := New(newTestContext(), cfg)
+	defer connector.Dispose()
+
+	// Create tenant in custom collection with custom field
+	tenantName := fmt.Sprintf("org_%d", time.Now().UnixNano())
+	results, version := connector.CreateTenant(tenantName, "test-custom-field", types.ActionSync, []types.Migration{}, false)
+
+	assert.NotNil(t, version)
+	assert.Equal(t, int32(1), results.Tenants)
+
+	// Verify tenant was created with custom field
+	tenants := connector.GetTenants()
+	assert.Contains(t, tenants, types.Tenant{Name: tenantName})
+}
+
+func TestMongoDBBackwardCompatibilityTenantSelectSQL(t *testing.T) {
+	// Test that old tenantSelectSQL field still works
+	cfg := &config.Config{
+		Driver:           "mongodb",
+		DataSource:       "mongodb://localhost:27017",
+		TenantSelectSQL:  "legacy_tenants",
+		TenantInsertSQL:  "legacy_tenants",
+		SingleMigrations: []string{"admin"},
+	}
+
+	connector := New(newTestContext(), cfg)
+	defer connector.Dispose()
+
+	// Create tenant using old config field names
+	tenantName := fmt.Sprintf("legacy_tenant_%d", time.Now().UnixNano())
+	results, version := connector.CreateTenant(tenantName, "test-legacy-config", types.ActionSync, []types.Migration{}, false)
+
+	assert.NotNil(t, version)
+	assert.Equal(t, int32(1), results.Tenants)
+
+	// Verify tenant was created
+	tenants := connector.GetTenants()
+	assert.Contains(t, tenants, types.Tenant{Name: tenantName})
+}

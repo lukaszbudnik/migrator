@@ -84,6 +84,18 @@ func requestLoggerHandler() gin.HandlerFunc {
 	}
 }
 
+func deprecationHeaderHandler(config *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check if deprecated config fields are being used
+		if config.IsUsingDeprecatedTenantSelectSQL() || config.IsUsingDeprecatedTenantInsertSQL() {
+			c.Header("Deprecation", "true")
+			c.Header("Sunset", "Thu, 31 Dec 2026 23:59:59 GMT")
+			c.Header("Warning", "299 - \"tenantSelectSQL and tenantInsertSQL are deprecated since v2025.1.0. Use tenantSelect and tenantInsert instead. These fields will be removed in v2027.0.0.\"")
+		}
+		c.Next()
+	}
+}
+
 func makeHandler(config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory, handler func(*gin.Context, *config.Config, metrics.Metrics, coordinator.Factory)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		handler(c, config, metrics, newCoordinator)
@@ -164,7 +176,7 @@ func CreateRouterAndPrometheus(versionInfo *types.VersionInfo, config *config.Co
 // SetupRouter setups router
 func SetupRouter(r *gin.Engine, versionInfo *types.VersionInfo, config *config.Config, metrics metrics.Metrics, newCoordinator coordinator.Factory) *gin.Engine {
 	r.HandleMethodNotAllowed = true
-	r.Use(logLevelHandler(config), recovery(), requestIDHandler(), requestLoggerHandler())
+	r.Use(logLevelHandler(config), recovery(), requestIDHandler(), requestLoggerHandler(), deprecationHeaderHandler(config))
 
 	if strings.TrimSpace(config.PathPrefix) == "" {
 		config.PathPrefix = "/"

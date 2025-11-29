@@ -14,8 +14,10 @@ type Config struct {
 	BaseLocation      string   `yaml:"baseLocation" validate:"required"`
 	Driver            string   `yaml:"driver" validate:"required"`
 	DataSource        string   `yaml:"dataSource" validate:"required"`
-	TenantSelectSQL   string   `yaml:"tenantSelectSQL,omitempty"`
-	TenantInsertSQL   string   `yaml:"tenantInsertSQL,omitempty"`
+	TenantSelect      string   `yaml:"tenantSelect,omitempty"`
+	TenantInsert      string   `yaml:"tenantInsert,omitempty"`
+	TenantSelectSQL   string   `yaml:"tenantSelectSQL,omitempty"` // Deprecated: use TenantSelect instead
+	TenantInsertSQL   string   `yaml:"tenantInsertSQL,omitempty"` // Deprecated: use TenantInsert instead
 	SchemaPlaceHolder string   `yaml:"schemaPlaceHolder,omitempty"`
 	SingleMigrations  []string `yaml:"singleMigrations" validate:"min=1"`
 	TenantMigrations  []string `yaml:"tenantMigrations,omitempty"`
@@ -27,6 +29,46 @@ type Config struct {
 	WebHookHeaders    []string `yaml:"webHookHeaders,omitempty"`
 	WebHookTemplate   string   `yaml:"webHookTemplate,omitempty"`
 	LogLevel          string   `yaml:"logLevel,omitempty" validate:"logLevel"`
+}
+
+// GetTenantSelect returns tenant select query/statement with backward compatibility
+func (c *Config) GetTenantSelect() string {
+	// New field takes precedence
+	if c.TenantSelect != "" {
+		return c.TenantSelect
+	}
+	// Fall back to deprecated field with warning
+	if c.TenantSelectSQL != "" {
+		// Note: We can't use common.LogWarn here as it requires context
+		// The warning will be logged when the config is actually used
+		return c.TenantSelectSQL
+	}
+	return ""
+}
+
+// GetTenantInsert returns tenant insert query/statement with backward compatibility
+func (c *Config) GetTenantInsert() string {
+	// New field takes precedence
+	if c.TenantInsert != "" {
+		return c.TenantInsert
+	}
+	// Fall back to deprecated field with warning
+	if c.TenantInsertSQL != "" {
+		// Note: We can't use common.LogWarn here as it requires context
+		// The warning will be logged when the config is actually used
+		return c.TenantInsertSQL
+	}
+	return ""
+}
+
+// IsUsingDeprecatedTenantSelectSQL returns true if deprecated field is being used
+func (c *Config) IsUsingDeprecatedTenantSelectSQL() bool {
+	return c.TenantSelect == "" && c.TenantSelectSQL != ""
+}
+
+// IsUsingDeprecatedTenantInsertSQL returns true if deprecated field is being used
+func (c *Config) IsUsingDeprecatedTenantInsertSQL() bool {
+	return c.TenantInsert == "" && c.TenantInsertSQL != ""
 }
 
 func (config Config) String() string {

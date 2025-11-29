@@ -418,10 +418,16 @@ baseLocation: test/migrations
 driver: postgres
 # required, dataSource format is specific to database driver implementation used, see section "Supported databases"
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# optional, override only if you have a specific way of determining tenants, default is:
-tenantSelectSQL: "select name from migrator.migrator_tenants"
-# optional, override only if you have a specific way of creating tenants, default is:
-tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
+# optional, override only if you have a specific way of determining tenants
+# for SQL databases: SQL select statement, for MongoDB: collection name or collection.field format
+tenantSelect: "select name from migrator.migrator_tenants"
+# optional, override only if you have a specific way of creating tenants
+# for SQL databases: SQL insert statement, for MongoDB: collection name or collection.field format
+tenantInsert: "insert into migrator.migrator_tenants (name) values ($1)"
+# DEPRECATED (since v2025.1.0): tenantSelectSQL and tenantInsertSQL will be REMOVED in v2027.0.0
+# Use tenantSelect and tenantInsert instead. If both old and new fields are present, only new fields are used.
+# tenantSelectSQL: "select name from migrator.migrator_tenants"
+# tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: { schema }
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
@@ -596,14 +602,28 @@ migrator can be used with an already existing legacy DB migration framework.
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
 In the config file you need to provide 2 configuration properties:
 
-- `tenantSelectSQL` - a select statement which returns names of the tenants
-- `tenantInsertSQL` - an insert statement which creates a new tenant entry, the insert statement should be a valid prepared statement for the SQL driver/database you use, it must accept the name of the new tenant as a parameter; finally should your table require additional columns you need to provide default values for them
+- `tenantSelect` - for SQL databases: a select statement which returns names of the tenants; for MongoDB: collection name or `collection.field` format
+- `tenantInsert` - for SQL databases: an insert statement which creates a new tenant entry (must be a valid prepared statement that accepts tenant name as parameter); for MongoDB: collection name or `collection.field` format
 
-Here is an example:
+**⚠️ DEPRECATION NOTICE:** `tenantSelectSQL` and `tenantInsertSQL` are deprecated since v2025.1.0 and **will be REMOVED in v2027.0.0**. Please migrate to `tenantSelect` and `tenantInsert`. The old field names are still supported for backward compatibility, but a warning will be logged when used. If both old and new fields are present, only the new fields will be used.
+
+**SQL Database Example:**
 
 ```yaml
-tenantSelectSQL: select name from global.customers
-tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
+tenantSelect: select name from global.customers
+tenantInsert: insert into global.customers (name, active, date_added) values (?, true, NOW())
+```
+
+**MongoDB Example:**
+
+```yaml
+# Use custom collection with default 'name' field
+tenantSelect: customers
+tenantInsert: customers
+
+# Or specify custom field name
+tenantSelect: customers.tenant_name
+tenantInsert: customers.tenant_name
 ```
 
 ### Custom schema placeholder
