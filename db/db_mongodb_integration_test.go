@@ -86,6 +86,43 @@ func TestMongoDBCreateVersion(t *testing.T) {
 	assert.Equal(t, lenBefore+int(results.MigrationsGrandTotal), lenAfter)
 }
 
+func TestMongoDBScripts(t *testing.T) {
+	configFile := "../test/migrator-mongodb.yaml"
+	config, err := config.FromFile(configFile)
+	assert.Nil(t, err)
+
+	connector := New(newTestContext(), config)
+	defer connector.Dispose()
+
+	// Create test tenant with some initial data
+	testTenant := fmt.Sprintf("scripttenant%d", time.Now().UnixNano())
+	m1 := time.Now().UnixNano()
+	tenantMigration := types.Migration{Name: fmt.Sprintf("%v.js", m1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.js", m1), MigrationType: types.MigrationTypeTenantMigration, Contents: "db.settings.insertOne({k: 999, v: '999'})"}
+	connector.CreateTenant(testTenant, "test-tenant-scripts", types.ActionApply, []types.Migration{tenantMigration}, false)
+
+	tenants := connector.GetTenants()
+	noOfTenants := len(tenants)
+
+	s1 := time.Now().UnixNano()
+	ts1 := time.Now().UnixNano()
+
+	// Single script - runs every time, uses getSiblingDB to access ref database
+	singleScript := types.Migration{Name: fmt.Sprintf("%v.js", s1), SourceDir: "ref-scripts", File: fmt.Sprintf("ref-scripts/%v.js", s1), MigrationType: types.MigrationTypeSingleScript, Contents: "db.getSiblingDB('ref').modules.updateMany({}, {$set: {script_updated: new Date()}})"}
+
+	// Tenant script - runs every time for each tenant, uses updateMany
+	tenantScript := types.Migration{Name: fmt.Sprintf("%v.js", ts1), SourceDir: "tenants-scripts", File: fmt.Sprintf("tenants-scripts/%v.js", ts1), MigrationType: types.MigrationTypeTenantScript, Contents: "db.settings.updateMany({}, {$set: {script_run_at: new Date()}})"}
+
+	scriptsToApply := []types.Migration{singleScript, tenantScript}
+
+	results, version := connector.CreateVersion("test-scripts", types.ActionApply, scriptsToApply, false)
+
+	assert.NotNil(t, version)
+	assert.Equal(t, int32(1), results.SingleScripts)
+	assert.Equal(t, int32(1), results.TenantScripts)
+	assert.Equal(t, int32(noOfTenants), results.TenantScriptsTotal)
+	assert.Equal(t, int32(1+noOfTenants), results.ScriptsGrandTotal)
+}
+
 func TestMongoDBCreateTenant(t *testing.T) {
 	configFile := "../test/migrator-mongodb.yaml"
 	config, err := config.FromFile(configFile)

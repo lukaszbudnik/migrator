@@ -4,5 +4,9 @@ dataSource: "mongodb://localhost:27017"
 singleMigrations:
   - ref
   - configuration
+singleScripts:
+  - ref-scripts
 tenantMigrations:
   - tenants
+tenantScripts:
+  - tenants-scripts

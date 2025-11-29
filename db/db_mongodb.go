@@ -530,9 +530,39 @@ func (mc *mongoDBConnector) executeMigration(migration types.Migration, dbName s
 func (mc *mongoDBConnector) executeMongoDBCommand(targetDB *mongo.Database, command string) error {
 	command = strings.TrimSpace(command)
 
-	// Match pattern: db.collectionName.operation(...)
+	// Match pattern: db.collectionName.operation(...) or db.getSiblingDB('dbname').collectionName.operation(...)
 	if !strings.HasPrefix(command, "db.") {
 		return nil // Skip non-db commands
+	}
+
+	// Check for getSiblingDB pattern
+	if strings.HasPrefix(command, "db.getSiblingDB(") {
+		// Extract database name from getSiblingDB('dbname')
+		start := strings.Index(command, "'")
+		if start == -1 {
+			start = strings.Index(command, "\"")
+		}
+		if start == -1 {
+			return fmt.Errorf("invalid getSiblingDB syntax: %s", command)
+		}
+
+		end := strings.Index(command[start+1:], "'")
+		if end == -1 {
+			end = strings.Index(command[start+1:], "\"")
+		}
+		if end == -1 {
+			return fmt.Errorf("invalid getSiblingDB syntax: %s", command)
+		}
+
+		dbName := command[start+1 : start+1+end]
+		targetDB = mc.client.Database(dbName)
+
+		// Find the collection part after getSiblingDB('dbname').
+		dotAfterDB := strings.Index(command[start+1+end:], ".")
+		if dotAfterDB == -1 {
+			return fmt.Errorf("invalid getSiblingDB syntax: %s", command)
+		}
+		command = "db." + command[start+1+end+dotAfterDB+1:]
 	}
 
 	// Extract collection name and operation
@@ -559,6 +589,10 @@ func (mc *mongoDBConnector) executeMongoDBCommand(targetDB *mongo.Database, comm
 		return mc.handleInsertOne(col, rest[opEnd:])
 	case "createIndex":
 		return mc.handleCreateIndex(col, rest[opEnd:])
+	case "updateMany":
+		return mc.handleUpdateMany(col, rest[opEnd:])
+	case "updateOne":
+		return mc.handleUpdateOne(col, rest[opEnd:])
 	default:
 		common.LogWarn(mc.ctx, "Unsupported operation: %s", operation)
 		return nil
@@ -650,6 +684,104 @@ func (mc *mongoDBConnector) handleCreateIndex(col *mongo.Collection, args string
 		Keys:    keys,
 		Options: opts,
 	})
+	return err
+}
+
+// handleUpdateMany executes updateMany operation
+func (mc *mongoDBConnector) handleUpdateMany(col *mongo.Collection, args string) error {
+	return mc.handleUpdate(col, args, true)
+}
+
+// handleUpdateOne executes updateOne operation
+func (mc *mongoDBConnector) handleUpdateOne(col *mongo.Collection, args string) error {
+	return mc.handleUpdate(col, args, false)
+}
+
+// handleUpdate executes update operations (updateOne or updateMany)
+func (mc *mongoDBConnector) handleUpdate(col *mongo.Collection, args string, many bool) error {
+	// Extract filter and update documents from updateMany({filter}, {update}, {options})
+	start := strings.Index(args, "{")
+	if start == -1 {
+		return fmt.Errorf("invalid update syntax")
+	}
+
+	// Find the matching closing brace for the first argument (filter)
+	braceCount := 0
+	firstArgEnd := -1
+	for i := start; i < len(args); i++ {
+		if args[i] == '{' {
+			braceCount++
+		} else if args[i] == '}' {
+			braceCount--
+			if braceCount == 0 {
+				firstArgEnd = i
+				break
+			}
+		}
+	}
+
+	if firstArgEnd == -1 {
+		return fmt.Errorf("invalid update syntax")
+	}
+
+	filterJSON := args[start : firstArgEnd+1]
+	filterJSON = mc.jsToJSON(filterJSON)
+
+	// Parse filter
+	var filter bson.M
+	if err := bson.UnmarshalExtJSON([]byte(filterJSON), false, &filter); err != nil {
+		return fmt.Errorf("failed to parse filter: %v", err)
+	}
+
+	// Find second argument (update document)
+	remaining := strings.TrimSpace(args[firstArgEnd+1:])
+	if !strings.HasPrefix(remaining, ",") {
+		return fmt.Errorf("missing update document")
+	}
+	remaining = strings.TrimSpace(remaining[1:])
+
+	updateStart := strings.Index(remaining, "{")
+	if updateStart == -1 {
+		return fmt.Errorf("invalid update document")
+	}
+
+	// Find the matching closing brace for the update document
+	braceCount = 0
+	updateEnd := -1
+	for i := updateStart; i < len(remaining); i++ {
+		if remaining[i] == '{' {
+			braceCount++
+		} else if remaining[i] == '}' {
+			braceCount--
+			if braceCount == 0 {
+				updateEnd = i
+				break
+			}
+		}
+	}
+
+	if updateEnd == -1 {
+		return fmt.Errorf("invalid update document")
+	}
+
+	updateJSON := remaining[updateStart : updateEnd+1]
+	updateJSON = mc.jsToJSON(updateJSON)
+
+	// Handle new Date() - replace with current time in extended JSON format
+	updateJSON = strings.ReplaceAll(updateJSON, "new Date()", fmt.Sprintf("{\"$date\":\"%s\"}", time.Now().Format(time.RFC3339Nano)))
+
+	// Parse update document
+	var update bson.M
+	if err := bson.UnmarshalExtJSON([]byte(updateJSON), false, &update); err != nil {
+		return fmt.Errorf("failed to parse update document: %v", err)
+	}
+
+	// Execute update
+	if many {
+		_, err := col.UpdateMany(mc.ctx, filter, update)
+		return err
+	}
+	_, err := col.UpdateOne(mc.ctx, filter, update)
 	return err
 }
 

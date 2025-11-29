@@ -577,6 +577,14 @@ MongoDB uses database-based multi-tenancy (similar to MySQL). Migrations are Jav
 **Supported operations:**
 - `db.collection.insertOne({...})` - Insert a document
 - `db.collection.createIndex({...}, {...})` - Create an index
+- `db.collection.updateOne({filter}, {update})` - Update a single document
+- `db.collection.updateMany({filter}, {update})` - Update multiple documents
+- `db.getSiblingDB('dbname').collection.operation(...)` - Access different database
+
+**Supported JavaScript features:**
+- `new Date()` - Automatically converted to current timestamp
+
+**Note:** Single scripts execute in their source directory database (e.g., `ref-scripts`). To access collections in other databases, use `db.getSiblingDB('dbname')`.
 
 Sample MongoDB configuration:
 
@@ -585,9 +593,14 @@ baseLocation: migrations
 driver: mongodb
 dataSource: "mongodb://localhost:27017"
 singleMigrations:
-  - admin
+  - ref
+  - configuration
+singleScripts:
+  - ref-scripts
 tenantMigrations:
   - tenants
+tenantScripts:
+  - tenants-scripts
 ```
 
 Sample migration file (`001_create_users.js`):
