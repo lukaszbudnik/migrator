@@ -44,6 +44,9 @@ type Factory func(context.Context, *config.Config) Connector
 
 // New constructs Connector instance based on the passed Config
 func New(ctx context.Context, config *config.Config) Connector {
+	if config.Driver == "mongodb" {
+		return newMongoDBConnector(ctx, config)
+	}
 	dialect := newDialect(config)
 	connector := &baseConnector{ctx, config, dialect, nil, false}
 	return connector

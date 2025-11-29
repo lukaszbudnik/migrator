@@ -18,6 +18,7 @@ Super fast and lightweight DB migration tool written in Go. migrator outperforms
 - **PostgreSQL** 9.6+ (and flavours: Amazon RDS/Aurora, Google CloudSQL)
 - **MySQL** 5.7+ (and flavours: MariaDB, TiDB, Percona, Amazon RDS/Aurora, Google CloudSQL)
 - **Microsoft SQL Server** 2008+
+- **MongoDB** 4.0+
 
 ## 📦 Installation
 
@@ -40,6 +41,7 @@ migrator supports the following multi-tenant databases:
 - PostgreSQL and all its flavours
 - MySQL and all its flavours
 - Microsoft SQL Server
+- MongoDB
 
 migrator supports reading DB migrations from:
 
@@ -92,9 +94,10 @@ docker-compose will start and configure the following services:
 
 1. `migrator` - service using latest official migrator image, listening on port `8181`
 2. `migrator-dev` - service built from local branch, listening on port `8282`
-3. `postgres` - PostgreSQL service, listening on port `54325`
+3. `postgres` - PostgreSQL service, listening on port `5432`
 4. `mysql` - MySQL service, listening on port `3306`
 5. `mssql` - MS SQL Server, listening on port `1433`
+6. `mongodb` - MongoDB service, listening on port `27017`
 
 ### 3. Play around with migrator
 
@@ -411,9 +414,9 @@ migrator configuration file is a simple YAML file. Take a look at a sample `migr
 ```yaml
 # required, location where all migrations are stored, see singleSchemas and tenantSchemas below
 baseLocation: test/migrations
-# required, SQL go driver implementation used, see section "Supported databases"
+# required, database driver implementation used, see section "Supported databases"
 driver: postgres
-# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
+# required, dataSource format is specific to database driver implementation used, see section "Supported databases"
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
 # optional, override only if you have a specific way of determining tenants, default is:
 tenantSelectSQL: "select name from migrator.migrator_tenants"
@@ -558,6 +561,31 @@ The following versions and flavours are supported by the driver:
 A relational database management system developed by Microsoft, driver used: https://github.com/microsoft/go-mssqldb.
 
 The Go driver supports all Microsoft SQL Server versions starting with 2008.
+
+### MongoDB 4.0+
+
+Document-oriented NoSQL database, driver used: https://github.com/mongodb/mongo-go-driver.
+
+MongoDB uses database-based multi-tenancy (similar to MySQL). Migrations are JavaScript files executed via MongoDB's eval command. The migrator metadata (versions, migrations, tenants) is stored in a dedicated `migrator` database.
+
+Sample MongoDB configuration:
+
+```yaml
+baseLocation: migrations
+driver: mongodb
+dataSource: "mongodb://localhost:27017"
+singleMigrations:
+  - admin
+tenantMigrations:
+  - tenants
+```
+
+Sample migration file (`001_create_users.js`):
+
+```javascript
+db.users.createIndex({ email: 1 }, { unique: true });
+db.users.insertOne({ name: "admin", role: "admin" });
+```
 
 ## 🔧 Customisation and legacy frameworks support
 
