@@ -18,6 +18,7 @@ Super fast and lightweight DB migration tool written in Go. migrator outperforms
 - **PostgreSQL** 9.6+ (and flavours: Amazon RDS/Aurora, Google CloudSQL)
 - **MySQL** 5.7+ (and flavours: MariaDB, TiDB, Percona, Amazon RDS/Aurora, Google CloudSQL)
 - **Microsoft SQL Server** 2008+
+- **MongoDB** 4.0+
 
 ## 📦 Installation
 
@@ -40,6 +41,7 @@ migrator supports the following multi-tenant databases:
 - PostgreSQL and all its flavours
 - MySQL and all its flavours
 - Microsoft SQL Server
+- MongoDB
 
 migrator supports reading DB migrations from:
 
@@ -92,9 +94,10 @@ docker-compose will start and configure the following services:
 
 1. `migrator` - service using latest official migrator image, listening on port `8181`
 2. `migrator-dev` - service built from local branch, listening on port `8282`
-3. `postgres` - PostgreSQL service, listening on port `54325`
+3. `postgres` - PostgreSQL service, listening on port `5432`
 4. `mysql` - MySQL service, listening on port `3306`
 5. `mssql` - MS SQL Server, listening on port `1433`
+6. `mongodb` - MongoDB service, listening on port `27017`
 
 ### 3. Play around with migrator
 
@@ -411,14 +414,20 @@ migrator configuration file is a simple YAML file. Take a look at a sample `migr
 ```yaml
 # required, location where all migrations are stored, see singleSchemas and tenantSchemas below
 baseLocation: test/migrations
-# required, SQL go driver implementation used, see section "Supported databases"
+# required, database driver implementation used, see section "Supported databases"
 driver: postgres
-# required, dataSource format is specific to SQL go driver implementation used, see section "Supported databases"
+# required, dataSource format is specific to database driver implementation used, see section "Supported databases"
 dataSource: "user=postgres dbname=migrator_test host=192.168.99.100 port=55432 sslmode=disable"
-# optional, override only if you have a specific way of determining tenants, default is:
-tenantSelectSQL: "select name from migrator.migrator_tenants"
-# optional, override only if you have a specific way of creating tenants, default is:
-tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
+# optional, override only if you have a specific way of determining tenants
+# for SQL databases: SQL select statement, for MongoDB: collection name or collection.field format
+tenantSelect: "select name from migrator.migrator_tenants"
+# optional, override only if you have a specific way of creating tenants
+# for SQL databases: SQL insert statement, for MongoDB: collection name or collection.field format
+tenantInsert: "insert into migrator.migrator_tenants (name) values ($1)"
+# DEPRECATED (since v2025.1.0): tenantSelectSQL and tenantInsertSQL will be REMOVED in v2027.0.0
+# Use tenantSelect and tenantInsert instead. If both old and new fields are present, only new fields are used.
+# tenantSelectSQL: "select name from migrator.migrator_tenants"
+# tenantInsertSQL: "insert into migrator.migrator_tenants (name) values ($1)"
 # optional, override only if you have a specific schema placeholder, default is:
 schemaPlaceHolder: { schema }
 # required, directories of single schema SQL migrations, these are subdirectories of baseLocation
@@ -559,6 +568,48 @@ A relational database management system developed by Microsoft, driver used: htt
 
 The Go driver supports all Microsoft SQL Server versions starting with 2008.
 
+### MongoDB 4.0+
+
+Document-oriented NoSQL database, driver used: https://github.com/mongodb/mongo-go-driver.
+
+MongoDB uses database-based multi-tenancy (similar to MySQL). Migrations are JavaScript files that are parsed and executed using the native Go MongoDB driver. The migrator metadata (versions, migrations, tenants) is stored in a dedicated `migrator` database.
+
+**Supported operations:**
+- `db.collection.insertOne({...})` - Insert a document
+- `db.collection.createIndex({...}, {...})` - Create an index
+- `db.collection.updateOne({filter}, {update})` - Update a single document
+- `db.collection.updateMany({filter}, {update})` - Update multiple documents
+- `db.getSiblingDB('dbname').collection.operation(...)` - Access different database
+
+**Supported JavaScript features:**
+- `new Date()` - Automatically converted to current timestamp
+
+**Note:** Single scripts execute in their source directory database (e.g., `ref-scripts`). To access collections in other databases, use `db.getSiblingDB('dbname')`.
+
+Sample MongoDB configuration:
+
+```yaml
+baseLocation: migrations
+driver: mongodb
+dataSource: "mongodb://localhost:27017"
+singleMigrations:
+  - ref
+  - configuration
+singleScripts:
+  - ref-scripts
+tenantMigrations:
+  - tenants
+tenantScripts:
+  - tenants-scripts
+```
+
+Sample migration file (`001_create_users.js`):
+
+```javascript
+db.users.createIndex({ email: 1 }, { unique: true });
+db.users.insertOne({ name: "admin", role: "admin" });
+```
+
 ## 🔧 Customisation and legacy frameworks support
 
 migrator can be used with an already existing legacy DB migration framework.
@@ -568,14 +619,28 @@ migrator can be used with an already existing legacy DB migration framework.
 If you have an existing way of storing information about your tenants you can configure migrator to use it.
 In the config file you need to provide 2 configuration properties:
 
-- `tenantSelectSQL` - a select statement which returns names of the tenants
-- `tenantInsertSQL` - an insert statement which creates a new tenant entry, the insert statement should be a valid prepared statement for the SQL driver/database you use, it must accept the name of the new tenant as a parameter; finally should your table require additional columns you need to provide default values for them
+- `tenantSelect` - for SQL databases: a select statement which returns names of the tenants; for MongoDB: collection name or `collection.field` format
+- `tenantInsert` - for SQL databases: an insert statement which creates a new tenant entry (must be a valid prepared statement that accepts tenant name as parameter); for MongoDB: collection name or `collection.field` format
 
-Here is an example:
+**⚠️ DEPRECATION NOTICE:** `tenantSelectSQL` and `tenantInsertSQL` are deprecated since v2025.1.0 and **will be REMOVED in v2027.0.0**. Please migrate to `tenantSelect` and `tenantInsert`. The old field names are still supported for backward compatibility, but a warning will be logged when used. If both old and new fields are present, only the new fields will be used.
+
+**SQL Database Example:**
 
 ```yaml
-tenantSelectSQL: select name from global.customers
-tenantInsertSQL: insert into global.customers (name, active, date_added) values (?, true, NOW())
+tenantSelect: select name from global.customers
+tenantInsert: insert into global.customers (name, active, date_added) values (?, true, NOW())
+```
+
+**MongoDB Example:**
+
+```yaml
+# Use custom collection with default 'name' field
+tenantSelect: customers
+tenantInsert: customers
+
+# Or specify custom field name
+tenantSelect: customers.tenant_name
+tenantInsert: customers.tenant_name
 ```
 
 ### Custom schema placeholder

@@ -269,3 +269,64 @@ func TestPanicHandlerGraphql(t *testing.T) {
 	assert.Equal(t, "application/json; charset=utf-8", w.Result().Header.Get("Content-Type"))
 	assert.Contains(t, body, "panic occurred: Mocked Coordinator: threshold 0 reached")
 }
+
+func TestDeprecationHeadersWithOldFields(t *testing.T) {
+	config := &config.Config{
+		SingleMigrations: []string{"public"},
+		TenantSelectSQL:  "select name from tenants",
+		TenantInsertSQL:  "insert into tenants (name) values (?)",
+	}
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("GET", "/config", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "true", w.Header().Get("Deprecation"))
+	assert.Equal(t, "Thu, 31 Dec 2026 23:59:59 GMT", w.Header().Get("Sunset"))
+	assert.Contains(t, w.Header().Get("Warning"), "tenantSelectSQL and tenantInsertSQL are deprecated")
+	assert.Contains(t, w.Header().Get("Warning"), "v2027.0.0")
+}
+
+func TestDeprecationHeadersWithNewFields(t *testing.T) {
+	config := &config.Config{
+		SingleMigrations: []string{"public"},
+		TenantSelect:     "select name from tenants",
+		TenantInsert:     "insert into tenants (name) values (?)",
+	}
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("GET", "/config", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Empty(t, w.Header().Get("Deprecation"))
+	assert.Empty(t, w.Header().Get("Sunset"))
+	assert.Empty(t, w.Header().Get("Warning"))
+}
+
+func TestDeprecationHeadersWithBothFields(t *testing.T) {
+	config := &config.Config{
+		SingleMigrations: []string{"public"},
+		TenantSelect:     "select name from tenants",
+		TenantInsert:     "insert into tenants (name) values (?)",
+		TenantSelectSQL:  "old value",
+		TenantInsertSQL:  "old value",
+	}
+
+	router := testSetupRouter(config, newMockedCoordinator)
+
+	w := httptest.NewRecorder()
+	req, _ := newTestRequestV2("GET", "/config", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	// Should NOT show deprecation headers when new fields are present
+	assert.Empty(t, w.Header().Get("Deprecation"))
+	assert.Empty(t, w.Header().Get("Sunset"))
+	assert.Empty(t, w.Header().Get("Warning"))
+}

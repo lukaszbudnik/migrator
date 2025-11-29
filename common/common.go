@@ -11,6 +11,7 @@ import (
 const (
 	panicLevel = "PANIC"
 	errorLevel = "ERROR"
+	warnLevel  = "WARN"
 	infoLevel  = "INFO"
 	debugLevel = "DEBUG"
 )
@@ -24,6 +25,11 @@ type LogLevelKey struct{}
 // LogError logs error message
 func LogError(ctx context.Context, format string, a ...interface{}) string {
 	return logLevel(ctx, errorLevel, format, a...)
+}
+
+// LogWarn logs warning message
+func LogWarn(ctx context.Context, format string, a ...interface{}) string {
+	return logLevel(ctx, warnLevel, format, a...)
 }
 
 // LogInfo logs info message
@@ -103,6 +109,11 @@ func shouldLogMessage(configLogLevel, targetLevel string) bool {
 	// if logLevel is ERROR then only ERROR and PANIC are logged
 	// ERROR is covered in the beginning of method so need to check only Panic level
 	if configLogLevel == errorLevel && targetLevel == panicLevel {
+		return true
+	}
+
+	// if logLevel is WARN then WARN, ERROR and PANIC are logged
+	if configLogLevel == warnLevel && (targetLevel == errorLevel || targetLevel == panicLevel) {
 		return true
 	}
 
