@@ -325,10 +325,12 @@ func (mc *mongoDBConnector) CreateVersion(versionName string, action types.Actio
 	// Apply migrations
 	for _, migration := range migrations {
 		if migration.MigrationType == types.MigrationTypeSingleMigration || migration.MigrationType == types.MigrationTypeSingleScript {
+			// Use source directory as database name (consistent with SQL implementations)
+			dbName := migration.SourceDir
 			if action == types.ActionApply {
-				mc.executeMigration(migration, migratorSchema)
+				mc.executeMigration(migration, dbName)
 			}
-			mc.recordMigration(versionID, migration, migratorSchema, version)
+			mc.recordMigration(versionID, migration, dbName, version)
 			if migration.MigrationType == types.MigrationTypeSingleMigration {
 				summary.SingleMigrations++
 			} else {
@@ -509,12 +511,208 @@ func (mc *mongoDBConnector) executeMigration(migration types.Migration, dbName s
 	}
 	contents := strings.ReplaceAll(migration.Contents, schemaPlaceHolder, dbName)
 
-	// Execute as JavaScript
-	var result bson.M
-	err := targetDB.RunCommand(mc.ctx, bson.D{{Key: "eval", Value: contents}}).Decode(&result)
-	if err != nil {
-		common.LogError(mc.ctx, "Failed to execute migration %s: %v", migration.File, err)
+	// Parse and execute JavaScript-like MongoDB commands
+	// This handles common patterns like db.collection.insertOne(), db.collection.createIndex(), etc.
+	lines := strings.Split(contents, ";")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "//") {
+			continue
+		}
+
+		if err := mc.executeMongoDBCommand(targetDB, line); err != nil {
+			common.LogError(mc.ctx, "Failed to execute command in migration %s (database %s): %v", migration.File, dbName, err)
+		}
 	}
+}
+
+// executeMongoDBCommand parses and executes a MongoDB command
+func (mc *mongoDBConnector) executeMongoDBCommand(targetDB *mongo.Database, command string) error {
+	command = strings.TrimSpace(command)
+
+	// Match pattern: db.collectionName.operation(...)
+	if !strings.HasPrefix(command, "db.") {
+		return nil // Skip non-db commands
+	}
+
+	// Extract collection name and operation
+	parts := strings.SplitN(command[3:], ".", 2) // Remove "db." prefix
+	if len(parts) < 2 {
+		return fmt.Errorf("invalid command format: %s", command)
+	}
+
+	collectionName := parts[0]
+	rest := parts[1]
+
+	// Extract operation name and arguments
+	opEnd := strings.Index(rest, "(")
+	if opEnd == -1 {
+		return fmt.Errorf("no operation found in: %s", command)
+	}
+
+	operation := rest[:opEnd]
+	col := targetDB.Collection(collectionName)
+
+	// Handle different operations
+	switch operation {
+	case "insertOne":
+		return mc.handleInsertOne(col, rest[opEnd:])
+	case "createIndex":
+		return mc.handleCreateIndex(col, rest[opEnd:])
+	default:
+		common.LogWarn(mc.ctx, "Unsupported operation: %s", operation)
+		return nil
+	}
+}
+
+// handleInsertOne executes insertOne operation
+func (mc *mongoDBConnector) handleInsertOne(col *mongo.Collection, args string) error {
+	// Extract JSON document from insertOne({...})
+	start := strings.Index(args, "{")
+	end := strings.LastIndex(args, "}")
+	if start == -1 || end == -1 {
+		return fmt.Errorf("invalid insertOne syntax")
+	}
+
+	jsonDoc := args[start : end+1]
+
+	// Convert JavaScript object notation to proper JSON
+	jsonDoc = mc.jsToJSON(jsonDoc)
+
+	// Parse JSON to BSON
+	var doc bson.M
+	if err := bson.UnmarshalExtJSON([]byte(jsonDoc), false, &doc); err != nil {
+		return fmt.Errorf("failed to parse document: %v", err)
+	}
+
+	_, err := col.InsertOne(mc.ctx, doc)
+	return err
+}
+
+// handleCreateIndex executes createIndex operation
+func (mc *mongoDBConnector) handleCreateIndex(col *mongo.Collection, args string) error {
+	// Extract index spec and options from createIndex({...}, {...})
+	start := strings.Index(args, "{")
+	if start == -1 {
+		return fmt.Errorf("invalid createIndex syntax")
+	}
+
+	// Find the matching closing brace for the first argument
+	braceCount := 0
+	firstArgEnd := -1
+	for i := start; i < len(args); i++ {
+		if args[i] == '{' {
+			braceCount++
+		} else if args[i] == '}' {
+			braceCount--
+			if braceCount == 0 {
+				firstArgEnd = i
+				break
+			}
+		}
+	}
+
+	if firstArgEnd == -1 {
+		return fmt.Errorf("invalid createIndex syntax")
+	}
+
+	indexSpec := args[start : firstArgEnd+1]
+
+	// Convert JavaScript to JSON
+	indexSpec = mc.jsToJSON(indexSpec)
+
+	// Parse index specification
+	var keys bson.D
+	if err := bson.UnmarshalExtJSON([]byte(indexSpec), false, &keys); err != nil {
+		return fmt.Errorf("failed to parse index spec: %v", err)
+	}
+
+	// Check for options (second argument)
+	opts := options.Index()
+	remaining := strings.TrimSpace(args[firstArgEnd+1:])
+	if strings.HasPrefix(remaining, ",") {
+		remaining = strings.TrimSpace(remaining[1:])
+		optStart := strings.Index(remaining, "{")
+		optEnd := strings.LastIndex(remaining, "}")
+		if optStart != -1 && optEnd != -1 {
+			optJSON := remaining[optStart : optEnd+1]
+			optJSON = mc.jsToJSON(optJSON)
+			var optDoc bson.M
+			if err := bson.UnmarshalExtJSON([]byte(optJSON), false, &optDoc); err == nil {
+				if unique, ok := optDoc["unique"].(bool); ok {
+					opts.SetUnique(unique)
+				}
+			}
+		}
+	}
+
+	_, err := col.Indexes().CreateOne(mc.ctx, mongo.IndexModel{
+		Keys:    keys,
+		Options: opts,
+	})
+	return err
+}
+
+// jsToJSON converts JavaScript object notation to proper JSON
+// Handles: {key: value} -> {"key": value}, {key: 'value'} -> {"key": "value"}
+func (mc *mongoDBConnector) jsToJSON(js string) string {
+	// Replace single quotes with double quotes
+	result := strings.ReplaceAll(js, "'", "\"")
+
+	// Add quotes around unquoted keys
+	// Match pattern: {word: or ,word: and replace with {"word":
+	result = strings.ReplaceAll(result, "{", "{ ")
+	result = strings.ReplaceAll(result, ",", ", ")
+
+	// Simple regex-like replacement for unquoted keys
+	var builder strings.Builder
+	inQuotes := false
+	i := 0
+	for i < len(result) {
+		ch := result[i]
+
+		if ch == '"' {
+			inQuotes = !inQuotes
+			builder.WriteByte(ch)
+			i++
+			continue
+		}
+
+		if !inQuotes && (ch == '{' || ch == ',' || ch == ' ') {
+			builder.WriteByte(ch)
+			i++
+			// Skip whitespace
+			for i < len(result) && result[i] == ' ' {
+				builder.WriteByte(result[i])
+				i++
+			}
+			// Check if next is an unquoted key
+			if i < len(result) && result[i] != '"' && result[i] != '}' {
+				// Find the key
+				keyStart := i
+				for i < len(result) && result[i] != ':' && result[i] != ' ' {
+					i++
+				}
+				if i < len(result) && result[i] == ':' || (i < len(result)-1 && result[i] == ' ' && result[i+1] == ':') {
+					key := result[keyStart:i]
+					key = strings.TrimSpace(key)
+					if key != "" && key[0] != '"' {
+						builder.WriteByte('"')
+						builder.WriteString(key)
+						builder.WriteByte('"')
+						continue
+					}
+				}
+				// Not a key, write as-is
+				builder.WriteString(result[keyStart:i])
+			}
+		} else {
+			builder.WriteByte(ch)
+			i++
+		}
+	}
+
+	return builder.String()
 }
 
 func (mc *mongoDBConnector) recordMigration(versionID int32, migration types.Migration, schema string, version *types.Version) {
@@ -550,7 +748,7 @@ func (mc *mongoDBConnector) recordMigration(versionID int32, migration types.Mig
 }
 
 func (mc *mongoDBConnector) getNextSequence(name string) int32 {
-	col := mc.db.Collection("counters")
+	col := mc.db.Collection("migrator_counters")
 	filter := bson.M{"_id": name}
 	update := bson.M{"$inc": bson.M{"seq": 1}}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)

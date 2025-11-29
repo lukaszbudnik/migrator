@@ -2,6 +2,7 @@ baseLocation: test/migrations-mongodb
 driver: mongodb
 dataSource: "mongodb://localhost:27017"
 singleMigrations:
-  - admin
+  - ref
+  - configuration
 tenantMigrations:
   - tenants

@@ -572,7 +572,11 @@ The Go driver supports all Microsoft SQL Server versions starting with 2008.
 
 Document-oriented NoSQL database, driver used: https://github.com/mongodb/mongo-go-driver.
 
-MongoDB uses database-based multi-tenancy (similar to MySQL). Migrations are JavaScript files executed via MongoDB's eval command. The migrator metadata (versions, migrations, tenants) is stored in a dedicated `migrator` database.
+MongoDB uses database-based multi-tenancy (similar to MySQL). Migrations are JavaScript files that are parsed and executed using the native Go MongoDB driver. The migrator metadata (versions, migrations, tenants) is stored in a dedicated `migrator` database.
+
+**Supported operations:**
+- `db.collection.insertOne({...})` - Insert a document
+- `db.collection.createIndex({...}, {...})` - Create an index
 
 Sample MongoDB configuration:
 

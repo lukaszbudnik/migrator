@@ -51,18 +51,22 @@ func TestMongoDBCreateVersion(t *testing.T) {
 
 	p1 := time.Now().UnixNano()
 	p2 := time.Now().UnixNano()
+	c1 := time.Now().UnixNano()
 	t1 := time.Now().UnixNano()
 	t2 := time.Now().UnixNano()
 
-	// admin migrations
-	admin1 := types.Migration{Name: fmt.Sprintf("%v.js", p1), SourceDir: "admin", File: fmt.Sprintf("admin/%v.js", p1), MigrationType: types.MigrationTypeSingleMigration, Contents: "db.modules.insertOne({k: 123, v: '123'})"}
-	admin2 := types.Migration{Name: fmt.Sprintf("%v.js", p2), SourceDir: "admin", File: fmt.Sprintf("admin/%v.js", p2), MigrationType: types.MigrationTypeSingleMigration, Contents: "db.modules.insertOne({k: 456, v: '456'})"}
+	// ref migrations - use unique filenames to avoid duplicates
+	ref1 := types.Migration{Name: fmt.Sprintf("%v.js", p1), SourceDir: "ref", File: fmt.Sprintf("ref/%v.js", p1), MigrationType: types.MigrationTypeSingleMigration, Contents: "db.modules.insertOne({k: 123, v: '123'})"}
+	ref2 := types.Migration{Name: fmt.Sprintf("%v.js", p2), SourceDir: "ref", File: fmt.Sprintf("ref/%v.js", p2), MigrationType: types.MigrationTypeSingleMigration, Contents: "db.modules.insertOne({k: 456, v: '456'})"}
 
-	// tenant migrations
+	// configuration migrations - use unique filenames to avoid duplicates
+	config1 := types.Migration{Name: fmt.Sprintf("%v.js", c1), SourceDir: "configuration", File: fmt.Sprintf("configuration/%v.js", c1), MigrationType: types.MigrationTypeSingleMigration, Contents: "db.feature_toggles.insertOne({name: 'dark_mode_" + fmt.Sprintf("%v", c1) + "', enabled: true})"}
+
+	// tenant migrations - use unique filenames to avoid duplicates
 	tenant1 := types.Migration{Name: fmt.Sprintf("%v.js", t1), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.js", t1), MigrationType: types.MigrationTypeTenantMigration, Contents: "db.settings.insertOne({k: 789, v: '789'})"}
 	tenant2 := types.Migration{Name: fmt.Sprintf("%v.js", t2), SourceDir: "tenants", File: fmt.Sprintf("tenants/%v.js", t2), MigrationType: types.MigrationTypeTenantMigration, Contents: "db.settings.insertOne({k: 101, v: '101'})"}
 
-	migrationsToApply := []types.Migration{admin1, admin2, tenant1, tenant2}
+	migrationsToApply := []types.Migration{ref1, ref2, config1, tenant1, tenant2}
 
 	results, version := connector.CreateVersion("commit-sha-mongo", types.ActionApply, migrationsToApply, false)
 
@@ -71,10 +75,10 @@ func TestMongoDBCreateVersion(t *testing.T) {
 	assert.Equal(t, "commit-sha-mongo", version.Name)
 	assert.Equal(t, results.MigrationsGrandTotal, int32(len(version.DBMigrations)))
 	assert.Equal(t, int32(noOfTenants), results.Tenants)
-	assert.Equal(t, int32(2), results.SingleMigrations)
+	assert.Equal(t, int32(3), results.SingleMigrations)
 	assert.Equal(t, int32(2), results.TenantMigrations)
 	assert.Equal(t, int32(noOfTenants*2), results.TenantMigrationsTotal)
-	assert.Equal(t, int32(noOfTenants*2+2), results.MigrationsGrandTotal)
+	assert.Equal(t, int32(noOfTenants*2+3), results.MigrationsGrandTotal)
 
 	dbMigrationsAfter := connector.GetAppliedMigrations()
 	lenAfter := len(dbMigrationsAfter)
