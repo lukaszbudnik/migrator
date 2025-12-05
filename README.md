@@ -393,12 +393,6 @@ See [Quick Start Guide](#-quick-start-guide) for a few curl examples to get you 
 
 The preferred way of consuming migrator's GraphQL endpoint is to use GraphQL clients. These clients can be generated from the GraphQL schema in any programming language you use (Java, Python, C#, JavaScript, Go, etc.).
 
-### /v1 - REST API
-
-API v1 was sunset in v2021.0.0.
-
-The documentation is available in a separate document [API v1](APIv1.md).
-
 ### Request tracing
 
 migrator uses request tracing via `X-Request-ID` header. This header can be used with all requests for tracing and/or auditing purposes. If this header is absent migrator will generate one for you.
@@ -449,7 +443,7 @@ port: 8080
 # path prefix is optional and defaults to '/'
 # path prefix is used for application HTTP request routing by Application Load Balancers/Application Gateways
 # for example when deploying to AWS ECS and using AWS ALB the path prefix could be set as below
-# then all HTTP requests should be prefixed with that path, for example: /migrator/v1/config, /migrator/v1/migrations/source, etc.
+# then all HTTP requests should be prefixed with that path, for example: /migrator/v2/config, /migrator/v2/service, etc.
 pathPrefix: /migrator
 # the webhook configuration section is optional
 # the default Content-Type header is application/json but can be overridden via webHookHeaders below
@@ -518,7 +512,7 @@ baseLocation: s3://your-bucket-migrator
 baseLocation: s3://your-bucket-migrator/appcodename/prod/artefacts
 ```
 
-migrator uses official AWS SDK for Go and uses a well known [default credential provider chain](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html).
+migrator uses official AWS SDK for Go v2 and uses [Auth schema resolution workflow](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-auth.html#auth-scheme-resolution-workflow).
 
 ### Azure Blob Containers
 
@@ -531,7 +525,7 @@ baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer
 baseLocation: https://storageaccountname.blob.core.windows.net/mycontainer/appcodename/prod/artefacts
 ```
 
-migrator uses official Azure SDK for Go and supports authentication using Storage Account Key (via `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` env variables) as well as much more flexible (and recommended) Azure Active Directory Managed Identity.
+migrator uses official Azure SDK for Go and uses [Azure Identity library](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/authentication-overview).
 
 ## 🗄️ Supported databases
 

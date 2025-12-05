@@ -188,6 +188,11 @@ func SetupRouter(r *gin.Engine, versionInfo *types.VersionInfo, config *config.C
 
 	r.GET(config.PathPrefix+"/health", makeHandler(config, metrics, newCoordinator, healthHandler))
 
+	v1 := r.Group(config.PathPrefix + "/v1")
+	v1.Any("/*any", func(c *gin.Context) {
+		c.Status(http.StatusGone)
+	})
+
 	v2 := r.Group(config.PathPrefix + "/v2")
 	v2.GET("/config", makeHandler(config, metrics, newCoordinator, configHandler))
 	v2.GET("/schema", makeHandler(config, metrics, newCoordinator, schemaHandler))

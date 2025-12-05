@@ -152,7 +152,7 @@ func TestConfigRoute(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	// v1 is now removed
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusGone, w.Code)
 }
 
 // /v2 API
