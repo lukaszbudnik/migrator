@@ -17,7 +17,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/graph-gophers/graphql-go v1.8.0
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/microsoft/go-mssqldb v1.9.4
+	github.com/microsoft/go-mssqldb v1.9.5
 	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	go.mongodb.org/mongo-driver v1.17.6
@@ -85,6 +85,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.1 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
