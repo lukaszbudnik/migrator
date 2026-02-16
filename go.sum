@@ -22,10 +22,10 @@ github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 h1:XRzhVemXdgv
 github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
 github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
-github.com/Depado/ginprom v1.8.2 h1:H3sXqXlHfXpoUHciuWSbod1jzc9OyaZ4edM5oYL/nUI=
-github.com/Depado/ginprom v1.8.2/go.mod h1:uq9dl4TqwBr0OpkvswJURh5fmjZcbrrMoDiDFHN8dMw=
-github.com/appleboy/gofight/v2 v2.2.0 h1:uqQ3wzTlF1ma+r4jRCQ4cygCjrGZyZEBMBCjT/t9zRw=
-github.com/appleboy/gofight/v2 v2.2.0/go.mod h1:USTV3UbA5kHBs4I91EsPi+6PIVZAx3KLorYjvtON91A=
+github.com/Depado/ginprom v1.8.3 h1:da9SEAEoki+NfIdjYITYSNbWh2ZCMu99tWHkr3UZHjw=
+github.com/Depado/ginprom v1.8.3/go.mod h1:m8inEFEmJ6ywAxmIICmFQePvCJJfcS9Mt4EoThZ/8c4=
+github.com/appleboy/gofight/v2 v2.2.1 h1:OOJrZ71tdOFDzyyBvP+h047w0EJHktqTo4mEOTDrKy0=
+github.com/appleboy/gofight/v2 v2.2.1/go.mod h1:dOz1A3YtfciapH897IQOAR6JfTFm0nwJctaDuJZiijY=
 github.com/aws/aws-sdk-go-v2 v1.41.1 h1:ABlyEARCDLN034NhxlRUSZr4l71mh+T5KAeGh6cerhU=
 github.com/aws/aws-sdk-go-v2 v1.41.1/go.mod h1:MayyLB8y+buD9hZqkCW3kX1AKq07Y5pXxtgB+rRFhz0=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 h1:489krEF9xIGkOaaX3CE/Be2uWjiXrkCH6gUX+bZA/BU=
