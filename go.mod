@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.2
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/graph-gophers/graphql-go v1.8.0
+	github.com/graph-gophers/graphql-go v1.9.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/microsoft/go-mssqldb v1.9.7
 	github.com/stretchr/testify v1.11.1
