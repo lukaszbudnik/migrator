@@ -1,6 +1,6 @@
 module github.com/lukaszbudnik/migrator
 
-go 1.25.0
+go 1.25.7
 
 godebug x509negativeserial=1
 
@@ -17,7 +17,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/graph-gophers/graphql-go v1.9.0
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/microsoft/go-mssqldb v1.9.7
+	github.com/microsoft/go-mssqldb v1.9.8
 	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	go.mongodb.org/mongo-driver v1.17.9
@@ -59,7 +59,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
