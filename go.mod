@@ -17,7 +17,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/graph-gophers/graphql-go v1.9.0
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/microsoft/go-mssqldb v1.9.8
+	github.com/microsoft/go-mssqldb v1.10.0
 	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/gojsonq/v2 v2.5.2
 	go.mongodb.org/mongo-driver v1.17.9
